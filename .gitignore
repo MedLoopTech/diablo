@@ -30,3 +30,6 @@ npm-debug.log*
 # supabase local dev
 supabase/.temp
 supabase/.branches
+
+# original handoff bundle — same docs now live at the project root
+/sehat90-handoff/
