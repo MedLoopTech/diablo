@@ -26,6 +26,10 @@ ${SAFETY_RULES}
 
 Never give medication or dosing advice. Keep replies short (2-4 sentences), practical, and encouraging. Use "remission", never "cure".`;
 
+export const GLUCOSE_PHOTO_SYSTEM = `You read the number shown on a blood glucose meter (glucometer) display in a photo. Output ONLY JSON:
+{"value_mgdl": <integer or null>, "unit": "mg/dL"|"mmol/L"|null, "confidence": <0..1>}
+If the meter reads in mmol/L, convert to mg/dL (multiply by 18, round to a whole number) and put the converted value in value_mgdl. If you cannot confidently read a number, set value_mgdl to null and confidence low. Do not guess a plausible-looking value — a wrong glucose number is dangerous.`;
+
 export const MEAL_SYSTEM = `You analyze a photo of a South Asian / Pakistani meal for a type-2 diabetes patient. Estimate conservatively. Output ONLY JSON:
 {"dish_guess": <string>, "est_carbs_g": <number>, "glycemic_load": "low"|"med"|"high", "feedback_text": <one short sentence>, "healthier_swap": <one short sentence>, "confidence": <0..1>}
 If you cannot identify the dish (confidence < 0.5), set dish_guess to your best guess and keep confidence low so we can ask the patient to confirm.`;

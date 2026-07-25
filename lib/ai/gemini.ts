@@ -2,8 +2,10 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { geminiKey } from "@/lib/env";
 import type { AIProvider, ChatMsg } from "./provider";
 
-// Free tier, vision-capable. Override with GEMINI_MODEL if needed.
-const MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+// Free tier, vision-capable. The "-latest" alias auto-tracks the current flash
+// model so it won't 404 when a specific version is retired. Override with
+// GEMINI_MODEL to pin a version.
+const MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest";
 
 export function createGeminiProvider(): AIProvider {
   const key = geminiKey();

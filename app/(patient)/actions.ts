@@ -10,7 +10,8 @@ export type LogResult =
 
 export async function logGlucose(
   value: number,
-  context: GlucoseContext
+  context: GlucoseContext,
+  photoPath?: string | null
 ): Promise<LogResult> {
   if (!Number.isInteger(value) || value <= 0 || value >= 1000) {
     return { ok: false, error: "Enter a value between 1 and 999 mg/dL." };
@@ -26,7 +27,12 @@ export async function logGlucose(
   // and awards points. We read the flag back to drive the feedback state.
   const { data, error } = await supabase
     .from("glucose_readings")
-    .insert({ patient_id: user.id, value_mgdl: value, context })
+    .insert({
+      patient_id: user.id,
+      value_mgdl: value,
+      context,
+      photo_url: photoPath ?? null,
+    })
     .select("flag, value_mgdl")
     .single();
 
