@@ -1,0 +1,75 @@
+{
+  "common": {
+    "appName": "Sehat/90",
+    "tagline": "Diabetes remission challenge",
+    "aiCoachLabel": "AI coach — not a doctor",
+    "disclaimer": "Sehat/90 supports your care team — it does not replace medical advice. Medication changes only ever come from your doctor.",
+    "loading": "Loading…",
+    "signOut": "Sign out"
+  },
+  "auth": {
+    "title": "Join the challenge",
+    "subtitle": "90 days. Your care pod. Real remission science.",
+    "phoneLabel": "Phone number",
+    "phonePlaceholder": "+92 3xx xxxxxxx",
+    "phoneHelp": "We'll text you a 6-digit code.",
+    "sendCode": "Send code",
+    "sendingCode": "Sending…",
+    "otpLabel": "Enter the 6-digit code",
+    "otpPlaceholder": "123456",
+    "verify": "Verify & continue",
+    "verifying": "Verifying…",
+    "useEmail": "Use email instead",
+    "usePhone": "Use phone instead",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "you@example.com",
+    "emailHelp": "We'll email you a 6-digit code.",
+    "resend": "Resend code",
+    "changeNumber": "Change number",
+    "changeEmail": "Change email",
+    "errorGeneric": "Something went wrong. Please try again.",
+    "errorInvalidCode": "That code didn't match. Check it and try again."
+  },
+  "nav": {
+    "today": "Today",
+    "log": "Log",
+    "care": "Care",
+    "cohort": "Cohort",
+    "progress": "Progress"
+  },
+  "today": {
+    "greeting": "Salaam, {name}",
+    "dayOf": "Day {day} of 90",
+    "notEnrolled": "Your cohort starts soon",
+    "emptyTitle": "Your journey begins here",
+    "emptyBody": "Once your cohort starts, this screen becomes your daily home base — glucose horizon, coach nudges, and your day's plan.",
+    "glucoseHorizon": "Glucose horizon · today",
+    "todaysPlan": "Today's plan"
+  },
+  "log": {
+    "title": "Log",
+    "emptyBody": "Glucose entry, meal photos, and movement logging arrive in Phase 1."
+  },
+  "care": {
+    "title": "Your care pod",
+    "emptyBody": "Your doctor, nutritionist, and coach appear here once your pod is assigned.",
+    "medicationSafety": "Medication safety. Dose changes only ever happen through a doctor-approved plan in this app — never from AI suggestions."
+  },
+  "cohort": {
+    "title": "Cohort",
+    "emptyBody": "Leaderboard, group challenge, and the cohort feed open with Phase 4."
+  },
+  "progress": {
+    "title": "Progress",
+    "emptyBody": "Your 90-day path, estimated HbA1c, and trends will build up as you log."
+  },
+  "staff": {
+    "title": "Staff dashboard",
+    "welcome": "Welcome, {name}",
+    "emptyBody": "Escalation queues, flagged readings, and patient timelines arrive in Phase 3.",
+    "roleLabel": "Signed in as {role}"
+  },
+  "errors": {
+    "notAuthorized": "You don't have access to that area."
+  }
+}

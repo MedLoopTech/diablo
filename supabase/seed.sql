@@ -1,0 +1,2 @@
+-- Seed data arrives in Phase 5 (1 active cohort at day 34, 6 patients,
+-- 5 weeks of realistic data, full pod staff). Intentionally empty in Phase 0.

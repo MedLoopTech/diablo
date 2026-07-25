@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-paper text-ink font-body antialiased;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+input::placeholder {
+  color: #9db4ab;
+}
+
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible {
+  outline: 2px solid theme("colors.marigold");
+  outline-offset: 2px;
+}
+
+@layer components {
+  .eyebrow {
+    @apply font-body text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft;
+  }
+  .card {
+    @apply rounded-card border border-line bg-card p-4;
+  }
+}
