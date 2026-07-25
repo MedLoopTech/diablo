@@ -22,6 +22,12 @@ export default async function StaffLayout({
             <span className="eyebrow">{t("title")}</span>
           </div>
           <div className="flex items-center gap-4">
+            <a href="/staff" className="font-body text-[12.5px] font-semibold text-ink-soft hover:text-ink">
+              Queue
+            </a>
+            <a href="/staff/consults" className="font-body text-[12.5px] font-semibold text-ink-soft hover:text-ink">
+              Consults
+            </a>
             {profile && (
               <span className="font-body text-[12.5px] text-ink-soft">
                 {t("roleLabel", { role: profile.role })}
