@@ -48,7 +48,7 @@
   },
   "log": {
     "title": "Log",
-    "emptyBody": "Glucose entry, meal photos, and movement logging arrive in Phase 1."
+    "mealSoon": "Snap a photo of your meal and the AI coach will estimate carbs and glycemic load. Arrives with Phase 2."
   },
   "care": {
     "title": "Your care pod",
