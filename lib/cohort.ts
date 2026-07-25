@@ -56,7 +56,7 @@ export async function getGroupChallenge(): Promise<{ total: number; goal: number
     .in("patient_id", ids)
     .gte("created_at", weekAgo);
   const total = (pts ?? []).reduce((s, r) => s + (r.points as number), 0);
-  const goal = Math.max(200, ids.length * 150); // ~150 pts/member/week target
+  const goal = Math.max(500, ids.length * 800); // weekly cohort points target
   return { total, goal, pct: Math.min(100, Math.round((total / goal) * 100)) };
 }
 
