@@ -19,7 +19,7 @@ Copy `.env.example` to `.env.local` and fill in:
 | Variable | Where to get it | Used for |
 | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API | Client + server Supabase access |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Project Settings → API | Client + server Supabase access (RLS enforced) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Project Settings → API | Client + server Supabase access (RLS enforced). Accepts either the legacy `anon` JWT or a newer `sb_publishable_…` key. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API | Server-only admin ops (role changes, seeding). Never sent to the client. |
 | `ANTHROPIC_API_KEY` | console.anthropic.com | AI coach + meal photo analysis (Phase 2+) |
 
@@ -30,9 +30,20 @@ Copy `.env.example` to `.env.local` and fill in:
    into the SQL editor, or link the CLI (`npx supabase init`, `npx supabase link`)
    and run `npx supabase db push`.
 3. Enable auth providers: **Phone** (attach an SMS provider — Twilio Verify works
-   well for Pakistan) and **Email** with OTP. Email is the dev-friendly fallback:
-   codes appear in Supabase Auth logs without an SMS provider.
-4. Signup automatically creates a `profiles` row with `role = 'patient'`.
+   well for Pakistan) and **Email**. Email is the dev-friendly fallback and needs
+   no SMS provider.
+4. **Make the email provider send a code, not a magic link.** This app calls
+   `verifyOtp()` with a 6-digit token, but Supabase's stock email template only
+   contains `{{ .ConfirmationURL }}`, so no code ever reaches the user and the
+   OTP step cannot succeed. Fix it under Authentication → Emails → *Magic Link*
+   by including the token in the body:
+
+   ```html
+   <p>Your Sehat/90 code is <strong>{{ .Token }}</strong></p>
+   ```
+
+   Leaving the link in alongside the code is fine — both work.
+5. Signup automatically creates a `profiles` row with `role = 'patient'`.
    To make a staff account, sign up first, then update the row with the service
    role (SQL editor): `update profiles set role = 'doctor' where phone = '+92...';`
 
