@@ -1,20 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { homePathForRole, isStaffRole } from "@/lib/roles";
+import { requireSupabase, supabaseConfigured } from "@/lib/env";
 
 const PUBLIC_PATHS = ["/login", "/auth"];
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`)
-  );
-}
-
-export function supabaseConfigured() {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
-      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes("YOUR-PROJECT")
   );
 }
 
@@ -30,9 +23,10 @@ export async function updateSession(request: NextRequest) {
     return response;
   }
 
+  const { url, anonKey } = requireSupabase();
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    anonKey,
     {
       cookies: {
         getAll() {

@@ -20,7 +20,6 @@ function normalizePhone(raw: string): string {
 export function LoginForm() {
   const t = useTranslations("auth");
   const router = useRouter();
-  const supabase = createBrowserSupabase();
 
   const [channel, setChannel] = useState<Channel>("phone");
   const [step, setStep] = useState<Step>("identify");
@@ -30,43 +29,58 @@ export function LoginForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // The client is built per-action rather than at render time: these pages
+  // are statically prerendered, and a missing/placeholder env would otherwise
+  // throw during the build.
   const sendCode = async () => {
     setBusy(true);
     setError(null);
-    const { error } =
-      channel === "phone"
-        ? await supabase.auth.signInWithOtp({ phone: normalizePhone(phone) })
-        : await supabase.auth.signInWithOtp({ email: email.trim() });
-    setBusy(false);
-    if (error) {
-      setError(error.message || t("errorGeneric"));
-      return;
+    try {
+      const supabase = createBrowserSupabase();
+      const { error } =
+        channel === "phone"
+          ? await supabase.auth.signInWithOtp({ phone: normalizePhone(phone) })
+          : await supabase.auth.signInWithOtp({ email: email.trim() });
+      if (error) {
+        setError(error.message || t("errorGeneric"));
+        return;
+      }
+      setStep("otp");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("errorGeneric"));
+    } finally {
+      setBusy(false);
     }
-    setStep("otp");
   };
 
   const verifyCode = async () => {
     setBusy(true);
     setError(null);
-    const { error } =
-      channel === "phone"
-        ? await supabase.auth.verifyOtp({
-            phone: normalizePhone(phone),
-            token: otp.trim(),
-            type: "sms",
-          })
-        : await supabase.auth.verifyOtp({
-            email: email.trim(),
-            token: otp.trim(),
-            type: "email",
-          });
-    setBusy(false);
-    if (error) {
-      setError(t("errorInvalidCode"));
-      return;
+    try {
+      const supabase = createBrowserSupabase();
+      const { error } =
+        channel === "phone"
+          ? await supabase.auth.verifyOtp({
+              phone: normalizePhone(phone),
+              token: otp.trim(),
+              type: "sms",
+            })
+          : await supabase.auth.verifyOtp({
+              email: email.trim(),
+              token: otp.trim(),
+              type: "email",
+            });
+      if (error) {
+        setError(t("errorInvalidCode"));
+        return;
+      }
+      router.push("/");
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("errorGeneric"));
+    } finally {
+      setBusy(false);
     }
-    router.push("/");
-    router.refresh();
   };
 
   const switchChannel = () => {

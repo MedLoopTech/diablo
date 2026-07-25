@@ -1,4 +1,5 @@
 import { createServerSupabase } from "@/lib/supabase/server";
+import { supabaseConfigured } from "@/lib/env";
 import type { Role } from "@/lib/roles";
 
 export type Profile = {
@@ -10,17 +11,9 @@ export type Profile = {
   timezone: string;
 };
 
-export function supabaseEnvReady(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
-      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes("YOUR-PROJECT")
-  );
-}
-
 /** Current user's profile, or null when signed out / env not configured. */
 export async function getCurrentProfile(): Promise<Profile | null> {
-  if (!supabaseEnvReady()) return null;
+  if (!supabaseConfigured()) return null;
   const supabase = createServerSupabase();
   const {
     data: { user },
