@@ -1,0 +1,66 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { TriageContext } from "./triage";
+
+/**
+ * Assemble the rolling context the coach is allowed to see: a 7-day glucose
+ * summary, cohort day, and the NAMES of active medications only — never doses
+ * (SPEC §3a: "active medications LIST ONLY — never dosing advice").
+ */
+export async function getChatContext(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<TriageContext> {
+  const sevenDaysAgo = new Date(
+    Date.now() - 7 * 24 * 60 * 60 * 1000
+  ).toISOString();
+
+  const [{ data: readings }, { data: plan }, { data: cohortDay }] =
+    await Promise.all([
+      supabase
+        .from("glucose_readings")
+        .select("value_mgdl, flag, taken_at")
+        .eq("patient_id", userId)
+        .gte("taken_at", sevenDaysAgo)
+        .order("taken_at", { ascending: false }),
+      supabase
+        .from("medication_plans")
+        .select("medications, effective_from")
+        .eq("patient_id", userId)
+        .order("effective_from", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase.rpc("sehat_cohort_day", { p: userId }),
+    ]);
+
+  let recentReadingsSummary: string | undefined;
+  if (readings && readings.length) {
+    const vals = readings.map((r) => r.value_mgdl);
+    const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const flagged = readings.filter((r) => r.flag !== "none").length;
+    recentReadingsSummary = `${readings.length} readings in 7d, avg ${avg}, range ${min}-${max} mg/dL, ${flagged} flagged`;
+  }
+
+  // Names only — strip any dose/schedule fields defensively.
+  const activeMedications = Array.isArray(plan?.medications)
+    ? (plan!.medications as Array<{ name?: string }>)
+        .map((m) => m?.name)
+        .filter((n): n is string => Boolean(n))
+    : [];
+
+  return {
+    cohortDay: (cohortDay as number) ?? undefined,
+    recentReadingsSummary,
+    activeMedications,
+  };
+}
+
+/** Human-readable label for the routed role, for handoff copy. */
+export function roleLabel(routedTo: "nutritionist" | "coach" | "doctor"): string {
+  return routedTo === "doctor"
+    ? "doctor"
+    : routedTo === "nutritionist"
+      ? "nutritionist"
+      : "movement coach";
+}

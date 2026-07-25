@@ -10,6 +10,7 @@ import {
 import { CONTEXT_LABEL } from "@/lib/glucose";
 import { dialFraction } from "@/lib/time";
 import { TaskList } from "./TaskList";
+import { TodayCoach } from "./TodayCoach";
 
 export default async function TodayPage({
   searchParams,
@@ -36,6 +37,12 @@ export default async function TodayPage({
   const inRange = readings.filter((r) => r.value_mgdl < 180).length;
   const inRangePct =
     readings.length > 0 ? Math.round((inRange / readings.length) * 100) : null;
+
+  const latest = readings[readings.length - 1];
+  const nudge =
+    latest && latest.value_mgdl >= 180
+      ? t("nudgeHigh", { value: latest.value_mgdl })
+      : t("nudgeDefault");
 
   return (
     <div className="flex flex-col gap-4">
@@ -68,6 +75,8 @@ export default async function TodayPage({
           <GlucoseDial readings={dialReadings} />
         </div>
       </Card>
+
+      <TodayCoach nudge={nudge} />
 
       {tasks.length > 0 ? (
         <TaskList tasks={tasks} />

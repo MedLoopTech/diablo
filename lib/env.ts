@@ -11,6 +11,7 @@ const PLACEHOLDERS = new Set([
   "your-anon-key",
   "your-service-role-key",
   "sk-ant-...",
+  "your-gemini-key",
 ]);
 
 function real(value: string | undefined): string | null {
@@ -38,6 +39,18 @@ export function serviceRoleKey(): string | null {
 
 export function anthropicKey(): string | null {
   return real(process.env.ANTHROPIC_API_KEY);
+}
+
+export function geminiKey(): string | null {
+  return real(process.env.GEMINI_API_KEY);
+}
+
+/**
+ * Which AI provider to use. Production default is Anthropic (the decided stack);
+ * set AI_PROVIDER=gemini in .env.local for free interactive dev testing.
+ */
+export function aiProvider(): "anthropic" | "gemini" {
+  return process.env.AI_PROVIDER === "gemini" ? "gemini" : "anthropic";
 }
 
 /** True only when both values needed for any Supabase call are present. */

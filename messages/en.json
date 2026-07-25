@@ -44,7 +44,19 @@
     "emptyTitle": "Your journey begins here",
     "emptyBody": "Once your cohort starts, this screen becomes your daily home base — glucose horizon, coach nudges, and your day's plan.",
     "glucoseHorizon": "Glucose horizon · today",
-    "todaysPlan": "Today's plan"
+    "todaysPlan": "Today's plan",
+    "askCoach": "Ask the AI coach →",
+    "nudgeDefault": "Log a reading and a meal today and I'll spot patterns for you. Ask me anything about food, movement, or your routine.",
+    "nudgeHigh": "Your last reading was {value} — above your target band. A 15-minute walk usually brings the next number down. Want tips for tonight?"
+  },
+  "coach": {
+    "title": "AI coach",
+    "notDoctor": "AI coach — not a doctor",
+    "intro": "Salaam! I'm your AI coach. Ask me about food, movement, or your routine. Anything medical I'll pass to your care pod.",
+    "placeholder": "Ask anything…",
+    "send": "Send",
+    "thinking": "Thinking…",
+    "error": "Something went wrong. Please try again."
   },
   "log": {
     "title": "Log",
