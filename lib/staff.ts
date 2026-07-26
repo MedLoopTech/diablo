@@ -55,6 +55,107 @@ export async function getOpenEscalations(): Promise<Escalation[]> {
   );
 }
 
+export type StaffAnalytics = {
+  patientCount: number;
+  openEscalations: number;
+  urgentCount: number;
+  avgFasting: number | null;
+  timeInRangePct: number | null;
+  estCohortHba1c: number | null;
+  adherencePct: number | null;
+  cohortTrend: { date: string; avgFasting: number }[];
+  atRisk: { id: string; name: string | null; avg: number; flags: number; lastValue: number | null }[];
+};
+
+/** Patient ids in the current staff member's pods. */
+async function myPatientIds(supabase: ReturnType<typeof createServerSupabase>, uid: string): Promise<string[]> {
+  const { data: pods } = await supabase
+    .from("care_pods")
+    .select("cohort_id")
+    .or(`doctor_id.eq.${uid},nutritionist_id.eq.${uid},coach_id.eq.${uid}`);
+  const cohortIds = (pods ?? []).map((p) => p.cohort_id);
+  if (!cohortIds.length) return [];
+  const { data: members } = await supabase
+    .from("cohort_members")
+    .select("patient_id")
+    .in("cohort_id", cohortIds);
+  return Array.from(new Set((members ?? []).map((m) => m.patient_id as string)));
+}
+
+/** Cohort-level analytics for the doctor dashboard (RLS-scoped to their pods). */
+export async function getStaffAnalytics(): Promise<StaffAnalytics> {
+  const supabase = createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const empty: StaffAnalytics = {
+    patientCount: 0, openEscalations: 0, urgentCount: 0, avgFasting: null,
+    timeInRangePct: null, estCohortHba1c: null, adherencePct: null, cohortTrend: [], atRisk: [],
+  };
+  if (!user) return empty;
+
+  const ids = await myPatientIds(supabase, user.id);
+  if (!ids.length) return empty;
+
+  const thirtyAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const sevenAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const [{ data: readings }, { data: escalations }, { data: profiles }, { data: tasks }] =
+    await Promise.all([
+      supabase.from("glucose_readings").select("patient_id, value_mgdl, context, flag, taken_at").in("patient_id", ids).gte("taken_at", thirtyAgo),
+      supabase.from("escalations").select("kind, status").in("patient_id", ids).neq("status", "resolved"),
+      supabase.from("profiles").select("id, full_name").in("id", ids),
+      supabase.from("tasks").select("patient_id, done_at").in("patient_id", ids).gte("for_date", sevenAgo.slice(0, 10)),
+    ]);
+
+  const r = readings ?? [];
+  const nameOf = new Map((profiles ?? []).map((p) => [p.id as string, p.full_name as string | null]));
+
+  const all = r.map((x) => x.value_mgdl as number);
+  const avg = all.length ? Math.round(all.reduce((a, b) => a + b, 0) / all.length) : null;
+  const estCohortHba1c = avg != null ? Math.round(((avg + 46.7) / 28.7) * 10) / 10 : null;
+  const fasting = r.filter((x) => x.context === "fasting").map((x) => x.value_mgdl as number);
+  const avgFasting = fasting.length ? Math.round(fasting.reduce((a, b) => a + b, 0) / fasting.length) : null;
+  const inRange = all.filter((v) => v < 180).length;
+  const timeInRangePct = all.length ? Math.round((inRange / all.length) * 100) : null;
+
+  // Cohort fasting trend by day.
+  const byDay = new Map<string, number[]>();
+  for (const x of r) {
+    if (x.context !== "fasting") continue;
+    const d = (x.taken_at as string).slice(0, 10);
+    (byDay.get(d) ?? byDay.set(d, []).get(d)!).push(x.value_mgdl as number);
+  }
+  const cohortTrend = Array.from(byDay.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, vals]) => ({ date: date.slice(5), avgFasting: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) }));
+
+  // At-risk ranking: highest recent average + flag count.
+  const perPatient = new Map<string, { vals: number[]; flags: number; last: number | null; lastAt: string }>();
+  for (const x of r) {
+    const cur = perPatient.get(x.patient_id as string) ?? { vals: [], flags: 0, last: null, lastAt: "" };
+    cur.vals.push(x.value_mgdl as number);
+    if (x.flag !== "none") cur.flags += 1;
+    if ((x.taken_at as string) > cur.lastAt) { cur.lastAt = x.taken_at as string; cur.last = x.value_mgdl as number; }
+    perPatient.set(x.patient_id as string, cur);
+  }
+  const atRisk = Array.from(perPatient.entries())
+    .map(([id, v]) => ({ id, name: nameOf.get(id) ?? null, avg: Math.round(v.vals.reduce((a, b) => a + b, 0) / v.vals.length), flags: v.flags, lastValue: v.last }))
+    .sort((a, b) => b.flags - a.flags || b.avg - a.avg)
+    .slice(0, 5);
+
+  const doneTasks = (tasks ?? []).filter((t) => t.done_at).length;
+  const adherencePct = tasks?.length ? Math.round((doneTasks / tasks.length) * 100) : null;
+
+  const esc = escalations ?? [];
+  return {
+    patientCount: ids.length,
+    openEscalations: esc.length,
+    urgentCount: esc.filter((e) => e.kind === "glucose_urgent" || e.kind === "patient_flagged").length,
+    avgFasting, timeInRangePct, estCohortHba1c, adherencePct, cohortTrend, atRisk,
+  };
+}
+
 export type Medication = { name: string; dose: string; schedule: string };
 export type MedicationPlan = {
   id: string;

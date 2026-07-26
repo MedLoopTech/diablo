@@ -1,44 +1,93 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { getCurrentProfile } from "@/lib/profile";
-import { getOpenEscalations, getFlaggedReadings } from "@/lib/staff";
+import { getOpenEscalations, getFlaggedReadings, getStaffAnalytics } from "@/lib/staff";
 import { EscalationQueue } from "./EscalationQueue";
+import { CohortTrendChart } from "@/components/CohortTrendChart";
+
+function Kpi({ label, value, sub, tone = "ink" }: { label: string; value: string; sub?: string; tone?: "ink" | "coral" | "primary" }) {
+  const color = tone === "coral" ? "text-coral" : tone === "primary" ? "text-primary-deep" : "text-ink";
+  return (
+    <div className="rounded-card border border-line bg-card p-4">
+      <div className="eyebrow">{label}</div>
+      <div className={`mt-1 font-display text-[26px] font-semibold ${color}`}>{value}</div>
+      {sub && <div className="mt-0.5 font-body text-[11.5px] text-ink-soft">{sub}</div>}
+    </div>
+  );
+}
 
 export default async function StaffHome() {
   const t = await getTranslations("staff");
-  const profile = await getCurrentProfile();
-  const firstName = profile?.full_name?.split(" ")[0] ?? "there";
-
-  const [escalations, flagged] = await Promise.all([
+  const [profile, a, escalations, flagged] = await Promise.all([
+    getCurrentProfile(),
+    getStaffAnalytics(),
     getOpenEscalations(),
     getFlaggedReadings(),
   ]);
-  const urgentCount = escalations.filter(
-    (e) => e.kind === "glucose_urgent" || e.kind === "patient_flagged"
-  ).length;
+  const firstName = profile?.full_name?.split(" ")[0] ?? "there";
 
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="font-display text-2xl font-semibold text-ink">
-          {t("welcome", { name: firstName })}
-        </h1>
+        <h1 className="font-display text-2xl font-semibold text-ink">{t("welcome", { name: firstName })}</h1>
         <p className="mt-1 font-body text-[13px] text-ink-soft">
-          {escalations.length} open · {urgentCount} urgent · {flagged.length} flagged readings
+          {a.patientCount} patients · {a.openEscalations} open ({a.urgentCount} urgent) · {a.timeInRangePct ?? "—"}% cohort time-in-range
         </p>
       </div>
 
+      {/* KPI row */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <Kpi label="Urgent now" value={String(a.urgentCount)} sub="need action" tone={a.urgentCount > 0 ? "coral" : "ink"} />
+        <Kpi label="Open items" value={String(a.openEscalations)} sub="escalations" />
+        <Kpi label="Avg fasting" value={a.avgFasting != null ? `${a.avgFasting}` : "—"} sub="mg/dL · 30d" tone="primary" />
+        <Kpi label="Est. cohort HbA1c" value={a.estCohortHba1c != null ? `${a.estCohortHba1c}%` : "—"} sub="from mean glucose" tone="primary" />
+        <Kpi label="Adherence" value={a.adherencePct != null ? `${a.adherencePct}%` : "—"} sub="tasks done · 7d" />
+      </div>
+
+      {/* Cohort trend */}
       <section>
-        <h2 className="eyebrow mb-3">Escalation queue</h2>
-        <EscalationQueue escalations={escalations} />
+        <h2 className="eyebrow mb-3">Cohort fasting glucose · 30 days</h2>
+        <div className="rounded-card border border-line bg-card p-4">
+          <CohortTrendChart data={a.cohortTrend} />
+        </div>
       </section>
 
+      {/* At-risk + action queue side by side on wide screens */}
+      <div className="grid gap-8 lg:grid-cols-2">
+        <section>
+          <h2 className="eyebrow mb-3">Patients to watch</h2>
+          <div className="flex flex-col gap-2">
+            {a.atRisk.length === 0 ? (
+              <div className="rounded-card border border-line bg-card p-4 font-body text-[13px] text-ink-soft">No data.</div>
+            ) : (
+              a.atRisk.map((p) => (
+                <Link
+                  key={p.id}
+                  href={`/staff/patients/${p.id}`}
+                  className="flex items-center justify-between rounded-card border border-line bg-card p-3 hover:border-primary"
+                >
+                  <div>
+                    <div className="font-body text-[14px] font-bold text-ink">{p.name ?? "Patient"}</div>
+                    <div className="font-body text-[11.5px] text-ink-soft">avg {p.avg} mg/dL · {p.flags} flags · last {p.lastValue ?? "—"}</div>
+                  </div>
+                  <div className={`h-2.5 w-2.5 rounded-full ${p.flags >= 3 ? "bg-coral" : p.flags > 0 ? "bg-marigold" : "bg-primary"}`} />
+                </Link>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section>
+          <h2 className="eyebrow mb-3">Action queue</h2>
+          <EscalationQueue escalations={escalations.slice(0, 8)} />
+        </section>
+      </div>
+
+      {/* Flagged readings */}
       <section>
         <h2 className="eyebrow mb-3">Flagged readings</h2>
         {flagged.length === 0 ? (
-          <div className="rounded-card border border-line bg-card p-6 text-center font-body text-[13px] text-ink-soft">
-            No flagged readings.
-          </div>
+          <div className="rounded-card border border-line bg-card p-6 text-center font-body text-[13px] text-ink-soft">No flagged readings.</div>
         ) : (
           <div className="overflow-x-auto rounded-card border border-line bg-card">
             <table className="w-full min-w-[520px] border-collapse font-body text-[13px]">
@@ -52,23 +101,17 @@ export default async function StaffHome() {
                 </tr>
               </thead>
               <tbody>
-                {flagged.map((r) => (
+                {flagged.slice(0, 12).map((r) => (
                   <tr key={r.id} className="border-b border-line last:border-0">
                     <td className="p-3">
-                      <Link href={`/staff/patients/${r.patient_id}`} className="font-semibold text-ink hover:underline">
-                        {r.patient_name ?? "Patient"}
-                      </Link>
+                      <Link href={`/staff/patients/${r.patient_id}`} className="font-semibold text-ink hover:underline">{r.patient_name ?? "Patient"}</Link>
                     </td>
                     <td className="p-3 font-semibold text-ink">{r.value_mgdl}</td>
                     <td className="p-3 text-ink-soft">{r.context}</td>
                     <td className="p-3">
-                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${r.flag === "urgent" ? "bg-coral text-white" : "bg-mint text-primary-deep"}`}>
-                        {r.flag}
-                      </span>
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${r.flag === "urgent" ? "bg-coral text-white" : "bg-mint text-primary-deep"}`}>{r.flag}</span>
                     </td>
-                    <td className="p-3 text-ink-soft">
-                      {new Date(r.taken_at).toLocaleString("en-US", { timeZone: "Asia/Karachi", dateStyle: "medium", timeStyle: "short" })}
-                    </td>
+                    <td className="p-3 text-ink-soft">{new Date(r.taken_at).toLocaleString("en-US", { timeZone: "Asia/Karachi", dateStyle: "medium", timeStyle: "short" })}</td>
                   </tr>
                 ))}
               </tbody>
