@@ -4,6 +4,8 @@ import { getPatientDetail } from "@/lib/staff";
 import { getCurrentProfile } from "@/lib/profile";
 import { MedicationEditor } from "./MedicationEditor";
 import { MealPlanEditor } from "./MealPlanEditor";
+import { MovementPlanEditor } from "./MovementPlanEditor";
+import { StaffReplyBox } from "./StaffReplyBox";
 
 function pkt(iso: string) {
   return new Date(iso).toLocaleString("en-US", {
@@ -23,6 +25,7 @@ export default async function PatientDetailPage({
   const role = viewer?.role ?? "";
   const canEditMeds = role === "doctor" || role === "admin";
   const canEditMeals = role === "nutritionist" || role === "admin";
+  const canEditMovement = role === "coach" || role === "admin";
 
   return (
     <div className="flex flex-col gap-8">
@@ -67,6 +70,31 @@ export default async function PatientDetailPage({
             </ul>
           ) : (
             <p className="font-body text-[13px] text-ink-soft">No meal plan yet.</p>
+          )}
+        </div>
+      )}
+
+      {/* Movement plan: editor for coach/admin, read-only summary otherwise. */}
+      {canEditMovement ? (
+        <MovementPlanEditor patientId={p.id} plan={p.currentMovementPlan} />
+      ) : (
+        <div className="rounded-card border border-line bg-card p-4">
+          <h3 className="eyebrow mb-2">Movement plan</h3>
+          {p.currentMovementPlan?.exercises?.length ? (
+            <ul className="flex flex-col gap-1 font-body text-[13px] text-ink">
+              {p.currentMovementPlan.exercises.map((ex, i) => (
+                <li key={i}>
+                  <span className="font-semibold">{ex.name}</span>
+                  <span className="ml-1 text-ink-soft">
+                    {ex.duration_min ? `${ex.duration_min} min` : ""}
+                    {ex.sets && ex.reps ? ` · ${ex.sets}×${ex.reps}` : ex.sets ? ` · ${ex.sets} sets` : ""}
+                    {ex.notes ? ` — ${ex.notes}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="font-body text-[13px] text-ink-soft">No movement plan yet.</p>
           )}
         </div>
       )}
@@ -153,6 +181,8 @@ export default async function PatientDetailPage({
           )}
         </div>
       </section>
+
+      <StaffReplyBox patientId={p.id} />
     </div>
   );
 }

@@ -93,6 +93,16 @@ export default async function CarePage() {
                     {b.status}
                   </span>
                 </div>
+                {b.meet_url && b.status === "booked" && (
+                  <a
+                    href={b.meet_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2.5 flex items-center gap-2 rounded-full bg-primary px-4 py-2 font-body text-[12.5px] font-bold text-white w-fit"
+                  >
+                    📹 Join Google Meet
+                  </a>
+                )}
               </Card>
             ))}
           </div>

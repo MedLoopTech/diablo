@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/day-prompts",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/progress-snapshot",
+      "schedule": "0 1 * * 0"
+    }
+  ]
+}

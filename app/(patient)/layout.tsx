@@ -1,5 +1,6 @@
 import { BottomNav } from "@/components/BottomNav";
 import { NotificationBell } from "@/components/NotificationBell";
+import { PushSubscriber } from "@/components/PushSubscriber";
 import { getNotifications } from "@/lib/notifications";
 
 export default async function PatientLayout({
@@ -20,6 +21,7 @@ export default async function PatientLayout({
           unread={notifications.unread}
         />
       </header>
+      <PushSubscriber />
       <main className="px-[18px] pb-[98px] pt-2">{children}</main>
       <BottomNav />
     </div>

@@ -145,6 +145,7 @@ export type PatientBooking = {
   staff_name: string | null;
   staff_role: string | null;
   status: string;
+  meet_url: string | null;
 };
 
 /** The current patient's upcoming and past consult bookings. */
@@ -157,7 +158,7 @@ export async function getMyBookings(): Promise<PatientBooking[]> {
 
   const { data } = await supabase
     .from("consult_bookings")
-    .select("id, slot_time, status, consult_windows(date, profiles:staff_id(full_name, role))")
+    .select("id, slot_time, status, consult_windows(date, meet_url, profiles:staff_id(full_name, role))")
     .eq("patient_id", user.id)
     .order("created_at", { ascending: false })
     .limit(5);
@@ -169,6 +170,7 @@ export async function getMyBookings(): Promise<PatientBooking[]> {
       status: string;
       consult_windows?: {
         date?: string;
+        meet_url?: string | null;
         profiles?: { full_name?: string; role?: string };
       };
     };
@@ -179,6 +181,7 @@ export async function getMyBookings(): Promise<PatientBooking[]> {
       staff_name: row.consult_windows?.profiles?.full_name ?? null,
       staff_role: row.consult_windows?.profiles?.role ?? null,
       status: row.status,
+      meet_url: row.consult_windows?.meet_url ?? null,
     };
   });
 }

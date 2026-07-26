@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { getCurrentProfile } from "@/lib/profile";
-import { getOpenEscalations, getFlaggedReadings, getStaffAnalytics } from "@/lib/staff";
+import { getOpenEscalations, getFlaggedReadings, getStaffAnalytics, getCoachAnalytics } from "@/lib/staff";
 import { EscalationQueue } from "./EscalationQueue";
 import { CohortTrendChart } from "@/components/CohortTrendChart";
 
@@ -16,15 +16,75 @@ function Kpi({ label, value, sub, tone = "ink" }: { label: string; value: string
   );
 }
 
+async function CoachDashboard({ firstName }: { firstName: string }) {
+  const a = await getCoachAnalytics();
+  return (
+    <div className="flex flex-col gap-8">
+      <div>
+        <h1 className="font-display text-2xl font-semibold text-ink">Welcome, {firstName}</h1>
+        <p className="mt-1 font-body text-[13px] text-ink-soft">
+          {a.patientCount} patients · movement adherence {a.movementAdherencePct != null ? `${a.movementAdherencePct}%` : "—"} this week
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <Kpi label="Patients" value={String(a.patientCount)} sub="in your pods" />
+        <Kpi label="Movement adherence" value={a.movementAdherencePct != null ? `${a.movementAdherencePct}%` : "—"} sub="tasks done · 7d" tone="primary" />
+        <Kpi label="Active streakers" value={String(a.patients.filter((p) => p.streak >= 3).length)} sub="3+ day streak" tone="primary" />
+      </div>
+
+      <section>
+        <h2 className="eyebrow mb-3">Patient movement this week</h2>
+        <div className="flex flex-col gap-2">
+          {a.patients.length === 0 ? (
+            <div className="rounded-card border border-line bg-card p-4 font-body text-[13px] text-ink-soft">No patients in your pods yet.</div>
+          ) : (
+            a.patients.map((p) => (
+              <Link
+                key={p.id}
+                href={`/staff/patients/${p.id}`}
+                className="flex items-center justify-between rounded-card border border-line bg-card p-3 hover:border-primary"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="font-body text-[14px] font-bold text-ink">{p.name ?? "Patient"}</div>
+                  <div className="font-body text-[11.5px] text-ink-soft">
+                    {p.movementDone}/{p.movementTotal} sessions · streak {p.streak}d
+                  </div>
+                </div>
+                <div className="ml-3 flex items-center gap-2">
+                  {/* Progress bar */}
+                  <div className="h-2 w-20 rounded-full bg-line overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all"
+                      style={{ width: `${p.movementPct}%` }}
+                    />
+                  </div>
+                  <span className="font-body text-[12px] font-semibold text-ink w-9 text-right">{p.movementPct}%</span>
+                  <div className={`h-2.5 w-2.5 rounded-full ${p.movementPct >= 80 ? "bg-primary" : p.movementPct >= 50 ? "bg-marigold" : "bg-coral"}`} />
+                </div>
+              </Link>
+            ))
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 export default async function StaffHome() {
   const t = await getTranslations("staff");
-  const [profile, a, escalations, flagged] = await Promise.all([
-    getCurrentProfile(),
+  const profile = await getCurrentProfile();
+  const firstName = profile?.full_name?.split(" ")[0] ?? "there";
+
+  if (profile?.role === "coach") {
+    return <CoachDashboard firstName={firstName} />;
+  }
+
+  const [a, escalations, flagged] = await Promise.all([
     getStaffAnalytics(),
     getOpenEscalations(),
     getFlaggedReadings(),
   ]);
-  const firstName = profile?.full_name?.split(" ")[0] ?? "there";
 
   return (
     <div className="flex flex-col gap-8">

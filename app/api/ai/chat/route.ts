@@ -6,6 +6,7 @@ import { triage } from "@/lib/ai/triage";
 import { getChatContext, roleLabel } from "@/lib/ai/context";
 import { CHAT_SYSTEM } from "@/lib/ai/prompts";
 import { extractTags, getRelevantResources } from "@/lib/resources";
+import { sendPushToPatient } from "@/lib/push";
 
 export async function POST(request: Request) {
   if (!supabaseConfigured()) {
@@ -103,6 +104,24 @@ export async function POST(request: Request) {
     assigned_to: assignedTo ?? null,
     status: "open",
   });
+
+  // Push urgent alerts directly to the assigned staff member.
+  if (t.class === "urgent" && assignedTo) {
+    const { data: patientProfile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .single();
+    await sendPushToPatient(
+      supabase,
+      assignedTo,
+      {
+        title: "⚠️ Urgent patient message",
+        body: `${patientProfile?.full_name ?? "Patient"}: ${message.slice(0, 100)}`,
+        url: "/staff",
+      }
+    );
+  }
 
   const label = roleLabel(routed);
   const reply =

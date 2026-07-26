@@ -6,6 +6,7 @@ import {
   getTodaysReadings,
   getTodaysTasks,
   getPointsAndStreak,
+  getMyMovementPlan,
 } from "@/lib/data";
 import { CONTEXT_LABEL } from "@/lib/glucose";
 import { dialFraction } from "@/lib/time";
@@ -20,11 +21,12 @@ export default async function TodayPage({
   const t = await getTranslations("today");
   const te = await getTranslations("errors");
 
-  const [profile, readings, tasks, stats] = await Promise.all([
+  const [profile, readings, tasks, stats, movementPlan] = await Promise.all([
     getCurrentProfile(),
     getTodaysReadings(),
     getTodaysTasks(),
     getPointsAndStreak(),
+    getMyMovementPlan(),
   ]);
 
   const firstName = profile?.full_name?.split(" ")[0] ?? "friend";
@@ -110,6 +112,34 @@ export default async function TodayPage({
           <p className="font-body text-[13px] text-ink-soft">{t("emptyBody")}</p>
         </Card>
       )}
+
+      {movementPlan?.exercises?.length ? (
+        <Card>
+          <Eyebrow className="mb-2">Your movement plan</Eyebrow>
+          <ul className="flex flex-col gap-2">
+            {movementPlan.exercises.map((ex, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <span className="mt-0.5 text-[15px]">
+                  {ex.category === "cardio" ? "🚶" : ex.category === "yoga" ? "🧘" : ex.category === "strength" ? "💪" : ex.category === "breathing" ? "🌬️" : "⚡"}
+                </span>
+                <div>
+                  <div className="font-body text-[13.5px] font-semibold text-ink">{ex.name}</div>
+                  <div className="font-body text-[11.5px] text-ink-soft">
+                    {[
+                      ex.duration_min ? `${ex.duration_min} min` : null,
+                      ex.sets && ex.reps ? `${ex.sets} sets × ${ex.reps}` : ex.sets ? `${ex.sets} sets` : null,
+                      ex.notes,
+                    ].filter(Boolean).join(" · ")}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+          {movementPlan.notes && (
+            <p className="mt-3 font-body text-[12px] leading-relaxed text-ink-soft">{movementPlan.notes}</p>
+          )}
+        </Card>
+      ) : null}
     </div>
   );
 }

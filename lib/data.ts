@@ -1,6 +1,7 @@
 import { createServerSupabase } from "@/lib/supabase/server";
 import { karachiToday, karachiTodayRangeUtc } from "@/lib/time";
 import type { GlucoseReading, Task } from "@/lib/types";
+import type { MovementPlan } from "@/lib/staff";
 
 /** Pod doctor's first name for the current patient, or null before enrollment. */
 export async function getPodDoctorName(): Promise<string | null> {
@@ -61,6 +62,23 @@ export async function getTodaysTasks(): Promise<Task[]> {
     .eq("for_date", forDate)
     .order("created_at", { ascending: true });
   return (data as Task[]) ?? [];
+}
+
+/** Current movement plan assigned by the patient's pod coach. */
+export async function getMyMovementPlan(): Promise<MovementPlan | null> {
+  const supabase = createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data } = await supabase
+    .from("movement_plans")
+    .select("id, exercises, effective_from, notes")
+    .eq("patient_id", user.id)
+    .order("effective_from", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data as MovementPlan) ?? null;
 }
 
 export async function getPointsAndStreak(): Promise<{

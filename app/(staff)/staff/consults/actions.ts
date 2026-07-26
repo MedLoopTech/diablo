@@ -3,6 +3,23 @@
 import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/lib/supabase/server";
 
+export async function setConsultMeetUrl(
+  windowId: string,
+  meetUrl: string
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = createServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "unauthorized" };
+  const { error } = await supabase
+    .from("consult_windows")
+    .update({ meet_url: meetUrl || null })
+    .eq("id", windowId)
+    .eq("staff_id", user.id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/staff/consults");
+  return { ok: true };
+}
+
 export async function createConsultWindow(
   date: string,
   startTime: string,

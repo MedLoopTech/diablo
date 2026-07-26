@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { AdminOverview, AdminCohort, Person } from "@/lib/admin";
+import type { AdminOverview, AdminCohort, Person, AppointmentStat } from "@/lib/admin";
+import type { PlanFlag } from "@/lib/plan";
 import { RESOURCE_LABELS, type ResourceType } from "@/lib/resources-shared";
-import { createCohort, assignPod, enrollPatient, setCohortStatus, createResource, toggleResource, inviteStaff, updatePersonName } from "./actions";
+import { createCohort, assignPod, enrollPatient, setCohortStatus, createResource, toggleResource, inviteStaff, updatePersonName, setPatientPlan, togglePlanFeature } from "./actions";
 
 const field = "rounded-[10px] border border-line bg-paper px-3 py-2 font-body text-[13px] text-ink outline-none";
 
@@ -28,6 +29,8 @@ function CohortCard({ c, staff, patients }: { c: AdminCohort; staff: Person[]; p
   const [enrollId, setEnrollId] = useState("");
   const [hba1c, setHba1c] = useState("");
   const [weight, setWeight] = useState("");
+  const [fastingGlucose, setFastingGlucose] = useState("");
+  const [targetNotes, setTargetNotes] = useState("");
 
   const savePod = () =>
     start(async () => {
@@ -41,10 +44,12 @@ function CohortCard({ c, staff, patients }: { c: AdminCohort; staff: Person[]; p
         c.id,
         enrollId,
         hba1c ? parseFloat(hba1c) : null,
-        weight ? parseFloat(weight) : null
+        weight ? parseFloat(weight) : null,
+        fastingGlucose ? parseInt(fastingGlucose, 10) : null,
+        targetNotes || null
       );
       setMsg(r.ok ? "Enrolled." : r.error ?? "Failed.");
-      if (r.ok) { setEnrollId(""); setHba1c(""); setWeight(""); }
+      if (r.ok) { setEnrollId(""); setHba1c(""); setWeight(""); setFastingGlucose(""); setTargetNotes(""); }
     });
 
   return (
@@ -84,6 +89,12 @@ function CohortCard({ c, staff, patients }: { c: AdminCohort; staff: Person[]; p
           </label>
           <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">Baseline weight kg (optional)
             <input type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="e.g. 82.5" className={field} />
+          </label>
+          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">Baseline fasting glucose mg/dL (optional)
+            <input type="number" step="1" value={fastingGlucose} onChange={(e) => setFastingGlucose(e.target.value)} placeholder="e.g. 145" className={field} />
+          </label>
+          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">Target notes (optional)
+            <input type="text" value={targetNotes} onChange={(e) => setTargetNotes(e.target.value)} placeholder="e.g. aim HbA1c < 6.5% by day 90" className={field} />
           </label>
         </div>
       )}
@@ -139,7 +150,7 @@ function InviteStaffPanel() {
   );
 }
 
-function PeoplePanel({ people, title }: { people: Person[]; title: string }) {
+function PeoplePanel({ people, title, showPlan }: { people: Person[]; title: string; showPlan?: boolean }) {
   const [pending, start] = useTransition();
   const [editing, setEditing] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
@@ -158,7 +169,7 @@ function PeoplePanel({ people, title }: { people: Person[]; title: string }) {
           <div className="rounded-card border border-line bg-card p-3 font-body text-[13px] text-ink-soft">None yet.</div>
         )}
         {people.map((p) => (
-          <div key={p.id} className="flex items-center justify-between rounded-card border border-line bg-card px-3.5 py-2.5">
+          <div key={p.id} className="flex items-center justify-between gap-3 rounded-card border border-line bg-card px-3.5 py-2.5">
             {editing === p.id ? (
               <div className="flex flex-1 items-center gap-2">
                 <input
@@ -173,13 +184,122 @@ function PeoplePanel({ people, title }: { people: Person[]; title: string }) {
               </div>
             ) : (
               <>
-                <div>
+                <div className="flex-1 min-w-0">
                   <span className="font-body text-[13.5px] font-semibold text-ink">{p.name ?? "(no name)"}</span>
                   <span className="ml-2 font-body text-[11px] text-ink-soft">{p.role}</span>
                 </div>
-                <button onClick={() => { setEditing(p.id); setDraftName(p.name ?? ""); }} className="font-body text-[12px] text-ink-soft hover:text-ink">Edit</button>
+                <div className="flex items-center gap-2">
+                  {showPlan && (
+                    <select
+                      defaultValue={p.plan ?? "basic"}
+                      onChange={(e) => start(() => setPatientPlan(p.id, e.target.value as "basic" | "plus" | "premium").then(() => {}))}
+                      disabled={pending}
+                      className="rounded-[8px] border border-line bg-paper px-2 py-1 font-body text-[12px] text-ink outline-none"
+                    >
+                      <option value="basic">Basic</option>
+                      <option value="plus">Plus</option>
+                      <option value="premium">Premium</option>
+                    </select>
+                  )}
+                  <button onClick={() => { setEditing(p.id); setDraftName(p.name ?? ""); }} className="font-body text-[12px] text-ink-soft hover:text-ink">Edit</button>
+                </div>
               </>
             )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+const PLAN_LABELS: Record<string, string> = { basic: "Basic", plus: "Plus", premium: "Premium" };
+const PLANS = ["basic", "plus", "premium"] as const;
+
+function PlanFeaturesPanel({ flags }: { flags: PlanFlag[] }) {
+  const [pending, start] = useTransition();
+  const [msg, setMsg] = useState<string | null>(null);
+
+  // Build feature list from flags (unique feature_keys, ordered by sort_order)
+  const features = Array.from(
+    new Map(flags.map((f) => [f.feature_key, { key: f.feature_key, label: f.label }])).values()
+  ).sort((a, b) => {
+    const aOrd = flags.find((f) => f.feature_key === a.key)?.sort_order ?? 99;
+    const bOrd = flags.find((f) => f.feature_key === b.key)?.sort_order ?? 99;
+    return aOrd - bOrd;
+  });
+
+  // Map plan+key → enabled
+  const stateMap = new Map(flags.map((f) => [`${f.plan}:${f.feature_key}`, f.enabled]));
+  const [local, setLocal] = useState<Map<string, boolean>>(new Map(stateMap));
+
+  const toggle = (plan: string, key: string, enabled: boolean) => {
+    setLocal((prev) => new Map(prev).set(`${plan}:${key}`, enabled));
+    start(async () => {
+      const r = await togglePlanFeature(plan, key, enabled);
+      setMsg(r.ok ? null : r.error ?? "Failed.");
+    });
+  };
+
+  return (
+    <section>
+      <h2 className="eyebrow mb-3">Plan feature configuration</h2>
+      <div className="rounded-card border border-line bg-card p-4">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[420px] border-collapse font-body text-[13px]">
+            <thead>
+              <tr className="border-b border-line text-left">
+                <th className="p-2.5 font-semibold text-ink">Feature</th>
+                {PLANS.map((p) => (
+                  <th key={p} className="p-2.5 text-center font-semibold text-ink">{PLAN_LABELS[p]}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {features.map((feat) => (
+                <tr key={feat.key} className="border-b border-line last:border-0">
+                  <td className="p-2.5 text-ink">{feat.label}</td>
+                  {PLANS.map((plan) => {
+                    const enabled = local.get(`${plan}:${feat.key}`) ?? false;
+                    return (
+                      <td key={plan} className="p-2.5 text-center">
+                        <button
+                          onClick={() => toggle(plan, feat.key, !enabled)}
+                          disabled={pending}
+                          className={`h-5 w-9 rounded-full transition-colors ${enabled ? "bg-primary" : "bg-line"} disabled:opacity-60`}
+                        >
+                          <span className={`block h-4 w-4 mx-0.5 rounded-full bg-white shadow transition-transform ${enabled ? "translate-x-4" : "translate-x-0"}`} />
+                        </button>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {msg && <p className="mt-2 font-body text-[12px] text-red-500">{msg}</p>}
+        <p className="mt-3 font-body text-[11.5px] text-ink-soft">
+          Changes take effect immediately — patients see updated features on their next page load.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function AppointmentStatsPanel({ stats }: { stats: AppointmentStat[] }) {
+  if (!stats.length) return null;
+  return (
+    <section>
+      <h2 className="eyebrow mb-3">Appointments by care role</h2>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {stats.map((s) => (
+          <div key={s.role} className="rounded-card border border-line bg-card p-4">
+            <div className="font-body text-[11px] uppercase tracking-wider text-primary-deep">{s.label}</div>
+            <div className="mt-1 font-display text-[28px] font-bold text-ink">{s.total}</div>
+            <div className="mt-1 flex gap-3 font-body text-[12px] text-ink-soft">
+              <span>{s.upcoming} upcoming</span>
+              <span>{s.completed} completed</span>
+            </div>
           </div>
         ))}
       </div>
@@ -297,11 +417,15 @@ export function AdminPanels({ overview }: { overview: AdminOverview }) {
         </div>
       </section>
 
+      <AppointmentStatsPanel stats={overview.appointmentStats} />
+
       <InviteStaffPanel />
 
       <PeoplePanel people={overview.staff} title="Staff" />
 
-      <PeoplePanel people={overview.patients} title="Patients" />
+      <PeoplePanel people={overview.patients} title="Patients" showPlan />
+
+      <PlanFeaturesPanel flags={overview.planFlags} />
 
       <ResourcesPanel resources={overview.resources} />
 

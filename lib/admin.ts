@@ -1,5 +1,6 @@
 import { createServerSupabase } from "@/lib/supabase/server";
 import type { Resource } from "@/lib/resources-shared";
+import type { PlanFlag } from "@/lib/plan";
 
 export type AdminCohort = {
   id: string;
@@ -11,8 +12,10 @@ export type AdminCohort = {
   nutritionist: string | null;
   coach: string | null;
 };
-export type Person = { id: string; name: string | null; role: string };
+export type Person = { id: string; name: string | null; role: string; plan: string | null };
 export type Template = { id: string; phase: number; kind: string; title: string; subtitle: string | null };
+
+export type AppointmentStat = { role: string; label: string; total: number; upcoming: number; completed: number };
 
 export type AdminOverview = {
   cohorts: AdminCohort[];
@@ -20,19 +23,23 @@ export type AdminOverview = {
   patients: Person[];
   templates: Template[];
   resources: (Resource & { is_active: boolean })[];
+  planFlags: PlanFlag[];
+  appointmentStats: AppointmentStat[];
 };
 
 export async function getAdminOverview(): Promise<AdminOverview> {
   const supabase = createServerSupabase();
 
-  const [{ data: cohorts }, { data: pods }, { data: members }, { data: profiles }, { data: templates }, { data: resources }] =
+  const [{ data: cohorts }, { data: pods }, { data: members }, { data: profiles }, { data: templates }, { data: resources }, { data: planFlagsRaw }, { data: bookingsRaw }] =
     await Promise.all([
       supabase.from("cohorts").select("id, name, start_date, status").order("start_date", { ascending: false }),
       supabase.from("care_pods").select("cohort_id, doctor_id, nutritionist_id, coach_id"),
       supabase.from("cohort_members").select("cohort_id, patient_id"),
-      supabase.from("profiles").select("id, full_name, role"),
+      supabase.from("profiles").select("id, full_name, role, plan"),
       supabase.from("task_templates").select("id, phase, kind, title, subtitle").order("phase").order("sort_order"),
       supabase.from("resources").select("id, title, type, description, url, tags, is_active, created_at").order("created_at", { ascending: false }),
+      supabase.from("plan_feature_flags").select("plan, feature_key, label, enabled, sort_order").order("sort_order").order("plan"),
+      supabase.from("consult_bookings").select("status, consult_windows(staff_id, profiles:staff_id(role))"),
     ]);
 
   const nameOf = new Map((profiles ?? []).map((p) => [p.id as string, p.full_name as string | null]));
@@ -54,12 +61,37 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     };
   });
 
-  const people = (profiles ?? []).map((p) => ({ id: p.id as string, name: p.full_name as string | null, role: p.role as string }));
+  const people = (profiles ?? []).map((p) => ({
+    id: p.id as string,
+    name: p.full_name as string | null,
+    role: p.role as string,
+    plan: (p.plan as string) ?? null,
+  }));
+
+  // Appointment stats grouped by staff role.
+  const now = new Date().toISOString();
+  const statMap = new Map<string, { total: number; upcoming: number; completed: number }>();
+  for (const b of bookingsRaw ?? []) {
+    const window = (b as unknown as { consult_windows?: { staff_id: string; profiles?: { role?: string } } }).consult_windows;
+    const role = window?.profiles?.role ?? "unknown";
+    const cur = statMap.get(role) ?? { total: 0, upcoming: 0, completed: 0 };
+    cur.total += 1;
+    if ((b as unknown as { status: string }).status === "completed") cur.completed += 1;
+    else cur.upcoming += 1;
+    statMap.set(role, cur);
+  }
+  const roleLabel: Record<string, string> = { doctor: "Doctor", nutritionist: "Nutritionist", coach: "Fitness Coach" };
+  const appointmentStats: AppointmentStat[] = Array.from(statMap.entries()).map(([role, s]) => ({
+    role, label: roleLabel[role] ?? role, ...s,
+  }));
+
   return {
     cohorts: adminCohorts,
     staff: people.filter((p) => p.role !== "patient"),
     patients: people.filter((p) => p.role === "patient"),
     templates: (templates ?? []) as Template[],
     resources: (resources ?? []) as (Resource & { is_active: boolean })[],
+    planFlags: (planFlagsRaw as PlanFlag[]) ?? [],
+    appointmentStats,
   };
 }

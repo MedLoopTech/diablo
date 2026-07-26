@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { ConsultForm } from "./ConsultForm";
+import { MeetUrlForm } from "./MeetUrlForm";
 
 type Booking = {
   id: string;
@@ -15,6 +16,7 @@ type Window = {
   start_time: string;
   end_time: string;
   slot_minutes: number;
+  meet_url: string | null;
   bookings: Booking[];
 };
 
@@ -28,7 +30,7 @@ export default async function ConsultsPage() {
     ? await supabase
         .from("consult_windows")
         .select(
-          "id, date, start_time, end_time, slot_minutes, consult_bookings(id, slot_time, status, profiles:patient_id(full_name))"
+          "id, date, start_time, end_time, slot_minutes, meet_url, consult_bookings(id, slot_time, status, profiles:patient_id(full_name))"
         )
         .eq("staff_id", user.id)
         .order("date", { ascending: false })
@@ -41,6 +43,7 @@ export default async function ConsultsPage() {
       start_time: string;
       end_time: string;
       slot_minutes: number;
+      meet_url?: string | null;
       consult_bookings?: {
         id: string;
         slot_time: string;
@@ -54,6 +57,7 @@ export default async function ConsultsPage() {
       start_time: row.start_time,
       end_time: row.end_time,
       slot_minutes: row.slot_minutes,
+      meet_url: row.meet_url ?? null,
       bookings: (row.consult_bookings ?? []).map((b) => ({
         id: b.id,
         slot_time: b.slot_time,
@@ -105,6 +109,7 @@ export default async function ConsultsPage() {
                     ))}
                   </div>
                 )}
+                <MeetUrlForm windowId={w.id} currentUrl={w.meet_url} />
               </div>
             ))}
           </div>

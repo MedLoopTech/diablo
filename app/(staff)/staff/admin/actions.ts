@@ -47,11 +47,18 @@ export async function enrollPatient(
   cohortId: string,
   patientId: string,
   baselineHba1c?: number | null,
-  baselineWeightKg?: number | null
+  baselineWeightKg?: number | null,
+  baselineFastingGlucose?: number | null,
+  targetNotes?: string | null
 ): Promise<{ ok: boolean; error?: string }> {
   const { supabase, ok } = await requireAdmin();
   if (!ok) return { ok: false, error: "Admins only." };
-  const { error } = await supabase.from("cohort_members").insert({ cohort_id: cohortId, patient_id: patientId });
+  const { error } = await supabase.from("cohort_members").insert({
+    cohort_id: cohortId,
+    patient_id: patientId,
+    ...(baselineFastingGlucose ? { baseline_fasting_glucose: baselineFastingGlucose } : {}),
+    ...(targetNotes ? { target_notes: targetNotes.trim() } : {}),
+  });
   if (error) return { ok: false, error: error.message.includes("duplicate") ? "Already enrolled." : error.message };
   // Persist baseline metrics on the profile when provided.
   if (baselineHba1c || baselineWeightKg) {
@@ -105,6 +112,28 @@ export async function toggleResource(id: string, isActive: boolean): Promise<{ o
   await supabase.from("resources").update({ is_active: isActive }).eq("id", id);
   revalidatePath("/staff/admin");
   revalidatePath("/resources");
+  return { ok: true };
+}
+
+export async function setPatientPlan(patientId: string, plan: "basic" | "plus" | "premium"): Promise<{ ok: boolean; error?: string }> {
+  const { supabase, ok } = await requireAdmin();
+  if (!ok) return { ok: false, error: "Admins only." };
+  const { error } = await supabase.from("profiles").update({ plan }).eq("id", patientId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/staff/admin");
+  return { ok: true };
+}
+
+export async function togglePlanFeature(plan: string, featureKey: string, enabled: boolean): Promise<{ ok: boolean; error?: string }> {
+  const { supabase, ok } = await requireAdmin();
+  if (!ok) return { ok: false, error: "Admins only." };
+  const { error } = await supabase
+    .from("plan_feature_flags")
+    .update({ enabled })
+    .eq("plan", plan)
+    .eq("feature_key", featureKey);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/staff/admin");
   return { ok: true };
 }
 
