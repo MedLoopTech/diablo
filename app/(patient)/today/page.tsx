@@ -9,6 +9,8 @@ import {
 } from "@/lib/data";
 import { CONTEXT_LABEL } from "@/lib/glucose";
 import { dialFraction } from "@/lib/time";
+import { getNotifications } from "@/lib/notifications";
+import { NotificationBell } from "@/components/NotificationBell";
 import { TaskList } from "./TaskList";
 import { TodayCoach } from "./TodayCoach";
 
@@ -20,11 +22,12 @@ export default async function TodayPage({
   const t = await getTranslations("today");
   const te = await getTranslations("errors");
 
-  const [profile, readings, tasks, stats] = await Promise.all([
+  const [profile, readings, tasks, stats, notifications] = await Promise.all([
     getCurrentProfile(),
     getTodaysReadings(),
     getTodaysTasks(),
     getPointsAndStreak(),
+    getNotifications(),
   ]);
 
   const firstName = profile?.full_name?.split(" ")[0] ?? "friend";
@@ -52,14 +55,17 @@ export default async function TodayPage({
         </div>
       )}
 
-      <div>
-        <Eyebrow className="text-primary">
-          {t("dayOf", { day: stats.cohortDay })} · 🔥 {stats.streak} ·{" "}
-          {stats.points} pts
-        </Eyebrow>
-        <h1 className="mt-1 font-display text-[28px] font-semibold leading-tight text-ink">
-          {t("greeting", { name: firstName })}
-        </h1>
+      <div className="flex items-start justify-between">
+        <div>
+          <Eyebrow className="text-primary">
+            {t("dayOf", { day: stats.cohortDay })} · 🔥 {stats.streak} ·{" "}
+            {stats.points} pts
+          </Eyebrow>
+          <h1 className="mt-1 font-display text-[28px] font-semibold leading-tight text-ink">
+            {t("greeting", { name: firstName })}
+          </h1>
+        </div>
+        <NotificationBell items={notifications.items} unread={notifications.unread} />
       </div>
 
       <Card className="pb-2">

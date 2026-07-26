@@ -1,6 +1,8 @@
 import { getTranslations } from "next-intl/server";
 import { getCurrentProfile } from "@/lib/profile";
+import { getNotifications } from "@/lib/notifications";
 import { SignOutButton } from "@/components/SignOutButton";
+import { NotificationBell } from "@/components/NotificationBell";
 
 export default async function StaffLayout({
   children,
@@ -10,6 +12,7 @@ export default async function StaffLayout({
   const t = await getTranslations("staff");
   const tc = await getTranslations("common");
   const profile = await getCurrentProfile();
+  const { items, unread } = await getNotifications();
 
   return (
     <div className="min-h-dvh bg-paper">
@@ -33,6 +36,7 @@ export default async function StaffLayout({
                 {t("roleLabel", { role: profile.role })}
               </span>
             )}
+            <NotificationBell items={items} unread={unread} tone="light" />
             <SignOutButton label={tc("signOut")} />
           </div>
         </div>

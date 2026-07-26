@@ -133,6 +133,11 @@ async function seed() {
     }
     // A challenge bonus so leaderboard totals differ.
     await admin.from("points_ledger").insert({ patient_id: p.user.id, points: rint(20, 320), reason: "challenge" });
+    // One patient gets a recent urgent spike so the demo shows the urgent flow
+    // (escalation to the doctor + an urgent notification).
+    if (pi === 2) {
+      await admin.from("glucose_readings").insert({ patient_id: p.user.id, value_mgdl: 254, context: "post_meal", taken_at: dayISO(0, 15) });
+    }
     // A weekly progress snapshot with weight coming down.
     await admin.from("progress_snapshots").insert({
       patient_id: p.user.id, week: 5,
