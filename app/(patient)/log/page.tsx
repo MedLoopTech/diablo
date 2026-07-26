@@ -1,8 +1,14 @@
 import { getTranslations } from "next-intl/server";
 import { getPodDoctorName } from "@/lib/data";
+import { Disclaimer } from "@/components/Disclaimer";
 import { LogForm } from "./LogForm";
 import { MealCard } from "./MealCard";
 import { WeighInCard } from "./WeighInCard";
+
+export const metadata = {
+  title: "Log",
+  description: "Log your glucose, meals, and weight.",
+};
 
 export default async function LogPage() {
   const t = await getTranslations("log");
@@ -19,6 +25,8 @@ export default async function LogPage() {
       <WeighInCard />
 
       <MealCard />
+
+      <Disclaimer />
     </div>
   );
 }

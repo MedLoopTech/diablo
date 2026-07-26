@@ -3,6 +3,11 @@ import { Card, Eyebrow, Pill } from "@/components/ui";
 import { getCohortSummary, getLeaderboard, getGroupChallenge, getFeed } from "@/lib/cohort";
 import { CohortFeed } from "./CohortFeed";
 
+export const metadata = {
+  title: "Community",
+  description: "Your cohort leaderboard, group challenge, and shared feed.",
+};
+
 export default async function CohortPage() {
   const t = await getTranslations("cohort");
   const summary = await getCohortSummary();

@@ -1,4 +1,9 @@
 import Link from "next/link";
+
+export const metadata = {
+  title: "Resources",
+  description: "Curated books, research, and videos for your diabetes remission journey.",
+};
 import { getResources } from "@/lib/resources";
 import { RESOURCE_LABELS, RESOURCE_EMOJI, type ResourceType } from "@/lib/resources-shared";
 import { Card } from "@/components/ui";

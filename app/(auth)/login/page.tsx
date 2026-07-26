@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { useTranslations } from "next-intl";
 import { LoginForm } from "./LoginForm";
+
+export const metadata: Metadata = {
+  title: "Sign in",
+  description: "Sign in to Sehat/90 to access your 90-day diabetes remission program.",
+};
 
 export default function LoginPage() {
   const t = useTranslations("auth");

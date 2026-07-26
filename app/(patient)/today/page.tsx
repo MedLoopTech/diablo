@@ -10,8 +10,14 @@ import {
 } from "@/lib/data";
 import { CONTEXT_LABEL } from "@/lib/glucose";
 import { dialFraction } from "@/lib/time";
+import { Disclaimer } from "@/components/Disclaimer";
 import { TaskList } from "./TaskList";
 import { TodayCoach } from "./TodayCoach";
+
+export const metadata = {
+  title: "Today",
+  description: "Your daily glucose horizon, tasks, and care pod nudge.",
+};
 
 export default async function TodayPage({
   searchParams,
@@ -140,6 +146,8 @@ export default async function TodayPage({
           )}
         </Card>
       ) : null}
+
+      <Disclaimer />
     </div>
   );
 }

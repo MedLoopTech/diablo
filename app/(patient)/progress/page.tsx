@@ -3,6 +3,11 @@ import { Card, Eyebrow } from "@/components/ui";
 import { JourneyPath, FastingTrend } from "@/components/JourneyPath";
 import { getProgressData } from "@/lib/progress";
 
+export const metadata = {
+  title: "Progress",
+  description: "Your 90-day journey path, estimated HbA1c, and glucose trends.",
+};
+
 export default async function ProgressPage() {
   const t = await getTranslations("progress");
   const d = await getProgressData();

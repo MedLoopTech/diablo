@@ -26,6 +26,24 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
+  // Rate limit: 30 patient messages per 24 h (DB-based; upgrade to Redis for paid tiers).
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count } = await supabase
+    .from("chat_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("patient_id", user.id)
+    .eq("sender", "patient")
+    .gte("created_at", since);
+  if ((count ?? 0) >= 30) {
+    return NextResponse.json(
+      { error: "Daily message limit reached. Your care team can always be reached via the Care tab." },
+      {
+        status: 429,
+        headers: { "Retry-After": "86400" },
+      }
+    );
+  }
+
   const ctx = await getChatContext(supabase, user.id);
   const provider = await getProvider();
 

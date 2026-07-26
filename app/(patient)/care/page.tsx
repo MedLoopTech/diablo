@@ -1,7 +1,13 @@
 import { getTranslations } from "next-intl/server";
 import { Card, Eyebrow } from "@/components/ui";
 import { getCarePod, getOpenSlots, getMyMealPlan, getMyBookings, podEmoji, type PodMember } from "@/lib/care";
+import { Disclaimer } from "@/components/Disclaimer";
 import { CareBooking } from "./CareBooking";
+
+export const metadata = {
+  title: "Care",
+  description: "Your care pod, appointments, and meal plan.",
+};
 
 const ROLE_LABEL: Record<PodMember["role"], string> = {
   doctor: "Endocrinologist / GP",
@@ -109,11 +115,7 @@ export default async function CarePage() {
         </section>
       )}
 
-      <div className="rounded-card bg-primary-deep p-4 font-body text-[13px] leading-relaxed text-[#DCEDE4]">
-        <span className="font-bold text-white">Medication safety.</span>{" "}
-        Dose changes only ever happen through a doctor-approved plan in this app —
-        never from AI suggestions.
-      </div>
+      <Disclaimer />
     </div>
   );
 }
