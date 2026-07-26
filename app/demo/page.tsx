@@ -5,6 +5,7 @@ const ACCOUNTS = [
   { role: "Doctor", email: "demo.doctor@sehat90.app", name: "Dr. Ayesha Rahman", desc: "Escalation queue, flagged readings, patient timelines, medication editor, consults." },
   { role: "Nutritionist", email: "demo.nutritionist@sehat90.app", name: "Sana Iqbal", desc: "Staff dashboard scoped to the nutritionist." },
   { role: "Coach", email: "demo.coach@sehat90.app", name: "Faisal Khan", desc: "Staff dashboard scoped to the movement coach." },
+  { role: "Admin", email: "demo.admin@sehat90.app", name: "Program Admin", desc: "Create cohorts, assign pods, enroll patients, view program templates & plans." },
   { role: "Patient (lead)", email: "demo.imran@sehat90.app", name: "Imran Ali", desc: "Full patient app: dial, tasks, coach, care, cohort, progress — 5 weeks of data." },
   { role: "Patient", email: "demo.nadia@sehat90.app", name: "Nadia Saeed", desc: "Another cohort member." },
 ];

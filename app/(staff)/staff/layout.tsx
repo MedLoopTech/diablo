@@ -31,6 +31,11 @@ export default async function StaffLayout({
             <a href="/staff/consults" className="font-body text-[12.5px] font-semibold text-ink-soft hover:text-ink">
               Consults
             </a>
+            {profile?.role === "admin" && (
+              <a href="/staff/admin" className="font-body text-[12.5px] font-semibold text-ink-soft hover:text-ink">
+                Admin
+              </a>
+            )}
             {profile && (
               <span className="font-body text-[12.5px] text-ink-soft">
                 {t("roleLabel", { role: profile.role })}
