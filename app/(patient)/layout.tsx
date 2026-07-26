@@ -1,6 +1,7 @@
 import { BottomNav } from "@/components/BottomNav";
 import { NotificationBell } from "@/components/NotificationBell";
 import { PushSubscriber } from "@/components/PushSubscriber";
+import { SignOutButton } from "@/components/SignOutButton";
 import { getNotifications } from "@/lib/notifications";
 
 export default async function PatientLayout({
@@ -16,10 +17,13 @@ export default async function PatientLayout({
         <span className="font-display text-[15px] font-semibold text-primary-deep">
           Sehat/90
         </span>
-        <NotificationBell
-          items={notifications.items}
-          unread={notifications.unread}
-        />
+        <div className="flex items-center gap-2">
+          <NotificationBell
+            items={notifications.items}
+            unread={notifications.unread}
+          />
+          <SignOutButton label="Sign out" />
+        </div>
       </header>
       <PushSubscriber />
       <main className="px-[18px] pb-[98px] pt-2">{children}</main>
