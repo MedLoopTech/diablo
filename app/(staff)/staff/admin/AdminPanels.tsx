@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import type { AdminOverview, AdminCohort, Person } from "@/lib/admin";
 import { RESOURCE_LABELS, type ResourceType } from "@/lib/resources-shared";
-import { createCohort, assignPod, enrollPatient, setCohortStatus, createResource, toggleResource } from "./actions";
+import { createCohort, assignPod, enrollPatient, setCohortStatus, createResource, toggleResource, inviteStaff, updatePersonName } from "./actions";
 
 const field = "rounded-[10px] border border-line bg-paper px-3 py-2 font-body text-[13px] text-ink outline-none";
 
@@ -26,6 +26,8 @@ function CohortCard({ c, staff, patients }: { c: AdminCohort; staff: Person[]; p
   const [nut, setNut] = useState("");
   const [coa, setCoa] = useState("");
   const [enrollId, setEnrollId] = useState("");
+  const [hba1c, setHba1c] = useState("");
+  const [weight, setWeight] = useState("");
 
   const savePod = () =>
     start(async () => {
@@ -35,9 +37,14 @@ function CohortCard({ c, staff, patients }: { c: AdminCohort; staff: Person[]; p
   const enroll = () =>
     start(async () => {
       if (!enrollId) return;
-      const r = await enrollPatient(c.id, enrollId);
+      const r = await enrollPatient(
+        c.id,
+        enrollId,
+        hba1c ? parseFloat(hba1c) : null,
+        weight ? parseFloat(weight) : null
+      );
       setMsg(r.ok ? "Enrolled." : r.error ?? "Failed.");
-      if (r.ok) setEnrollId("");
+      if (r.ok) { setEnrollId(""); setHba1c(""); setWeight(""); }
     });
 
   return (
@@ -70,8 +77,113 @@ function CohortCard({ c, staff, patients }: { c: AdminCohort; staff: Person[]; p
         </select>
         <button onClick={enroll} disabled={pending || !enrollId} className="rounded-full border border-line bg-paper px-4 py-2 font-body text-[13px] font-bold text-ink disabled:opacity-50">Enroll</button>
       </div>
+      {enrollId && (
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">Baseline HbA1c % (optional)
+            <input type="number" step="0.1" value={hba1c} onChange={(e) => setHba1c(e.target.value)} placeholder="e.g. 8.2" className={field} />
+          </label>
+          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">Baseline weight kg (optional)
+            <input type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="e.g. 82.5" className={field} />
+          </label>
+        </div>
+      )}
       {msg && <p className="mt-2 font-body text-[12px] text-primary-deep">{msg}</p>}
     </div>
+  );
+}
+
+const STAFF_ROLES = ["doctor", "nutritionist", "coach"];
+
+function InviteStaffPanel() {
+  const [pending, start] = useTransition();
+  const [msg, setMsg] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("doctor");
+  const [name, setName] = useState("");
+
+  const send = () =>
+    start(async () => {
+      const r = await inviteStaff(email, role, name);
+      setMsg(r.ok ? `Invite sent to ${email}.` : r.error ?? "Failed.");
+      if (r.ok) { setEmail(""); setName(""); }
+    });
+
+  return (
+    <section>
+      <h2 className="eyebrow mb-3">Invite staff member</h2>
+      <div className="rounded-card border border-line bg-card p-4">
+        <div className="grid gap-2 sm:grid-cols-3">
+          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">Name
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Dr. Zainab Ali" className={field} />
+          </label>
+          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">Email
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="zainab@clinic.pk" className={field} />
+          </label>
+          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">Role
+            <select value={role} onChange={(e) => setRole(e.target.value)} className={field}>
+              {STAFF_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </label>
+        </div>
+        <div className="mt-3 flex items-center gap-3">
+          <button onClick={send} disabled={pending || !email.trim() || !name.trim()} className="rounded-full bg-primary px-5 py-2 font-body text-[13px] font-bold text-white disabled:opacity-50">
+            Send invite
+          </button>
+          {msg && <span className="font-body text-[12.5px] text-primary-deep">{msg}</span>}
+        </div>
+        <p className="mt-2 font-body text-[11.5px] text-ink-soft">
+          Staff receive a magic-link email. Their role is pre-assigned and they set a name on first login.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function PeoplePanel({ people, title }: { people: Person[]; title: string }) {
+  const [pending, start] = useTransition();
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draftName, setDraftName] = useState("");
+
+  const save = (id: string) =>
+    start(async () => {
+      await updatePersonName(id, draftName);
+      setEditing(null);
+    });
+
+  return (
+    <section>
+      <h2 className="eyebrow mb-3">{title} ({people.length})</h2>
+      <div className="flex flex-col gap-1.5">
+        {people.length === 0 && (
+          <div className="rounded-card border border-line bg-card p-3 font-body text-[13px] text-ink-soft">None yet.</div>
+        )}
+        {people.map((p) => (
+          <div key={p.id} className="flex items-center justify-between rounded-card border border-line bg-card px-3.5 py-2.5">
+            {editing === p.id ? (
+              <div className="flex flex-1 items-center gap-2">
+                <input
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && save(p.id)}
+                  className="flex-1 rounded-[8px] border border-line bg-paper px-2 py-1 font-body text-[13px] text-ink outline-none"
+                  autoFocus
+                />
+                <button onClick={() => save(p.id)} disabled={pending} className="rounded-full bg-primary px-3 py-1 font-body text-[12px] font-bold text-white disabled:opacity-50">Save</button>
+                <button onClick={() => setEditing(null)} className="font-body text-[12px] text-ink-soft">Cancel</button>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <span className="font-body text-[13.5px] font-semibold text-ink">{p.name ?? "(no name)"}</span>
+                  <span className="ml-2 font-body text-[11px] text-ink-soft">{p.role}</span>
+                </div>
+                <button onClick={() => { setEditing(p.id); setDraftName(p.name ?? ""); }} className="font-body text-[12px] text-ink-soft hover:text-ink">Edit</button>
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -184,6 +296,12 @@ export function AdminPanels({ overview }: { overview: AdminOverview }) {
           )}
         </div>
       </section>
+
+      <InviteStaffPanel />
+
+      <PeoplePanel people={overview.staff} title="Staff" />
+
+      <PeoplePanel people={overview.patients} title="Patients" />
 
       <ResourcesPanel resources={overview.resources} />
 

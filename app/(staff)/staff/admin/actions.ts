@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
 
 async function requireAdmin() {
   const supabase = createServerSupabase();
@@ -42,11 +43,23 @@ export async function assignPod(
   return { ok: true };
 }
 
-export async function enrollPatient(cohortId: string, patientId: string): Promise<{ ok: boolean; error?: string }> {
+export async function enrollPatient(
+  cohortId: string,
+  patientId: string,
+  baselineHba1c?: number | null,
+  baselineWeightKg?: number | null
+): Promise<{ ok: boolean; error?: string }> {
   const { supabase, ok } = await requireAdmin();
   if (!ok) return { ok: false, error: "Admins only." };
   const { error } = await supabase.from("cohort_members").insert({ cohort_id: cohortId, patient_id: patientId });
   if (error) return { ok: false, error: error.message.includes("duplicate") ? "Already enrolled." : error.message };
+  // Persist baseline metrics on the profile when provided.
+  if (baselineHba1c || baselineWeightKg) {
+    await supabase.from("profiles").update({
+      ...(baselineHba1c ? { baseline_hba1c: baselineHba1c } : {}),
+      ...(baselineWeightKg ? { baseline_weight_kg: baselineWeightKg } : {}),
+    }).eq("id", patientId);
+  }
   revalidatePath("/staff/admin");
   return { ok: true };
 }
@@ -92,5 +105,55 @@ export async function toggleResource(id: string, isActive: boolean): Promise<{ o
   await supabase.from("resources").update({ is_active: isActive }).eq("id", id);
   revalidatePath("/staff/admin");
   revalidatePath("/resources");
+  return { ok: true };
+}
+
+export async function updatePersonName(id: string, name: string): Promise<{ ok: boolean; error?: string }> {
+  const { supabase, ok } = await requireAdmin();
+  if (!ok) return { ok: false, error: "Admins only." };
+  if (!name.trim()) return { ok: false, error: "Name required." };
+  const { error } = await supabase.from("profiles").update({ full_name: name.trim() }).eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/staff/admin");
+  return { ok: true };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getAdminClient(): any {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("SUPABASE_SERVICE_ROLE_KEY not configured in .env.local");
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+export async function inviteStaff(
+  email: string,
+  role: string,
+  name: string
+): Promise<{ ok: boolean; error?: string }> {
+  const { ok } = await requireAdmin();
+  if (!ok) return { ok: false, error: "Admins only." };
+  if (!email.trim() || !role || !name.trim()) return { ok: false, error: "Email, role, and name required." };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let adminClient: any;
+  try {
+    adminClient = getAdminClient();
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+
+  const { data, error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(email.trim(), {
+    options: { data: { role, full_name: name.trim() } },
+  });
+  if (inviteErr) return { ok: false, error: inviteErr.message };
+
+  // Set role and name on the profile the trigger just created.
+  await adminClient
+    .from("profiles")
+    .update({ role, full_name: name.trim() })
+    .eq("id", data.user.id);
+
+  revalidatePath("/staff/admin");
   return { ok: true };
 }

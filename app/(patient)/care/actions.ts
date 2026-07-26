@@ -48,6 +48,30 @@ export async function bookSlot(
     },
   });
   if (error) return { ok: false, error: error.message };
+
+  // Notify the staff member who owns this window.
+  const [{ data: win }, { data: patient }] = await Promise.all([
+    supabase
+      .from("consult_windows")
+      .select("staff_id, date")
+      .eq("id", windowId)
+      .single(),
+    supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .single(),
+  ]);
+  if (win?.staff_id) {
+    await supabase.from("notifications").insert({
+      user_id: win.staff_id,
+      kind: "consult_booked",
+      title: "New consult booked",
+      body: `${patient?.full_name ?? "A patient"} booked ${win.date} at ${slotTime.slice(0, 5)}${reason ? ` — "${reason}"` : ""}`,
+      link: "/staff/consults",
+    });
+  }
+
   revalidatePath("/care");
   return { ok: true };
 }

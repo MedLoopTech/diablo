@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { Card, Eyebrow } from "@/components/ui";
-import { getCarePod, getOpenSlots, getMyMealPlan, podEmoji, type PodMember } from "@/lib/care";
+import { getCarePod, getOpenSlots, getMyMealPlan, getMyBookings, podEmoji, type PodMember } from "@/lib/care";
 import { CareBooking } from "./CareBooking";
 
 const ROLE_LABEL: Record<PodMember["role"], string> = {
@@ -11,7 +11,12 @@ const ROLE_LABEL: Record<PodMember["role"], string> = {
 
 export default async function CarePage() {
   const t = await getTranslations("care");
-  const [pod, slots, mealPlan] = await Promise.all([getCarePod(), getOpenSlots(), getMyMealPlan()]);
+  const [pod, slots, mealPlan, myBookings] = await Promise.all([
+    getCarePod(),
+    getOpenSlots(),
+    getMyMealPlan(),
+    getMyBookings(),
+  ]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -64,6 +69,35 @@ export default async function CarePage() {
       )}
 
       {pod.length > 0 && <CareBooking slots={slots} />}
+
+      {myBookings.length > 0 && (
+        <section>
+          <Eyebrow className="mb-2">Your bookings</Eyebrow>
+          <div className="flex flex-col gap-2">
+            {myBookings.map((b) => (
+              <Card key={b.id} className="px-3.5 py-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-body text-[13.5px] font-bold text-ink">
+                      {b.date} · {b.slot_time.slice(0, 5)}
+                    </div>
+                    <div className="font-body text-[12px] text-ink-soft">
+                      {b.staff_name ?? "Staff"} · {b.staff_role ?? ""}
+                    </div>
+                  </div>
+                  <span className={`rounded-full px-2.5 py-1 font-body text-[11px] font-semibold uppercase tracking-wide ${
+                    b.status === "booked"
+                      ? "bg-mint text-primary-deep"
+                      : "border border-line text-ink-soft"
+                  }`}>
+                    {b.status}
+                  </span>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="rounded-card bg-primary-deep p-4 font-body text-[13px] leading-relaxed text-[#DCEDE4]">
         <span className="font-bold text-white">Medication safety.</span>{" "}

@@ -1,6 +1,13 @@
 import { createServerSupabase } from "@/lib/supabase/server";
 
 export type LeaderRow = { patient_id: string; full_name: string | null; points: number; streak: number; you: boolean };
+export type PostReply = {
+  id: string;
+  author_name: string | null;
+  body: string;
+  created_at: string;
+};
+
 export type FeedPost = {
   id: string;
   author_id: string;
@@ -10,6 +17,7 @@ export type FeedPost = {
   reaction_count: number;
   reply_count: number;
   reacted: boolean;
+  replies: PostReply[];
 };
 export type CohortSummary = { cohortId: string | null; name: string | null; memberCount: number };
 
@@ -79,7 +87,11 @@ export async function getFeed(): Promise<FeedPost[]> {
   const ids = posts.map((p) => p.id);
   const [{ data: reactions }, { data: replies }] = await Promise.all([
     supabase.from("post_reactions").select("post_id, user_id").in("post_id", ids),
-    supabase.from("post_replies").select("post_id").in("post_id", ids),
+    supabase
+      .from("post_replies")
+      .select("id, post_id, author_id, body, created_at, profiles:author_id(full_name)")
+      .in("post_id", ids)
+      .order("created_at", { ascending: true }),
   ]);
 
   const reactionsByPost = new Map<string, { count: number; mine: boolean }>();
@@ -89,8 +101,16 @@ export async function getFeed(): Promise<FeedPost[]> {
     if (r.user_id === user?.id) cur.mine = true;
     reactionsByPost.set(r.post_id, cur);
   }
-  const repliesByPost = new Map<string, number>();
-  for (const r of replies ?? []) repliesByPost.set(r.post_id, (repliesByPost.get(r.post_id) ?? 0) + 1);
+  const repliesByPost = new Map<string, PostReply[]>();
+  for (const r of replies ?? []) {
+    const row = r as unknown as {
+      id: string; post_id: string; body: string; created_at: string;
+      profiles?: { full_name?: string };
+    };
+    const list = repliesByPost.get(row.post_id) ?? [];
+    list.push({ id: row.id, author_name: row.profiles?.full_name ?? null, body: row.body, created_at: row.created_at });
+    repliesByPost.set(row.post_id, list);
+  }
 
   return posts.map((p) => ({
     id: p.id as string,
@@ -99,7 +119,8 @@ export async function getFeed(): Promise<FeedPost[]> {
     body: p.body as string,
     created_at: p.created_at as string,
     reaction_count: reactionsByPost.get(p.id as string)?.count ?? 0,
-    reply_count: repliesByPost.get(p.id as string) ?? 0,
+    reply_count: repliesByPost.get(p.id as string)?.length ?? 0,
     reacted: reactionsByPost.get(p.id as string)?.mine ?? false,
+    replies: repliesByPost.get(p.id as string) ?? [],
   }));
 }

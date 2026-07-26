@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui";
 import { createBrowserSupabase } from "@/lib/supabase/client";
-import type { FeedPost } from "@/lib/cohort";
+import type { FeedPost, PostReply } from "@/lib/cohort";
 import { createPost, toggleReaction, addReply } from "./actions";
 
 function initials(name: string | null) {
@@ -120,12 +120,22 @@ export function CohortFeed({ posts, cohortId }: { posts: FeedPost[]; cohortId: s
                 <div className="mt-1 whitespace-pre-wrap font-body text-[13px] leading-relaxed text-ink">
                   {p.body}
                 </div>
+                {p.replies.length > 0 && (
+                  <div className="mt-2 flex flex-col gap-1.5 border-l-2 border-line pl-3">
+                    {p.replies.map((r: PostReply) => (
+                      <div key={r.id} className="font-body text-[12.5px] text-ink">
+                        <span className="font-semibold">{r.author_name ?? "Member"}: </span>
+                        {r.body}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="mt-2 flex items-center gap-4 font-body text-[12px] text-ink-soft">
                   <button onClick={() => react(p.id)} disabled={pending} className={p.reacted ? "font-bold text-coral" : ""}>
                     ❤️ {p.reaction_count}
                   </button>
                   <button onClick={() => setReplyOpen(replyOpen === p.id ? null : p.id)}>
-                    💬 {p.reply_count} {p.reply_count === 1 ? "reply" : "replies"}
+                    💬 {p.reply_count === 0 ? "Reply" : `${p.reply_count} ${p.reply_count === 1 ? "reply" : "replies"}`}
                   </button>
                 </div>
                 {replyOpen === p.id && (

@@ -9,8 +9,6 @@ import {
 } from "@/lib/data";
 import { CONTEXT_LABEL } from "@/lib/glucose";
 import { dialFraction } from "@/lib/time";
-import { getNotifications } from "@/lib/notifications";
-import { NotificationBell } from "@/components/NotificationBell";
 import { TaskList } from "./TaskList";
 import { TodayCoach } from "./TodayCoach";
 
@@ -22,12 +20,11 @@ export default async function TodayPage({
   const t = await getTranslations("today");
   const te = await getTranslations("errors");
 
-  const [profile, readings, tasks, stats, notifications] = await Promise.all([
+  const [profile, readings, tasks, stats] = await Promise.all([
     getCurrentProfile(),
     getTodaysReadings(),
     getTodaysTasks(),
     getPointsAndStreak(),
-    getNotifications(),
   ]);
 
   const firstName = profile?.full_name?.split(" ")[0] ?? "friend";
@@ -42,6 +39,7 @@ export default async function TodayPage({
     readings.length > 0 ? Math.round((inRange / readings.length) * 100) : null;
 
   const latest = readings[readings.length - 1];
+  const urgentReading = readings.find((r) => r.value_mgdl >= 250 || r.value_mgdl <= 70);
   const nudge =
     latest && latest.value_mgdl >= 180
       ? t("nudgeHigh", { value: latest.value_mgdl })
@@ -55,17 +53,29 @@ export default async function TodayPage({
         </div>
       )}
 
-      <div className="flex items-start justify-between">
-        <div>
-          <Eyebrow className="text-primary">
-            {t("dayOf", { day: stats.cohortDay })} · 🔥 {stats.streak} ·{" "}
-            {stats.points} pts
-          </Eyebrow>
-          <h1 className="mt-1 font-display text-[28px] font-semibold leading-tight text-ink">
-            {t("greeting", { name: firstName })}
-          </h1>
+      {urgentReading && (
+        <div className="rounded-[12px] border border-red-200 bg-red-50 px-4 py-3">
+          <div className="font-body text-[13.5px] font-bold text-red-700">
+            {urgentReading.value_mgdl >= 250
+              ? `⚠️ High glucose: ${urgentReading.value_mgdl} mg/dL — your doctor has been notified.`
+              : `⚠️ Low glucose: ${urgentReading.value_mgdl} mg/dL — your doctor has been notified.`}
+          </div>
+          <p className="mt-0.5 font-body text-[12.5px] text-red-600">
+            {urgentReading.value_mgdl >= 250
+              ? "Avoid sugary foods. Rest, hydrate, and check in again in 30 min."
+              : "Have fast-acting sugar (juice, glucose tablets) immediately. Sit down and rest."}
+          </p>
         </div>
-        <NotificationBell items={notifications.items} unread={notifications.unread} />
+      )}
+
+      <div>
+        <Eyebrow className="text-primary">
+          {t("dayOf", { day: stats.cohortDay })} · 🔥 {stats.streak} ·{" "}
+          {stats.points} pts
+        </Eyebrow>
+        <h1 className="mt-1 font-display text-[28px] font-semibold leading-tight text-ink">
+          {t("greeting", { name: firstName })}
+        </h1>
       </div>
 
       <Card className="pb-2">
@@ -86,6 +96,15 @@ export default async function TodayPage({
 
       {tasks.length > 0 ? (
         <TaskList tasks={tasks} />
+      ) : stats.cohortDay <= 1 && stats.points === 0 ? (
+        <Card>
+          <p className="font-body text-[13px] font-semibold text-ink">
+            Not yet enrolled in a cohort
+          </p>
+          <p className="mt-1 font-body text-[12.5px] leading-relaxed text-ink-soft">
+            Your admin will add you to a cohort and care pod. Check back soon — your 90-day journey starts the moment you&apos;re enrolled.
+          </p>
+        </Card>
       ) : (
         <Card>
           <p className="font-body text-[13px] text-ink-soft">{t("emptyBody")}</p>

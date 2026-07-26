@@ -85,15 +85,45 @@ function slotsForWindow(w: {
   return out;
 }
 
-/** Open consult slots the patient can book (windows minus already-booked slots). */
+/** Open consult slots the patient can book — only windows from their pod staff. */
 export async function getOpenSlots(): Promise<ConsultSlot[]> {
   const supabase = createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Karachi" });
+
+  // Resolve the patient's pod staff IDs first.
+  const { data: membership } = await supabase
+    .from("cohort_members")
+    .select("cohorts(care_pods(doctor_id, nutritionist_id, coach_id))")
+    .eq("patient_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  const pod = (membership as unknown as {
+    cohorts?: {
+      care_pods?: {
+        doctor_id?: string | null;
+        nutritionist_id?: string | null;
+        coach_id?: string | null;
+      };
+    };
+  })?.cohorts?.care_pods;
+
+  const podStaffIds = pod
+    ? [pod.doctor_id, pod.nutritionist_id, pod.coach_id].filter(Boolean) as string[]
+    : [];
+
+  if (!podStaffIds.length) return [];
 
   const { data: windows } = await supabase
     .from("consult_windows")
     .select("id, staff_id, date, start_time, end_time, slot_minutes")
     .gte("date", today)
+    .in("staff_id", podStaffIds)
     .order("date", { ascending: true });
   if (!windows?.length) return [];
 
@@ -106,4 +136,49 @@ export async function getOpenSlots(): Promise<ConsultSlot[]> {
   return windows
     .flatMap((w) => slotsForWindow(w))
     .filter((s) => !taken.has(`${s.windowId}|${s.time}`));
+}
+
+export type PatientBooking = {
+  id: string;
+  date: string;
+  slot_time: string;
+  staff_name: string | null;
+  staff_role: string | null;
+  status: string;
+};
+
+/** The current patient's upcoming and past consult bookings. */
+export async function getMyBookings(): Promise<PatientBooking[]> {
+  const supabase = createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data } = await supabase
+    .from("consult_bookings")
+    .select("id, slot_time, status, consult_windows(date, profiles:staff_id(full_name, role))")
+    .eq("patient_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  return (data ?? []).map((b: unknown) => {
+    const row = b as {
+      id: string;
+      slot_time: string;
+      status: string;
+      consult_windows?: {
+        date?: string;
+        profiles?: { full_name?: string; role?: string };
+      };
+    };
+    return {
+      id: row.id,
+      date: row.consult_windows?.date ?? "?",
+      slot_time: row.slot_time,
+      staff_name: row.consult_windows?.profiles?.full_name ?? null,
+      staff_role: row.consult_windows?.profiles?.role ?? null,
+      status: row.status,
+    };
+  });
 }
