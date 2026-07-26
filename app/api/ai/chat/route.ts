@@ -5,6 +5,7 @@ import { getProvider } from "@/lib/ai/provider";
 import { triage } from "@/lib/ai/triage";
 import { getChatContext, roleLabel } from "@/lib/ai/context";
 import { CHAT_SYSTEM } from "@/lib/ai/prompts";
+import { extractTags, getRelevantResources } from "@/lib/resources";
 
 export async function POST(request: Request) {
   if (!supabaseConfigured()) {
@@ -43,14 +44,23 @@ export async function POST(request: Request) {
     },
   });
 
-  // Step 2a — answerable: generate a warm, safe reply.
+  // Step 2a — answerable: generate a warm, safe reply, optionally citing resources.
   if (t.class === "ai_answerable") {
+    const tags = extractTags(message);
+    const matchedResources = await getRelevantResources(supabase, tags);
+    const resourceNote = matchedResources.length
+      ? `\n\nRelevant resources available in the app's library (you may mention these naturally if they add value):\n` +
+        matchedResources
+          .map((r) => `- "${r.title}" (${r.type.replace("_", " ")})${r.url ? ` — ${r.url}` : ""}`)
+          .join("\n")
+      : "";
+
     let reply: string;
     try {
       reply = await provider.complete({
-        system: CHAT_SYSTEM,
+        system: CHAT_SYSTEM + resourceNote,
         messages: [{ role: "user", content: message }],
-        maxTokens: 400,
+        maxTokens: 450,
         temperature: 0.4,
       });
     } catch {

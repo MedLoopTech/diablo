@@ -10,6 +10,7 @@ const TABS = [
   { href: "/care", key: "care", icon: "♥" },
   { href: "/cohort", key: "cohort", icon: "◆" },
   { href: "/progress", key: "progress", icon: "↗" },
+  { href: "/resources", key: "resources", icon: "📖" },
 ] as const;
 
 export function BottomNav() {

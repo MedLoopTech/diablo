@@ -58,3 +58,39 @@ export async function setCohortStatus(cohortId: string, status: "enrolling" | "a
   revalidatePath("/staff/admin");
   return { ok: true };
 }
+
+export async function createResource(form: {
+  title: string;
+  type: string;
+  description: string;
+  url: string;
+  tags: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const { supabase, ok } = await requireAdmin();
+  if (!ok) return { ok: false, error: "Admins only." };
+  if (!form.title.trim()) return { ok: false, error: "Title required." };
+  const tags = form.tags
+    .split(",")
+    .map((t) => t.trim().toLowerCase())
+    .filter(Boolean);
+  const { error } = await supabase.from("resources").insert({
+    title: form.title.trim(),
+    type: form.type,
+    description: form.description.trim() || null,
+    url: form.url.trim() || null,
+    tags,
+  });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/staff/admin");
+  revalidatePath("/resources");
+  return { ok: true };
+}
+
+export async function toggleResource(id: string, isActive: boolean): Promise<{ ok: boolean }> {
+  const { supabase, ok } = await requireAdmin();
+  if (!ok) return { ok: false };
+  await supabase.from("resources").update({ is_active: isActive }).eq("id", id);
+  revalidatePath("/staff/admin");
+  revalidatePath("/resources");
+  return { ok: true };
+}

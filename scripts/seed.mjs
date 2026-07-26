@@ -195,6 +195,80 @@ async function seed() {
     notes: "Keep rice to post-walk days. Water before every meal. Aim ~115g carbs/day.",
   });
 
+  console.log("Resource library…");
+  await admin.from("resources").insert([
+    {
+      title: "Life Without Diabetes",
+      type: "book",
+      description: "Prof. Roy Taylor's research on diabetes remission through calorie restriction — the science this program is built on.",
+      url: "https://www.amazon.com/Life-Without-Diabetes-Definitive-Remission/dp/0349422001",
+      tags: ["science", "remission", "nutrition", "calorie-restriction"],
+    },
+    {
+      title: "The Diabetes Code",
+      type: "book",
+      description: "Dr. Jason Fung explains why type 2 diabetes is a dietary disease and how fasting and low-carb eating reverse it.",
+      url: "https://www.amazon.com/Diabetes-Code-Prevent-Reverse-Naturally/dp/1771642653",
+      tags: ["science", "remission", "fasting", "low-carb", "nutrition"],
+    },
+    {
+      title: "DiRECT Trial: Diabetes Remission through Dietary Intervention",
+      type: "research",
+      description: "Landmark UK clinical trial — 46% of participants achieved full remission at 1 year through a structured low-calorie diet. The evidence behind this program.",
+      url: "https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(17)33102-1/fulltext",
+      tags: ["science", "remission", "clinical-trial", "weight-loss", "calorie-restriction"],
+    },
+    {
+      title: "Post-Meal Walking: Lower Blood Sugar in 10 Minutes",
+      type: "article",
+      description: "A 10-minute walk after eating can cut postprandial glucose by up to 22%. Learn when and how to make it a habit that stacks with your meal plan.",
+      url: null,
+      tags: ["exercise", "glucose", "lifestyle", "walking"],
+    },
+    {
+      title: "30-Minute Morning Walk Plan (Weeks 1–12)",
+      type: "exercise_plan",
+      description: "Week-by-week progression: start at 10 min easy, build to 30 min brisk. Best done fasted. Each 5 mg/dL drop in fasting glucose adds years — this is how.",
+      url: null,
+      tags: ["exercise", "walking", "morning", "glucose", "lifestyle"],
+    },
+    {
+      title: "Bodyweight Circuit for Blood Sugar Control",
+      type: "exercise_plan",
+      description: "Squats, push-ups, plank, lunges — 3×/week, no gym. Muscle is the body's largest glucose sink. More muscle = better insulin sensitivity. Beginner-friendly.",
+      url: null,
+      tags: ["exercise", "strength", "muscle", "glucose", "insulin"],
+    },
+    {
+      title: "Understanding the Glycemic Index for Pakistani Foods",
+      type: "video",
+      description: "Clear explanation of GI vs glycemic load and how roti, rice, daal, and common Pakistani foods rank — so you can make smarter swaps.",
+      url: "https://www.youtube.com/watch?v=XTZpJY4O0bk",
+      tags: ["nutrition", "glycemic-index", "glucose", "education", "pakistan"],
+    },
+    {
+      title: "Low-Carb Pakistani Recipes (5 Favourites)",
+      type: "recipe",
+      description: "Daal, sabzi, and egg dishes adapted for lower carb — same flavour and spice, better glucose response. Includes portion guidance and carb counts.",
+      url: null,
+      tags: ["recipes", "nutrition", "low-carb", "pakistan", "education"],
+    },
+    {
+      title: "Stress, Cortisol & Blood Sugar",
+      type: "article",
+      description: "Cortisol raises blood glucose even when you haven't eaten. Learn how chronic stress sabotages glucose control and 3 practical techniques to break the cycle.",
+      url: null,
+      tags: ["lifestyle", "stress", "cortisol", "glucose", "mindset"],
+    },
+    {
+      title: "Reading Pakistani Food Labels",
+      type: "article",
+      description: "How to decode packaged-food labels — total carbs vs sugar vs fibre, serving sizes, hidden starches, and what 'sugar-free' actually means in Pakistan.",
+      url: null,
+      tags: ["nutrition", "food-labels", "education", "pakistan", "carbs"],
+    },
+  ]);
+
   console.log("\nDone. Demo accounts (all @sehat90.app):");
   for (const s of STAFF) console.log(`  ${s.role.padEnd(12)} ${s.email}  (${s.name})`);
   console.log(`  patient      ${PATIENTS[0].email}  (${PATIENTS[0].name}, lead)`);

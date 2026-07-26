@@ -35,7 +35,8 @@
     "log": "Log",
     "care": "Care",
     "cohort": "Cohort",
-    "progress": "Progress"
+    "progress": "Progress",
+    "resources": "Learn"
   },
   "today": {
     "greeting": "Salaam, {name}",

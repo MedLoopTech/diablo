@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import type { AdminOverview, AdminCohort, Person } from "@/lib/admin";
-import { createCohort, assignPod, enrollPatient, setCohortStatus } from "./actions";
+import { RESOURCE_LABELS, type ResourceType } from "@/lib/resources-shared";
+import { createCohort, assignPod, enrollPatient, setCohortStatus, createResource, toggleResource } from "./actions";
 
 const field = "rounded-[10px] border border-line bg-paper px-3 py-2 font-body text-[13px] text-ink outline-none";
 
@@ -74,6 +75,76 @@ function CohortCard({ c, staff, patients }: { c: AdminCohort; staff: Person[]; p
   );
 }
 
+const RESOURCE_TYPES: ResourceType[] = ["book", "research", "video", "exercise_plan", "article", "recipe"];
+
+function ResourcesPanel({ resources }: { resources: AdminOverview["resources"] }) {
+  const [pending, start] = useTransition();
+  const [msg, setMsg] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
+  const [type, setType] = useState<ResourceType>("article");
+  const [description, setDescription] = useState("");
+  const [url, setUrl] = useState("");
+  const [tags, setTags] = useState("");
+
+  const add = () =>
+    start(async () => {
+      const r = await createResource({ title, type, description, url, tags });
+      setMsg(r.ok ? "Resource added." : r.error ?? "Failed.");
+      if (r.ok) { setTitle(""); setDescription(""); setUrl(""); setTags(""); }
+    });
+
+  return (
+    <section>
+      <h2 className="eyebrow mb-3">Resource library ({resources.length})</h2>
+      <div className="rounded-card border border-line bg-card p-4">
+        <div className="grid gap-2 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft sm:col-span-2">Title
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Life Without Diabetes" className={field} />
+          </label>
+          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">Type
+            <select value={type} onChange={(e) => setType(e.target.value as ResourceType)} className={field}>
+              {RESOURCE_TYPES.map((t) => <option key={t} value={t}>{RESOURCE_LABELS[t]}</option>)}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">URL (optional)
+            <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" className={field} />
+          </label>
+          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft sm:col-span-2">Description
+            <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="One-line description" className={field} />
+          </label>
+          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft sm:col-span-2">Tags (comma-separated)
+            <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="nutrition, glucose, exercise" className={field} />
+          </label>
+        </div>
+        <div className="mt-3 flex items-center gap-3">
+          <button onClick={add} disabled={pending || !title} className="rounded-full bg-primary px-5 py-2 font-body text-[13px] font-bold text-white disabled:opacity-50">Add resource</button>
+          {msg && <span className="font-body text-[12.5px] text-primary-deep">{msg}</span>}
+        </div>
+      </div>
+
+      {resources.length > 0 && (
+        <div className="mt-3 flex flex-col gap-2">
+          {resources.map((r) => (
+            <div key={r.id} className="flex items-center justify-between rounded-card border border-line bg-card px-4 py-2.5">
+              <div>
+                <span className="font-body text-[11px] uppercase tracking-wider text-primary-deep">{RESOURCE_LABELS[r.type as ResourceType]}</span>
+                <div className="font-body text-[13px] font-bold text-ink">{r.title}</div>
+              </div>
+              <button
+                onClick={() => start(() => toggleResource(r.id, !r.is_active).then(() => {}))}
+                disabled={pending}
+                className={`rounded-full px-3 py-1 font-body text-[12px] font-semibold ${r.is_active ? "border border-line text-ink-soft" : "bg-primary-deep text-white"}`}
+              >
+                {r.is_active ? "Hide" : "Show"}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function AdminPanels({ overview }: { overview: AdminOverview }) {
   const [name, setName] = useState("");
   const [start, setStart] = useState("");
@@ -113,6 +184,8 @@ export function AdminPanels({ overview }: { overview: AdminOverview }) {
           )}
         </div>
       </section>
+
+      <ResourcesPanel resources={overview.resources} />
 
       <section>
         <h2 className="eyebrow mb-3">Program templates ({overview.templates.length})</h2>

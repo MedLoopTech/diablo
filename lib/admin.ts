@@ -1,4 +1,5 @@
 import { createServerSupabase } from "@/lib/supabase/server";
+import type { Resource } from "@/lib/resources-shared";
 
 export type AdminCohort = {
   id: string;
@@ -18,18 +19,20 @@ export type AdminOverview = {
   staff: Person[];
   patients: Person[];
   templates: Template[];
+  resources: (Resource & { is_active: boolean })[];
 };
 
 export async function getAdminOverview(): Promise<AdminOverview> {
   const supabase = createServerSupabase();
 
-  const [{ data: cohorts }, { data: pods }, { data: members }, { data: profiles }, { data: templates }] =
+  const [{ data: cohorts }, { data: pods }, { data: members }, { data: profiles }, { data: templates }, { data: resources }] =
     await Promise.all([
       supabase.from("cohorts").select("id, name, start_date, status").order("start_date", { ascending: false }),
       supabase.from("care_pods").select("cohort_id, doctor_id, nutritionist_id, coach_id"),
       supabase.from("cohort_members").select("cohort_id, patient_id"),
       supabase.from("profiles").select("id, full_name, role"),
       supabase.from("task_templates").select("id, phase, kind, title, subtitle").order("phase").order("sort_order"),
+      supabase.from("resources").select("id, title, type, description, url, tags, is_active, created_at").order("created_at", { ascending: false }),
     ]);
 
   const nameOf = new Map((profiles ?? []).map((p) => [p.id as string, p.full_name as string | null]));
@@ -57,5 +60,6 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     staff: people.filter((p) => p.role !== "patient"),
     patients: people.filter((p) => p.role === "patient"),
     templates: (templates ?? []) as Template[],
+    resources: (resources ?? []) as (Resource & { is_active: boolean })[],
   };
 }
