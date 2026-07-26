@@ -46,6 +46,27 @@ export async function logGlucose(
   return { ok: true, flag: data.flag as GlucoseFlag, value: data.value_mgdl };
 }
 
+export async function logWeight(
+  weightKg: number
+): Promise<{ ok: boolean; error?: string }> {
+  if (!Number.isFinite(weightKg) || weightKg <= 20 || weightKg >= 400) {
+    return { ok: false, error: "Enter a weight between 20 and 400 kg." };
+  }
+  const supabase = createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Please sign in again." };
+
+  const { error } = await supabase
+    .from("weigh_ins")
+    .insert({ patient_id: user.id, weight_kg: Math.round(weightKg * 10) / 10 });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/log");
+  revalidatePath("/progress");
+  return { ok: true };
+}
+
 export async function toggleTask(
   taskId: string,
   done: boolean

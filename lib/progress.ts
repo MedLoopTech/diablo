@@ -6,6 +6,7 @@ export type ProgressData = {
   baselineHba1c: number | null;
   weightKg: number | null;
   baselineWeightKg: number | null;
+  weightTrend: { date: string; value: number }[];
   timeInRangePct: number | null;
   fastingTrend: { date: string; value: number }[];
   avgFasting7d: number | null;
@@ -24,14 +25,14 @@ export async function getProgressData(): Promise<ProgressData> {
   if (!user) {
     return {
       cohortDay: 1, estHba1c: null, baselineHba1c: null, weightKg: null,
-      baselineWeightKg: null, timeInRangePct: null, fastingTrend: [], avgFasting7d: null,
+      baselineWeightKg: null, weightTrend: [], timeInRangePct: null, fastingTrend: [], avgFasting7d: null,
     };
   }
 
   const thirtyAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const sevenAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  const [{ data: day }, { data: readings30 }, { data: member }, { data: snapshot }] =
+  const [{ data: day }, { data: readings30 }, { data: member }, { data: weighIns }] =
     await Promise.all([
       supabase.rpc("sehat_cohort_day", { p: user.id }),
       supabase
@@ -47,12 +48,10 @@ export async function getProgressData(): Promise<ProgressData> {
         .limit(1)
         .maybeSingle(),
       supabase
-        .from("progress_snapshots")
-        .select("weight_kg")
+        .from("weigh_ins")
+        .select("weight_kg, taken_at")
         .eq("patient_id", user.id)
-        .order("week", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+        .order("taken_at", { ascending: true }),
     ]);
 
   const all = readings30 ?? [];
@@ -67,12 +66,23 @@ export async function getProgressData(): Promise<ProgressData> {
     ? Math.round(fasting7d.reduce((s, r) => s + r.value_mgdl, 0) / fasting7d.length)
     : null;
 
+  // Real logged weigh-ins drive the weight number and trend. Baseline comes
+  // from the weigh-in series (its first point), falling back to the cohort
+  // baseline; there is no fabricated weight when nothing has been logged.
+  const weighList = (weighIns ?? []) as { weight_kg: number; taken_at: string }[];
+  const weightTrend = weighList.map((w) => ({ date: w.taken_at.slice(0, 10), value: Number(w.weight_kg) }));
+  const latestWeight = weighList.length ? Number(weighList[weighList.length - 1].weight_kg) : null;
+  const baselineWeightKg = weighList.length
+    ? Number(weighList[0].weight_kg)
+    : (member?.baseline_weight_kg as number) ?? null;
+
   return {
     cohortDay: (day as number) ?? 1,
     estHba1c,
     baselineHba1c: (member?.baseline_hba1c as number) ?? null,
-    weightKg: (snapshot?.weight_kg as number) ?? null,
-    baselineWeightKg: (member?.baseline_weight_kg as number) ?? null,
+    weightKg: latestWeight,
+    baselineWeightKg,
+    weightTrend,
     timeInRangePct,
     fastingTrend,
     avgFasting7d,

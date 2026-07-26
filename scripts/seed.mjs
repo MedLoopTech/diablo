@@ -138,10 +138,19 @@ async function seed() {
     if (pi === 2) {
       await admin.from("glucose_readings").insert({ patient_id: p.user.id, value_mgdl: 254, context: "post_meal", taken_at: dayISO(0, 15) });
     }
-    // A weekly progress snapshot with weight coming down.
+    // Weekly weigh-ins trending down (real logged data, not a fabricated delta).
+    const totalLoss = 4.8 - pi * 0.4; // varies per patient
+    for (let w = 0; w <= 4; w++) {
+      await admin.from("weigh_ins").insert({
+        patient_id: p.user.id,
+        weight_kg: Math.round((p.baseWeight - (totalLoss * w) / 4 + rint(-3, 3) / 10) * 10) / 10,
+        taken_at: dayISO(28 - w * 7, 7),
+      });
+    }
+    // A weekly progress snapshot rollup.
     await admin.from("progress_snapshots").insert({
       patient_id: p.user.id, week: 5,
-      weight_kg: Math.round((p.baseWeight - 4.8 + pi * 0.3) * 10) / 10,
+      weight_kg: Math.round((p.baseWeight - totalLoss) * 10) / 10,
       est_hba1c: Math.round((p.baseHba1c - 1.2) * 10) / 10,
     });
   }

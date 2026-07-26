@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { getPodDoctorName } from "@/lib/data";
 import { LogForm } from "./LogForm";
 import { MealCard } from "./MealCard";
+import { WeighInCard } from "./WeighInCard";
 
 export default async function LogPage() {
   const t = await getTranslations("log");
@@ -14,6 +15,8 @@ export default async function LogPage() {
       </h1>
 
       <LogForm doctorName={doctorName} />
+
+      <WeighInCard />
 
       <MealCard />
     </div>
