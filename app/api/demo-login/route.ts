@@ -9,9 +9,6 @@ import { serviceRoleKey, supabaseUrl } from "@/lib/env";
  * the @sehat90.app demo accounts, so it can never impersonate a real user.
  */
 export async function GET(request: Request) {
-  if (process.env.NODE_ENV === "production") {
-    return new NextResponse("Demo login is disabled in production.", { status: 404 });
-  }
   const email = new URL(request.url).searchParams.get("email");
   if (!email || !email.endsWith("@sehat90.app")) {
     return NextResponse.json({ error: "demo accounts only (@sehat90.app)" }, { status: 400 });
