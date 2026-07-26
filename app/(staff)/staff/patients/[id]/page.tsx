@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPatientDetail } from "@/lib/staff";
+import { getCurrentProfile } from "@/lib/profile";
 import { MedicationEditor } from "./MedicationEditor";
+import { MealPlanEditor } from "./MealPlanEditor";
 
 function pkt(iso: string) {
   return new Date(iso).toLocaleString("en-US", {
@@ -16,8 +18,11 @@ export default async function PatientDetailPage({
 }: {
   params: { id: string };
 }) {
-  const p = await getPatientDetail(params.id);
+  const [p, viewer] = await Promise.all([getPatientDetail(params.id), getCurrentProfile()]);
   if (!p) notFound();
+  const role = viewer?.role ?? "";
+  const canEditMeds = role === "doctor" || role === "admin";
+  const canEditMeals = role === "nutritionist" || role === "admin";
 
   return (
     <div className="flex flex-col gap-8">
@@ -30,7 +35,41 @@ export default async function PatientDetailPage({
         </h1>
       </div>
 
-      <MedicationEditor patientId={p.id} plan={p.currentPlan} />
+      {/* Medication: editor for doctors/admin, read-only summary otherwise. */}
+      {canEditMeds ? (
+        <MedicationEditor patientId={p.id} plan={p.currentPlan} />
+      ) : (
+        <div className="rounded-card border border-line bg-card p-4">
+          <h3 className="eyebrow mb-2">Medication plan</h3>
+          {p.currentPlan?.medications?.length ? (
+            <ul className="flex flex-col gap-1 font-body text-[13px] text-ink">
+              {p.currentPlan.medications.map((m, i) => (
+                <li key={i}>{m.name} · {m.dose} · {m.schedule}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="font-body text-[13px] text-ink-soft">No medication plan.</p>
+          )}
+        </div>
+      )}
+
+      {/* Meal plan: editor for nutritionist/admin, read-only summary otherwise. */}
+      {canEditMeals ? (
+        <MealPlanEditor patientId={p.id} plan={p.currentMealPlan} />
+      ) : (
+        <div className="rounded-card border border-line bg-card p-4">
+          <h3 className="eyebrow mb-2">Meal plan</h3>
+          {p.currentMealPlan?.meals?.length ? (
+            <ul className="flex flex-col gap-1 font-body text-[13px] text-ink">
+              {p.currentMealPlan.meals.map((m, i) => (
+                <li key={i}><span className="capitalize font-semibold">{m.meal}:</span> {m.description}{m.carb_target_g ? ` (~${m.carb_target_g}g)` : ""}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="font-body text-[13px] text-ink-soft">No meal plan yet.</p>
+          )}
+        </div>
+      )}
 
       <section>
         <h2 className="eyebrow mb-3">Recent glucose</h2>

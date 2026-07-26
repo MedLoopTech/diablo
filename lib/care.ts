@@ -8,6 +8,29 @@ export function podEmoji(role: string): string {
   return ROLE_EMOJI[role] ?? "👤";
 }
 
+export type PatientMealPlan = {
+  meals: { meal: string; description: string; carb_target_g: number | null }[];
+  notes: string | null;
+  effective_from: string;
+};
+
+/** The current patient's active meal plan (authored by their nutritionist). */
+export async function getMyMealPlan(): Promise<PatientMealPlan | null> {
+  const supabase = createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data } = await supabase
+    .from("meal_plans")
+    .select("meals, notes, effective_from")
+    .eq("patient_id", user.id)
+    .order("effective_from", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data as PatientMealPlan) ?? null;
+}
+
 /** The current patient's care pod roster (from their cohort's care_pod). */
 export async function getCarePod(): Promise<PodMember[]> {
   const supabase = createServerSupabase();

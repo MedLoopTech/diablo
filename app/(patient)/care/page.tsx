@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
-import { Card } from "@/components/ui";
-import { getCarePod, getOpenSlots, podEmoji, type PodMember } from "@/lib/care";
+import { Card, Eyebrow } from "@/components/ui";
+import { getCarePod, getOpenSlots, getMyMealPlan, podEmoji, type PodMember } from "@/lib/care";
 import { CareBooking } from "./CareBooking";
 
 const ROLE_LABEL: Record<PodMember["role"], string> = {
@@ -11,7 +11,7 @@ const ROLE_LABEL: Record<PodMember["role"], string> = {
 
 export default async function CarePage() {
   const t = await getTranslations("care");
-  const [pod, slots] = await Promise.all([getCarePod(), getOpenSlots()]);
+  const [pod, slots, mealPlan] = await Promise.all([getCarePod(), getOpenSlots(), getMyMealPlan()]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -44,6 +44,23 @@ export default async function CarePage() {
             </Card>
           ))}
         </div>
+      )}
+
+      {mealPlan && mealPlan.meals.length > 0 && (
+        <Card>
+          <Eyebrow>Your meal plan · from your nutritionist</Eyebrow>
+          <div className="mt-2 flex flex-col gap-1.5">
+            {mealPlan.meals.map((m, i) => (
+              <div key={i} className="font-body text-[13px] text-ink">
+                <span className="font-semibold capitalize">{m.meal}:</span> {m.description}
+                {m.carb_target_g ? <span className="text-ink-soft"> · ~{m.carb_target_g}g carbs</span> : null}
+              </div>
+            ))}
+          </div>
+          {mealPlan.notes && (
+            <p className="mt-2 font-body text-[12px] leading-relaxed text-ink-soft">{mealPlan.notes}</p>
+          )}
+        </Card>
       )}
 
       {pod.length > 0 && <CareBooking slots={slots} />}

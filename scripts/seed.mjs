@@ -182,6 +182,19 @@ async function seed() {
     effective_from: dateOnly(20), notes: "Day-45 review scheduled.",
   });
 
+  // A nutritionist-authored meal plan for the lead patient (fires audit trigger).
+  await admin.from("meal_plans").insert({
+    patient_id: lead.user.id, created_by: staff.nutritionist.id,
+    meals: [
+      { meal: "breakfast", description: "2 egg omelette + 1 whole-wheat roti + tea (no sugar)", carb_target_g: 25 },
+      { meal: "lunch", description: "Chicken/daal + 1 roti + big salad + yoghurt", carb_target_g: 40 },
+      { meal: "dinner", description: "Sabzi + 1 roti or half-cup brown rice + salad", carb_target_g: 35 },
+      { meal: "snack", description: "Handful of nuts or an apple", carb_target_g: 15 },
+    ],
+    effective_from: dateOnly(18),
+    notes: "Keep rice to post-walk days. Water before every meal. Aim ~115g carbs/day.",
+  });
+
   console.log("\nDone. Demo accounts (all @sehat90.app):");
   for (const s of STAFF) console.log(`  ${s.role.padEnd(12)} ${s.email}  (${s.name})`);
   console.log(`  patient      ${PATIENTS[0].email}  (${PATIENTS[0].name}, lead)`);

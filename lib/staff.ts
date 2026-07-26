@@ -164,6 +164,14 @@ export type MedicationPlan = {
   notes: string | null;
 };
 
+export type MealItem = { meal: string; description: string; carb_target_g: number | null };
+export type MealPlan = {
+  id: string;
+  meals: MealItem[];
+  effective_from: string;
+  notes: string | null;
+};
+
 export type PatientDetail = {
   id: string;
   name: string | null;
@@ -171,19 +179,21 @@ export type PatientDetail = {
   meals: { id: string; meal_type: string; ai_analysis: Record<string, unknown> | null; eaten_at: string }[];
   escalations: { id: string; kind: string; status: string; created_at: string }[];
   currentPlan: MedicationPlan | null;
+  currentMealPlan: MealPlan | null;
   bookings: { id: string; slot_time: string; reason: string | null; status: string; context_snapshot: Record<string, unknown> | null }[];
 };
 
 /** Full timeline for one patient. RLS returns nothing if not in the doctor's pod. */
 export async function getPatientDetail(patientId: string): Promise<PatientDetail | null> {
   const supabase = createServerSupabase();
-  const [{ data: prof }, { data: readings }, { data: meals }, { data: esc }, { data: plan }, { data: bookings }] =
+  const [{ data: prof }, { data: readings }, { data: meals }, { data: esc }, { data: plan }, { data: mealPlan }, { data: bookings }] =
     await Promise.all([
       supabase.from("profiles").select("id, full_name").eq("id", patientId).maybeSingle(),
       supabase.from("glucose_readings").select("id, value_mgdl, context, flag, taken_at").eq("patient_id", patientId).order("taken_at", { ascending: false }).limit(30),
       supabase.from("meals").select("id, meal_type, ai_analysis, eaten_at").eq("patient_id", patientId).order("eaten_at", { ascending: false }).limit(10),
       supabase.from("escalations").select("id, kind, status, created_at").eq("patient_id", patientId).order("created_at", { ascending: false }).limit(20),
       supabase.from("medication_plans").select("id, medications, effective_from, notes").eq("patient_id", patientId).order("effective_from", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("meal_plans").select("id, meals, effective_from, notes").eq("patient_id", patientId).order("effective_from", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("consult_bookings").select("id, slot_time, reason, status, context_snapshot").eq("patient_id", patientId).order("created_at", { ascending: false }).limit(10),
     ]);
 
@@ -195,6 +205,7 @@ export async function getPatientDetail(patientId: string): Promise<PatientDetail
     meals: (meals ?? []) as PatientDetail["meals"],
     escalations: (esc ?? []) as PatientDetail["escalations"],
     currentPlan: (plan as MedicationPlan) ?? null,
+    currentMealPlan: (mealPlan as MealPlan) ?? null,
     bookings: (bookings ?? []) as PatientDetail["bookings"],
   };
 }

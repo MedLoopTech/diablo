@@ -14,7 +14,7 @@ export async function getChatContext(
     Date.now() - 7 * 24 * 60 * 60 * 1000
   ).toISOString();
 
-  const [{ data: readings }, { data: plan }, { data: cohortDay }] =
+  const [{ data: readings }, { data: plan }, { data: mealPlan }, { data: cohortDay }] =
     await Promise.all([
       supabase
         .from("glucose_readings")
@@ -25,6 +25,13 @@ export async function getChatContext(
       supabase
         .from("medication_plans")
         .select("medications, effective_from")
+        .eq("patient_id", userId)
+        .order("effective_from", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("meal_plans")
+        .select("meals")
         .eq("patient_id", userId)
         .order("effective_from", { ascending: false })
         .limit(1)
@@ -49,10 +56,18 @@ export async function getChatContext(
         .filter((n): n is string => Boolean(n))
     : [];
 
+  const mealItems = Array.isArray(mealPlan?.meals)
+    ? (mealPlan!.meals as Array<{ meal?: string; description?: string }>)
+        .filter((m) => m?.description)
+        .map((m) => `${m.meal}: ${m.description}`)
+    : [];
+  const mealPlanSummary = mealItems.length ? mealItems.join("; ") : undefined;
+
   return {
     cohortDay: (cohortDay as number) ?? undefined,
     recentReadingsSummary,
     activeMedications,
+    mealPlanSummary,
   };
 }
 
