@@ -19,19 +19,21 @@ export function CohortFeed({ posts, cohortId }: { posts: FeedPost[]; cohortId: s
   const [pending, startTransition] = useTransition();
 
   // Live feed: refresh server data whenever a post lands in this cohort.
-  // RLS-protected tables require the realtime socket to carry the user's JWT,
-  // otherwise the server won't push the change (@supabase/ssr doesn't set it
-  // automatically), so we set it before subscribing.
+  // Each mount gets a unique channel name so React Strict Mode's double-invoke
+  // doesn't collide with an already-subscribed channel.
+  // @supabase/ssr doesn't set the realtime socket JWT automatically, so we
+  // call setAuth() before subscribing.
   useEffect(() => {
     const supabase = createBrowserSupabase();
+    const channelName = `cohort-${cohortId}-${Math.random().toString(36).slice(2)}`;
     let channel: ReturnType<typeof supabase.channel> | null = null;
+    let active = true;
     (async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!active) return;
       if (session) supabase.realtime.setAuth(session.access_token);
       channel = supabase
-        .channel(`cohort-${cohortId}`)
+        .channel(channelName)
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "posts", filter: `cohort_id=eq.${cohortId}` },
@@ -40,9 +42,12 @@ export function CohortFeed({ posts, cohortId }: { posts: FeedPost[]; cohortId: s
         .subscribe();
     })();
     return () => {
+      active = false;
       if (channel) supabase.removeChannel(channel);
     };
-  }, [cohortId, router]);
+  // router ref is stable; exclude it to prevent re-subscribing on every refresh
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cohortId]);
 
   const post = () => {
     const body = draft.trim();
