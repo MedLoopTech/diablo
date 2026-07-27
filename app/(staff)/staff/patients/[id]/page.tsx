@@ -6,6 +6,7 @@ import { MedicationEditor } from "./MedicationEditor";
 import { MealPlanEditor } from "./MealPlanEditor";
 import { MovementPlanEditor } from "./MovementPlanEditor";
 import { StaffReplyBox } from "./StaffReplyBox";
+import { PatientGlucoseChart } from "@/components/PatientGlucoseChart";
 
 function pkt(iso: string) {
   return new Date(iso).toLocaleString("en-US", {
@@ -100,39 +101,41 @@ export default async function PatientDetailPage({
       )}
 
       <section>
-        <h2 className="eyebrow mb-3">Recent glucose</h2>
-        <div className="overflow-x-auto rounded-card border border-line bg-card">
-          <table className="w-full min-w-[440px] border-collapse font-body text-[13px]">
-            <thead>
-              <tr className="border-b border-line text-left text-ink-soft">
-                <th className="p-3 font-semibold">Value</th>
-                <th className="p-3 font-semibold">Context</th>
-                <th className="p-3 font-semibold">Flag</th>
-                <th className="p-3 font-semibold">When (PKT)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {p.readings.length === 0 ? (
-                <tr><td colSpan={4} className="p-4 text-center text-ink-soft">No readings yet.</td></tr>
-              ) : (
-                p.readings.map((r) => (
-                  <tr key={r.id} className="border-b border-line last:border-0">
-                    <td className="p-3 font-semibold text-ink">{r.value_mgdl}</td>
-                    <td className="p-3 text-ink-soft">{r.context}</td>
-                    <td className="p-3">
-                      {r.flag !== "none" && (
+        <h2 className="eyebrow mb-3">Glucose readings</h2>
+        <div className="rounded-card border border-line bg-card p-4">
+          <PatientGlucoseChart readings={p.readings} />
+        </div>
+        {/* Flagged readings only — compact, most recent first */}
+        {p.readings.some((r) => r.flag !== "none") && (
+          <div className="mt-3 overflow-x-auto rounded-card border border-line bg-card">
+            <table className="w-full min-w-[380px] border-collapse font-body text-[13px]">
+              <thead>
+                <tr className="border-b border-line text-left text-ink-soft">
+                  <th className="p-3 font-semibold">Value</th>
+                  <th className="p-3 font-semibold">Context</th>
+                  <th className="p-3 font-semibold">Flag</th>
+                  <th className="p-3 font-semibold">When (PKT)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {p.readings
+                  .filter((r) => r.flag !== "none")
+                  .map((r) => (
+                    <tr key={r.id} className="border-b border-line last:border-0">
+                      <td className="p-3 font-semibold text-ink">{r.value_mgdl}</td>
+                      <td className="p-3 text-ink-soft">{r.context}</td>
+                      <td className="p-3">
                         <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${r.flag === "urgent" ? "bg-coral text-white" : "bg-mint text-primary-deep"}`}>
                           {r.flag}
                         </span>
-                      )}
-                    </td>
-                    <td className="p-3 text-ink-soft">{pkt(r.taken_at)}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                      </td>
+                      <td className="p-3 text-ink-soft">{pkt(r.taken_at)}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <section>

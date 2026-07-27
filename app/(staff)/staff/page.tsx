@@ -4,6 +4,7 @@ import { getCurrentProfile } from "@/lib/profile";
 import { getOpenEscalations, getFlaggedReadings, getStaffAnalytics, getCoachAnalytics } from "@/lib/staff";
 import { EscalationQueue } from "./EscalationQueue";
 import { CohortTrendChart } from "@/components/CohortTrendChart";
+import { FlaggedByPatient } from "@/components/FlaggedByPatient";
 
 function Kpi({ label, value, sub, tone = "ink" }: { label: string; value: string; sub?: string; tone?: "ink" | "coral" | "primary" }) {
   const color = tone === "coral" ? "text-coral" : tone === "primary" ? "text-primary-deep" : "text-ink";
@@ -143,41 +144,10 @@ export default async function StaffHome() {
         </section>
       </div>
 
-      {/* Flagged readings */}
+      {/* Flagged readings — grouped by patient, sorted by urgency */}
       <section>
-        <h2 className="eyebrow mb-3">Flagged readings</h2>
-        {flagged.length === 0 ? (
-          <div className="rounded-card border border-line bg-card p-6 text-center font-body text-[13px] text-ink-soft">No flagged readings.</div>
-        ) : (
-          <div className="overflow-x-auto rounded-card border border-line bg-card">
-            <table className="w-full min-w-[520px] border-collapse font-body text-[13px]">
-              <thead>
-                <tr className="border-b border-line text-left text-ink-soft">
-                  <th className="p-3 font-semibold">Patient</th>
-                  <th className="p-3 font-semibold">Value</th>
-                  <th className="p-3 font-semibold">Context</th>
-                  <th className="p-3 font-semibold">Flag</th>
-                  <th className="p-3 font-semibold">When (PKT)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {flagged.slice(0, 12).map((r) => (
-                  <tr key={r.id} className="border-b border-line last:border-0">
-                    <td className="p-3">
-                      <Link href={`/staff/patients/${r.patient_id}`} className="font-semibold text-ink hover:underline">{r.patient_name ?? "Patient"}</Link>
-                    </td>
-                    <td className="p-3 font-semibold text-ink">{r.value_mgdl}</td>
-                    <td className="p-3 text-ink-soft">{r.context}</td>
-                    <td className="p-3">
-                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${r.flag === "urgent" ? "bg-coral text-white" : "bg-mint text-primary-deep"}`}>{r.flag}</span>
-                    </td>
-                    <td className="p-3 text-ink-soft">{new Date(r.taken_at).toLocaleString("en-US", { timeZone: "Asia/Karachi", dateStyle: "medium", timeStyle: "short" })}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <h2 className="eyebrow mb-3">Flagged readings by patient</h2>
+        <FlaggedByPatient flagged={flagged} />
       </section>
     </div>
   );
