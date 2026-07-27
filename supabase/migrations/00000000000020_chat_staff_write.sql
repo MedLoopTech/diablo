@@ -7,5 +7,5 @@ create policy chat_staff_write on public.chat_messages
   for insert
   with check (
     public.staff_sees_patient(patient_id)
-    and sender in ('doctor', 'nutritionist', 'coach', 'admin', 'ai')
+    and sender in ('doctor', 'nutritionist', 'coach', 'ai')
   );
