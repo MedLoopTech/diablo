@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { ConsultForm } from "./ConsultForm";
 import { MeetUrlForm } from "./MeetUrlForm";
@@ -70,10 +69,7 @@ export default async function ConsultsPage() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <Link href="/staff" className="font-body text-[12.5px] text-ink-soft hover:underline">
-          ← Back to queue
-        </Link>
-        <h1 className="mt-2 font-display text-2xl font-semibold text-ink">Consult windows</h1>
+        <h1 className="font-display text-2xl font-semibold text-ink">Consult windows</h1>
       </div>
 
       <ConsultForm />
