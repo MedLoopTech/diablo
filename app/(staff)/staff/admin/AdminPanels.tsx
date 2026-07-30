@@ -7,7 +7,11 @@ import type { PlanFlag } from "@/lib/plan";
 import { RESOURCE_LABELS, type ResourceType } from "@/lib/resources-shared";
 import { createCohort, assignPod, enrollPatient, setCohortStatus, createResource, toggleResource, inviteStaff, updatePersonName, setPatientPlan, togglePlanFeature, setTemplatePhotoMode, saveAutomationConfig } from "./actions";
 
+// ─── Shared ──────────────────────────────────────────────────────────────────
+
 const field = "rounded-[10px] border border-line bg-paper px-3 py-2 font-body text-[13px] text-ink outline-none";
+
+// ─── Cohorts tab ─────────────────────────────────────────────────────────────
 
 function StaffSelect({ people, role, defaultLabel }: { people: Person[]; role: string; defaultLabel: string }) {
   const opts = people.filter((p) => p.role === role || p.role === "admin");
@@ -42,8 +46,7 @@ function CohortCard({ c, staff, patients }: { c: AdminCohort; staff: Person[]; p
     start(async () => {
       if (!enrollId) return;
       const r = await enrollPatient(
-        c.id,
-        enrollId,
+        c.id, enrollId,
         hba1c ? parseFloat(hba1c) : null,
         weight ? parseFloat(weight) : null,
         fastingGlucose ? parseInt(fastingGlucose, 10) : null,
@@ -62,7 +65,11 @@ function CohortCard({ c, staff, patients }: { c: AdminCohort; staff: Person[]; p
             starts {c.start_date} · {c.memberCount} members · pod: {c.doctor ?? "—"} / {c.nutritionist ?? "—"} / {c.coach ?? "—"}
           </div>
         </div>
-        <select value={c.status} onChange={(e) => start(() => setCohortStatus(c.id, e.target.value as "enrolling" | "active" | "completed").then(() => {}))} className={field}>
+        <select
+          value={c.status}
+          onChange={(e) => start(() => setCohortStatus(c.id, e.target.value as "enrolling" | "active" | "completed").then(() => {}))}
+          className={field}
+        >
           <option value="enrolling">enrolling</option>
           <option value="active">active</option>
           <option value="completed">completed</option>
@@ -104,9 +111,77 @@ function CohortCard({ c, staff, patients }: { c: AdminCohort; staff: Person[]; p
   );
 }
 
+function AppointmentStats({ stats }: { stats: AppointmentStat[] }) {
+  if (!stats.length) return null;
+  return (
+    <section>
+      <h2 className="eyebrow mb-3">Appointments by care role</h2>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {stats.map((s) => (
+          <div key={s.role} className="rounded-card border border-line bg-card p-4">
+            <div className="font-body text-[11px] uppercase tracking-wider text-primary-deep">{s.label}</div>
+            <div className="mt-1 font-display text-[28px] font-bold text-ink">{s.total}</div>
+            <div className="mt-1 flex gap-3 font-body text-[12px] text-ink-soft">
+              <span>{s.upcoming} upcoming</span>
+              <span>{s.completed} completed</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CohortsTab({ overview }: { overview: AdminOverview }) {
+  const [name, setName] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [pending, startT] = useTransition();
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const make = () =>
+    startT(async () => {
+      const r = await createCohort(name, startDate);
+      setMsg(r.ok ? "Cohort created." : r.error ?? "Failed.");
+      if (r.ok) { setName(""); setStartDate(""); }
+    });
+
+  return (
+    <>
+      <section>
+        <h2 className="eyebrow mb-3">Create cohort</h2>
+        <div className="flex flex-wrap items-end gap-3 rounded-card border border-line bg-card p-4">
+          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">Name
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Monsoon cohort" className={field} />
+          </label>
+          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">Start date
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={field} />
+          </label>
+          <button onClick={make} disabled={pending || !name || !startDate} className="rounded-full bg-primary px-5 py-2 font-body text-[13px] font-bold text-white disabled:opacity-50">Create</button>
+          {msg && <span className="font-body text-[12.5px] text-primary-deep">{msg}</span>}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="eyebrow mb-3">Cohorts & enrollment</h2>
+        <div className="flex flex-col gap-3">
+          {overview.cohorts.length === 0 ? (
+            <div className="rounded-card border border-line bg-card p-4 font-body text-[13px] text-ink-soft">No cohorts yet.</div>
+          ) : (
+            overview.cohorts.map((c) => <CohortCard key={c.id} c={c} staff={overview.staff} patients={overview.patients} />)
+          )}
+        </div>
+      </section>
+
+      <AppointmentStats stats={overview.appointmentStats} />
+    </>
+  );
+}
+
+// ─── Staff tab ────────────────────────────────────────────────────────────────
+
 const STAFF_ROLES = ["doctor", "nutritionist", "coach"];
 
-function InviteStaffPanel() {
+function InviteForm() {
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
   const [email, setEmail] = useState("");
@@ -151,7 +226,7 @@ function InviteStaffPanel() {
   );
 }
 
-function PeoplePanel({ people, title, showPlan }: { people: Person[]; title: string; showPlan?: boolean }) {
+function PeopleList({ people, showPlan }: { people: Person[]; showPlan?: boolean }) {
   const [pending, start] = useTransition();
   const [editing, setEditing] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
@@ -163,64 +238,85 @@ function PeoplePanel({ people, title, showPlan }: { people: Person[]; title: str
     });
 
   return (
-    <section>
-      <h2 className="eyebrow mb-3">{title} ({people.length})</h2>
-      <div className="flex flex-col gap-1.5">
-        {people.length === 0 && (
-          <div className="rounded-card border border-line bg-card p-3 font-body text-[13px] text-ink-soft">None yet.</div>
-        )}
-        {people.map((p) => (
-          <div key={p.id} className="flex items-center justify-between gap-3 rounded-card border border-line bg-card px-3.5 py-2.5">
-            {editing === p.id ? (
-              <div className="flex flex-1 items-center gap-2">
-                <input
-                  value={draftName}
-                  onChange={(e) => setDraftName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && save(p.id)}
-                  className="flex-1 rounded-[8px] border border-line bg-paper px-2 py-1 font-body text-[13px] text-ink outline-none"
-                  autoFocus
-                />
-                <button onClick={() => save(p.id)} disabled={pending} className="rounded-full bg-primary px-3 py-1 font-body text-[12px] font-bold text-white disabled:opacity-50">Save</button>
-                <button onClick={() => setEditing(null)} className="font-body text-[12px] text-ink-soft">Cancel</button>
+    <div className="flex flex-col gap-1.5">
+      {people.length === 0 && (
+        <div className="rounded-card border border-line bg-card p-3 font-body text-[13px] text-ink-soft">None yet.</div>
+      )}
+      {people.map((p) => (
+        <div key={p.id} className="flex items-center justify-between gap-3 rounded-card border border-line bg-card px-3.5 py-2.5">
+          {editing === p.id ? (
+            <div className="flex flex-1 items-center gap-2">
+              <input
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && save(p.id)}
+                className="flex-1 rounded-[8px] border border-line bg-paper px-2 py-1 font-body text-[13px] text-ink outline-none"
+                autoFocus
+              />
+              <button onClick={() => save(p.id)} disabled={pending} className="rounded-full bg-primary px-3 py-1 font-body text-[12px] font-bold text-white disabled:opacity-50">Save</button>
+              <button onClick={() => setEditing(null)} className="font-body text-[12px] text-ink-soft">Cancel</button>
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 min-w-0">
+                <span className="font-body text-[13.5px] font-semibold text-ink">{p.name ?? "(no name)"}</span>
+                <span className="ml-2 font-body text-[11px] text-ink-soft">{p.role}</span>
               </div>
-            ) : (
-              <>
-                <div className="flex-1 min-w-0">
-                  <span className="font-body text-[13.5px] font-semibold text-ink">{p.name ?? "(no name)"}</span>
-                  <span className="ml-2 font-body text-[11px] text-ink-soft">{p.role}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {showPlan && (
-                    <select
-                      defaultValue={p.plan ?? "basic"}
-                      onChange={(e) => start(() => setPatientPlan(p.id, e.target.value as "basic" | "plus" | "premium").then(() => {}))}
-                      disabled={pending}
-                      className="rounded-[8px] border border-line bg-paper px-2 py-1 font-body text-[12px] text-ink outline-none"
-                    >
-                      <option value="basic">Basic</option>
-                      <option value="plus">Plus</option>
-                      <option value="premium">Premium</option>
-                    </select>
-                  )}
-                  <button onClick={() => { setEditing(p.id); setDraftName(p.name ?? ""); }} className="font-body text-[12px] text-ink-soft hover:text-ink">Edit</button>
-                </div>
-              </>
-            )}
-          </div>
-        ))}
-      </div>
+              <div className="flex items-center gap-2">
+                {showPlan && (
+                  <select
+                    defaultValue={p.plan ?? "basic"}
+                    onChange={(e) => start(() => setPatientPlan(p.id, e.target.value as "basic" | "plus" | "premium").then(() => {}))}
+                    disabled={pending}
+                    className="rounded-[8px] border border-line bg-paper px-2 py-1 font-body text-[12px] text-ink outline-none"
+                  >
+                    <option value="basic">Basic</option>
+                    <option value="plus">Plus</option>
+                    <option value="premium">Premium</option>
+                  </select>
+                )}
+                <button onClick={() => { setEditing(p.id); setDraftName(p.name ?? ""); }} className="font-body text-[12px] text-ink-soft hover:text-ink">Edit</button>
+              </div>
+            </>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StaffTab({ overview }: { overview: AdminOverview }) {
+  return (
+    <>
+      <InviteForm />
+      <section>
+        <h2 className="eyebrow mb-3">Staff ({overview.staff.length})</h2>
+        <PeopleList people={overview.staff} />
+      </section>
+    </>
+  );
+}
+
+// ─── Patients tab ─────────────────────────────────────────────────────────────
+
+function PatientsTab({ overview }: { overview: AdminOverview }) {
+  return (
+    <section>
+      <h2 className="eyebrow mb-3">Patients ({overview.patients.length})</h2>
+      <PeopleList people={overview.patients} showPlan />
     </section>
   );
 }
 
+// ─── Plans tab ────────────────────────────────────────────────────────────────
+
 const PLAN_LABELS: Record<string, string> = { basic: "Basic", plus: "Plus", premium: "Premium" };
 const PLANS = ["basic", "plus", "premium"] as const;
 
-function PlanFeaturesPanel({ flags }: { flags: PlanFlag[] }) {
+function PlanFeaturesTable({ flags }: { flags: PlanFlag[] }) {
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
 
-  // Build feature list from flags (unique feature_keys, ordered by sort_order)
   const features = Array.from(
     new Map(flags.map((f) => [f.feature_key, { key: f.feature_key, label: f.label }])).values()
   ).sort((a, b) => {
@@ -229,7 +325,6 @@ function PlanFeaturesPanel({ flags }: { flags: PlanFlag[] }) {
     return aOrd - bOrd;
   });
 
-  // Map plan+key → enabled
   const stateMap = new Map(flags.map((f) => [`${f.plan}:${f.feature_key}`, f.enabled]));
   const [local, setLocal] = useState<Map<string, boolean>>(new Map(stateMap));
 
@@ -243,7 +338,7 @@ function PlanFeaturesPanel({ flags }: { flags: PlanFlag[] }) {
 
   return (
     <section>
-      <h2 className="eyebrow mb-3">Plan feature configuration</h2>
+      <h2 className="eyebrow mb-3">Feature flags</h2>
       <div className="rounded-card border border-line bg-card p-4">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[420px] border-collapse font-body text-[13px]">
@@ -287,30 +382,47 @@ function PlanFeaturesPanel({ flags }: { flags: PlanFlag[] }) {
   );
 }
 
-function AppointmentStatsPanel({ stats }: { stats: AppointmentStat[] }) {
-  if (!stats.length) return null;
+const PLAN_FEATURES: Record<string, { glucometerPhotoRequired: boolean; aiMealAnalysis: boolean; aiCoach: boolean }> = {
+  basic:   { glucometerPhotoRequired: false, aiMealAnalysis: true, aiCoach: true },
+  plus:    { glucometerPhotoRequired: false, aiMealAnalysis: true, aiCoach: true },
+  premium: { glucometerPhotoRequired: false, aiMealAnalysis: true, aiCoach: true },
+};
+
+function PlansTab({ flags }: { flags: PlanFlag[] }) {
   return (
-    <section>
-      <h2 className="eyebrow mb-3">Appointments by care role</h2>
-      <div className="grid gap-3 sm:grid-cols-3">
-        {stats.map((s) => (
-          <div key={s.role} className="rounded-card border border-line bg-card p-4">
-            <div className="font-body text-[11px] uppercase tracking-wider text-primary-deep">{s.label}</div>
-            <div className="mt-1 font-display text-[28px] font-bold text-ink">{s.total}</div>
-            <div className="mt-1 flex gap-3 font-body text-[12px] text-ink-soft">
-              <span>{s.upcoming} upcoming</span>
-              <span>{s.completed} completed</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
+    <>
+      <PlanFeaturesTable flags={flags} />
+
+      <section>
+        <h2 className="eyebrow mb-3">Plan overview</h2>
+        <p className="mb-3 font-body text-[12.5px] text-ink-soft">
+          Feature gating lives in <code className="rounded bg-mint px-1">lib/plan.ts</code>. Enrollment sets a patient&apos;s plan; these flags then drive behavior.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {PLANS.map((plan) => {
+            const f = PLAN_FEATURES[plan];
+            return (
+              <div key={plan} className="rounded-card border border-line bg-card p-4">
+                <div className="font-body text-[14px] font-bold capitalize text-ink">{plan}</div>
+                <ul className="mt-2 flex flex-col gap-1 font-body text-[12.5px] text-ink-soft">
+                  <li>{f.glucometerPhotoRequired ? "✓" : "—"} Glucometer photo required</li>
+                  <li>{f.aiMealAnalysis ? "✓" : "—"} AI meal analysis</li>
+                  <li>{f.aiCoach ? "✓" : "—"} AI coach</li>
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    </>
   );
 }
 
+// ─── Resources tab ────────────────────────────────────────────────────────────
+
 const RESOURCE_TYPES: ResourceType[] = ["book", "research", "video", "exercise_plan", "article", "recipe"];
 
-function ResourcesPanel({ resources }: { resources: AdminOverview["resources"] }) {
+function ResourcesTab({ resources }: { resources: AdminOverview["resources"] }) {
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -327,107 +439,66 @@ function ResourcesPanel({ resources }: { resources: AdminOverview["resources"] }
     });
 
   return (
-    <section>
-      <h2 className="eyebrow mb-3">Resource library ({resources.length})</h2>
-      <div className="rounded-card border border-line bg-card p-4">
-        <div className="grid gap-2 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft sm:col-span-2">Title
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Life Without Diabetes" className={field} />
-          </label>
-          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">Type
-            <select value={type} onChange={(e) => setType(e.target.value as ResourceType)} className={field}>
-              {RESOURCE_TYPES.map((t) => <option key={t} value={t}>{RESOURCE_LABELS[t]}</option>)}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">URL (optional)
-            <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" className={field} />
-          </label>
-          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft sm:col-span-2">Description
-            <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="One-line description" className={field} />
-          </label>
-          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft sm:col-span-2">Tags (comma-separated)
-            <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="nutrition, glucose, exercise" className={field} />
-          </label>
+    <>
+      <section>
+        <h2 className="eyebrow mb-3">Add resource</h2>
+        <div className="rounded-card border border-line bg-card p-4">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft sm:col-span-2">Title
+              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Life Without Diabetes" className={field} />
+            </label>
+            <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">Type
+              <select value={type} onChange={(e) => setType(e.target.value as ResourceType)} className={field}>
+                {RESOURCE_TYPES.map((t) => <option key={t} value={t}>{RESOURCE_LABELS[t]}</option>)}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">URL (optional)
+              <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" className={field} />
+            </label>
+            <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft sm:col-span-2">Description
+              <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="One-line description" className={field} />
+            </label>
+            <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft sm:col-span-2">Tags (comma-separated)
+              <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="nutrition, glucose, exercise" className={field} />
+            </label>
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <button onClick={add} disabled={pending || !title} className="rounded-full bg-primary px-5 py-2 font-body text-[13px] font-bold text-white disabled:opacity-50">Add resource</button>
+            {msg && <span className="font-body text-[12.5px] text-primary-deep">{msg}</span>}
+          </div>
         </div>
-        <div className="mt-3 flex items-center gap-3">
-          <button onClick={add} disabled={pending || !title} className="rounded-full bg-primary px-5 py-2 font-body text-[13px] font-bold text-white disabled:opacity-50">Add resource</button>
-          {msg && <span className="font-body text-[12.5px] text-primary-deep">{msg}</span>}
-        </div>
-      </div>
+      </section>
 
-      {resources.length > 0 && (
-        <div className="mt-3 flex flex-col gap-2">
-          {resources.map((r) => (
-            <div key={r.id} className="flex items-center justify-between rounded-card border border-line bg-card px-4 py-2.5">
-              <div>
-                <span className="font-body text-[11px] uppercase tracking-wider text-primary-deep">{RESOURCE_LABELS[r.type as ResourceType]}</span>
-                <div className="font-body text-[13px] font-bold text-ink">{r.title}</div>
+      <section>
+        <h2 className="eyebrow mb-3">Library ({resources.length})</h2>
+        {resources.length > 0 && (
+          <div className="flex flex-col gap-2">
+            {resources.map((r) => (
+              <div key={r.id} className="flex items-center justify-between rounded-card border border-line bg-card px-4 py-2.5">
+                <div>
+                  <span className="font-body text-[11px] uppercase tracking-wider text-primary-deep">{RESOURCE_LABELS[r.type as ResourceType]}</span>
+                  <div className="font-body text-[13px] font-bold text-ink">{r.title}</div>
+                </div>
+                <button
+                  onClick={() => start(() => toggleResource(r.id, !r.is_active).then(() => {}))}
+                  disabled={pending}
+                  className={`rounded-full px-3 py-1 font-body text-[12px] font-semibold ${r.is_active ? "border border-line text-ink-soft" : "bg-primary-deep text-white"}`}
+                >
+                  {r.is_active ? "Hide" : "Show"}
+                </button>
               </div>
-              <button
-                onClick={() => start(() => toggleResource(r.id, !r.is_active).then(() => {}))}
-                disabled={pending}
-                className={`rounded-full px-3 py-1 font-body text-[12px] font-semibold ${r.is_active ? "border border-line text-ink-soft" : "bg-primary-deep text-white"}`}
-              >
-                {r.is_active ? "Hide" : "Show"}
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
+            ))}
+          </div>
+        )}
+      </section>
+    </>
   );
 }
+
+// ─── Templates tab ────────────────────────────────────────────────────────────
 
 const PHOTO_MODE_LABELS = { off: "Off", optional: "Optional", required: "Required" } as const;
 const PHOTO_MODES = ["off", "optional", "required"] as const;
-
-function TaskTemplatesPanel({ templates }: { templates: AdminOverview["templates"] }) {
-  const [pending, start] = useTransition();
-  const [msg, setMsg] = useState<string | null>(null);
-
-  const save = (id: string, mode: "off" | "optional" | "required", bonus: number) =>
-    start(async () => {
-      const r = await setTemplatePhotoMode(id, mode, bonus);
-      setMsg(r.ok ? "Saved." : r.error ?? "Failed.");
-      setTimeout(() => setMsg(null), 2000);
-    });
-
-  return (
-    <section>
-      <h2 className="eyebrow mb-1">Program templates — photo evidence</h2>
-      <p className="mb-3 font-body text-[11.5px] text-ink-soft">
-        <strong>Required</strong> — patient must submit a photo to complete the task.&nbsp;
-        <strong>Optional</strong> — checkbox still works; camera earns bonus points.&nbsp;
-        <strong>Off</strong> — no photo feature on this task.
-      </p>
-      <div className="overflow-x-auto rounded-card border border-line bg-card">
-        <table className="w-full min-w-[620px] border-collapse font-body text-[13px]">
-          <thead>
-            <tr className="border-b border-line text-left text-ink-soft">
-              <th className="p-3 font-semibold">Ph</th>
-              <th className="p-3 font-semibold">Kind</th>
-              <th className="p-3 font-semibold">Title</th>
-              <th className="p-3 font-semibold">Photo mode</th>
-              <th className="p-3 font-semibold">Bonus pts</th>
-              <th className="p-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {templates.map((tpl) => (
-              <TemplateRow
-                key={tpl.id}
-                tpl={tpl}
-                pending={pending}
-                onSave={save}
-              />
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {msg && <p className="mt-2 font-body text-[12px] text-primary-deep">{msg}</p>}
-    </section>
-  );
-}
 
 function TemplateRow({
   tpl,
@@ -460,10 +531,7 @@ function TemplateRow({
       </td>
       <td className="p-3">
         <input
-          type="number"
-          min={0}
-          max={50}
-          value={bonus}
+          type="number" min={0} max={50} value={bonus}
           onChange={(e) => setBonus(e.target.value)}
           disabled={mode === "required"}
           className="w-16 rounded-[8px] border border-line bg-paper px-2 py-1 font-body text-[12px] text-ink outline-none disabled:opacity-40"
@@ -483,6 +551,58 @@ function TemplateRow({
     </tr>
   );
 }
+
+function TemplatesTab({ templates }: { templates: AdminOverview["templates"] }) {
+  const [pending, start] = useTransition();
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const save = (id: string, mode: "off" | "optional" | "required", bonus: number) =>
+    start(async () => {
+      const r = await setTemplatePhotoMode(id, mode, bonus);
+      setMsg(r.ok ? "Saved." : r.error ?? "Failed.");
+      setTimeout(() => setMsg(null), 2000);
+    });
+
+  return (
+    <section>
+      <h2 className="eyebrow mb-1">Photo evidence</h2>
+      <p className="mb-3 font-body text-[11.5px] text-ink-soft">
+        <strong>Required</strong> — patient must submit a photo to complete the task.&nbsp;
+        <strong>Optional</strong> — checkbox still works; camera earns bonus points.&nbsp;
+        <strong>Off</strong> — no photo feature.
+      </p>
+      <div className="overflow-x-auto rounded-card border border-line bg-card">
+        <table className="w-full min-w-[620px] border-collapse font-body text-[13px]">
+          <thead>
+            <tr className="border-b border-line text-left text-ink-soft">
+              <th className="p-3 font-semibold">Ph</th>
+              <th className="p-3 font-semibold">Kind</th>
+              <th className="p-3 font-semibold">Title</th>
+              <th className="p-3 font-semibold">Photo mode</th>
+              <th className="p-3 font-semibold">Bonus pts</th>
+              <th className="p-3" />
+            </tr>
+          </thead>
+          <tbody>
+            {templates.map((tpl) => (
+              <TemplateRow key={tpl.id} tpl={tpl} pending={pending} onSave={save} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {msg && <p className="mt-2 font-body text-[12px] text-primary-deep">{msg}</p>}
+    </section>
+  );
+}
+
+// ─── Automation tab ───────────────────────────────────────────────────────────
+
+const GROUP_LABELS: Record<string, string> = {
+  messages: "Message Templates",
+  destinations: "Notification Destinations",
+  thresholds: "Thresholds",
+  general: "General Settings",
+};
 
 function ConfigRow({ row }: { row: AutomationConfigRow }) {
   const [val, setVal] = useState(row.value);
@@ -534,15 +654,14 @@ function ConfigRow({ row }: { row: AutomationConfigRow }) {
   );
 }
 
-const GROUP_LABELS: Record<string, string> = {
-  messages: "Message Templates",
-  destinations: "Notification Destinations",
-  thresholds: "Thresholds",
-  general: "General Settings",
-};
-
-function AutomationPanel({ rows }: { rows: AutomationConfigRow[] }) {
-  if (rows.length === 0) return null;
+function AutomationTab({ rows }: { rows: AutomationConfigRow[] }) {
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-card border border-line bg-card p-4 font-body text-[13px] text-ink-soft">
+        Run migration 25 to enable automation configuration.
+      </div>
+    );
+  }
 
   const byGroup = rows.reduce<Record<string, AutomationConfigRow[]>>((acc, r) => {
     (acc[r.group_name] ??= []).push(r);
@@ -553,79 +672,78 @@ function AutomationPanel({ rows }: { rows: AutomationConfigRow[] }) {
   const groups = groupOrder.filter((g) => byGroup[g]);
 
   return (
-    <section>
-      <h2 className="eyebrow mb-3">Automation Settings</h2>
-      <div className="flex flex-col gap-4">
-        {groups.map((group) => (
-          <div key={group} className="rounded-card border border-line bg-card p-4">
-            <h3 className="font-body text-[13px] font-bold text-ink mb-4">{GROUP_LABELS[group] ?? group}</h3>
+    <div className="flex flex-col gap-4">
+      {groups.map((group) => (
+        <section key={group}>
+          <h2 className="eyebrow mb-3">{GROUP_LABELS[group] ?? group}</h2>
+          <div className="rounded-card border border-line bg-card p-4">
             <div className="flex flex-col gap-5">
               {byGroup[group].map((row) => (
                 <ConfigRow key={row.key} row={row} />
               ))}
             </div>
           </div>
-        ))}
-      </div>
-    </section>
+        </section>
+      ))}
+    </div>
   );
 }
 
-export function AdminPanels({ overview }: { overview: AdminOverview }) {
-  const [name, setName] = useState("");
-  const [start, setStart] = useState("");
-  const [pending, startT] = useTransition();
-  const [msg, setMsg] = useState<string | null>(null);
+// ─── Shell ────────────────────────────────────────────────────────────────────
 
-  const make = () =>
-    startT(async () => {
-      const r = await createCohort(name, start);
-      setMsg(r.ok ? "Cohort created." : r.error ?? "Failed.");
-      if (r.ok) { setName(""); setStart(""); }
-    });
+type Tab = "cohorts" | "staff" | "patients" | "plans" | "resources" | "templates" | "automation";
+
+export function AdminPanels({ overview }: { overview: AdminOverview }) {
+  const [tab, setTab] = useState<Tab>("cohorts");
+
+  const nav: { id: Tab; label: string; badge?: number }[] = [
+    { id: "cohorts",    label: "Cohorts",    badge: overview.cohorts.length },
+    { id: "staff",      label: "Staff",      badge: overview.staff.length },
+    { id: "patients",   label: "Patients",   badge: overview.patients.length },
+    { id: "plans",      label: "Plans" },
+    { id: "resources",  label: "Resources",  badge: overview.resources.length },
+    { id: "templates",  label: "Templates",  badge: overview.templates.length },
+    { id: "automation", label: "Automation" },
+  ];
 
   return (
-    <div className="flex flex-col gap-8">
-      <section>
-        <h2 className="eyebrow mb-3">Create cohort</h2>
-        <div className="flex flex-wrap items-end gap-3 rounded-card border border-line bg-card p-4">
-          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">Name
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Monsoon cohort" className={field} />
-          </label>
-          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">Start date
-            <input type="date" value={start} onChange={(e) => setStart(e.target.value)} className={field} />
-          </label>
-          <button onClick={make} disabled={pending || !name || !start} className="rounded-full bg-primary px-5 py-2 font-body text-[13px] font-bold text-white disabled:opacity-50">Create</button>
-          {msg && <span className="font-body text-[12.5px] text-primary-deep">{msg}</span>}
+    <div className="flex gap-6 items-start">
+      {/* Left nav */}
+      <nav className="w-40 shrink-0 sticky top-4">
+        <div className="flex flex-col gap-0.5">
+          {nav.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setTab(item.id)}
+              className={`flex items-center justify-between rounded-[10px] px-3 py-2 text-left font-body text-[13px] font-medium transition-colors ${
+                tab === item.id
+                  ? "bg-primary font-semibold text-white"
+                  : "text-ink-soft hover:bg-paper hover:text-ink"
+              }`}
+            >
+              <span>{item.label}</span>
+              {item.badge !== undefined && (
+                <span className={`rounded-full px-1.5 py-0.5 font-body text-[10px] tabular-nums ${
+                  tab === item.id ? "bg-white/20 text-white" : "bg-line text-ink-soft"
+                }`}>
+                  {item.badge}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
-      </section>
+      </nav>
 
-      <section>
-        <h2 className="eyebrow mb-3">Cohorts, pods & enrollment</h2>
-        <div className="flex flex-col gap-3">
-          {overview.cohorts.length === 0 ? (
-            <div className="rounded-card border border-line bg-card p-4 font-body text-[13px] text-ink-soft">No cohorts yet.</div>
-          ) : (
-            overview.cohorts.map((c) => <CohortCard key={c.id} c={c} staff={overview.staff} patients={overview.patients} />)
-          )}
-        </div>
-      </section>
-
-      <AppointmentStatsPanel stats={overview.appointmentStats} />
-
-      <InviteStaffPanel />
-
-      <PeoplePanel people={overview.staff} title="Staff" />
-
-      <PeoplePanel people={overview.patients} title="Patients" showPlan />
-
-      <PlanFeaturesPanel flags={overview.planFlags} />
-
-      <ResourcesPanel resources={overview.resources} />
-
-      <TaskTemplatesPanel templates={overview.templates} />
-
-      <AutomationPanel rows={overview.automationConfig} />
+      {/* Content */}
+      <div className="flex-1 min-w-0 flex flex-col gap-6">
+        {tab === "cohorts"    && <CohortsTab overview={overview} />}
+        {tab === "staff"      && <StaffTab overview={overview} />}
+        {tab === "patients"   && <PatientsTab overview={overview} />}
+        {tab === "plans"      && <PlansTab flags={overview.planFlags} />}
+        {tab === "resources"  && <ResourcesTab resources={overview.resources} />}
+        {tab === "templates"  && <TemplatesTab templates={overview.templates} />}
+        {tab === "automation" && <AutomationTab rows={overview.automationConfig} />}
+      </div>
     </div>
   );
 }
