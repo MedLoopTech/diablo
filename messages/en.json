@@ -1,9 +1,9 @@
 {
   "common": {
-    "appName": "Sehat/90",
+    "appName": "Loop/90",
     "tagline": "Diabetes remission challenge",
     "aiCoachLabel": "AI coach — not a doctor",
-    "disclaimer": "Sehat/90 supports your care team — it does not replace medical advice. Medication changes only ever come from your doctor.",
+    "disclaimer": "Loop/90 supports your care team — it does not replace medical advice. Medication changes only ever come from your doctor.",
     "loading": "Loading…",
     "signOut": "Sign out"
   },

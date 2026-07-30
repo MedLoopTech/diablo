@@ -15,7 +15,7 @@ export default async function PatientLayout({
     <div className="mx-auto min-h-dvh w-full max-w-md bg-paper">
       <header className="sticky top-0 z-10 flex items-center justify-between bg-paper/95 px-[18px] pb-2 pt-4 backdrop-blur-sm">
         <span className="font-display text-[15px] font-semibold text-primary-deep">
-          Sehat/90
+          Loop<span className="text-marigold">/90</span>
         </span>
         <div className="flex items-center gap-2">
           <NotificationBell

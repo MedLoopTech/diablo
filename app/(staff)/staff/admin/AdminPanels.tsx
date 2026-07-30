@@ -2,9 +2,10 @@
 
 import { useState, useTransition } from "react";
 import type { AdminOverview, AdminCohort, Person, AppointmentStat } from "@/lib/admin";
+import type { AutomationConfigRow } from "@/lib/automation";
 import type { PlanFlag } from "@/lib/plan";
 import { RESOURCE_LABELS, type ResourceType } from "@/lib/resources-shared";
-import { createCohort, assignPod, enrollPatient, setCohortStatus, createResource, toggleResource, inviteStaff, updatePersonName, setPatientPlan, togglePlanFeature } from "./actions";
+import { createCohort, assignPod, enrollPatient, setCohortStatus, createResource, toggleResource, inviteStaff, updatePersonName, setPatientPlan, togglePlanFeature, setTemplatePhotoMode, saveAutomationConfig } from "./actions";
 
 const field = "rounded-[10px] border border-line bg-paper px-3 py-2 font-body text-[13px] text-ink outline-none";
 
@@ -377,6 +378,199 @@ function ResourcesPanel({ resources }: { resources: AdminOverview["resources"] }
   );
 }
 
+const PHOTO_MODE_LABELS = { off: "Off", optional: "Optional", required: "Required" } as const;
+const PHOTO_MODES = ["off", "optional", "required"] as const;
+
+function TaskTemplatesPanel({ templates }: { templates: AdminOverview["templates"] }) {
+  const [pending, start] = useTransition();
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const save = (id: string, mode: "off" | "optional" | "required", bonus: number) =>
+    start(async () => {
+      const r = await setTemplatePhotoMode(id, mode, bonus);
+      setMsg(r.ok ? "Saved." : r.error ?? "Failed.");
+      setTimeout(() => setMsg(null), 2000);
+    });
+
+  return (
+    <section>
+      <h2 className="eyebrow mb-1">Program templates — photo evidence</h2>
+      <p className="mb-3 font-body text-[11.5px] text-ink-soft">
+        <strong>Required</strong> — patient must submit a photo to complete the task.&nbsp;
+        <strong>Optional</strong> — checkbox still works; camera earns bonus points.&nbsp;
+        <strong>Off</strong> — no photo feature on this task.
+      </p>
+      <div className="overflow-x-auto rounded-card border border-line bg-card">
+        <table className="w-full min-w-[620px] border-collapse font-body text-[13px]">
+          <thead>
+            <tr className="border-b border-line text-left text-ink-soft">
+              <th className="p-3 font-semibold">Ph</th>
+              <th className="p-3 font-semibold">Kind</th>
+              <th className="p-3 font-semibold">Title</th>
+              <th className="p-3 font-semibold">Photo mode</th>
+              <th className="p-3 font-semibold">Bonus pts</th>
+              <th className="p-3" />
+            </tr>
+          </thead>
+          <tbody>
+            {templates.map((tpl) => (
+              <TemplateRow
+                key={tpl.id}
+                tpl={tpl}
+                pending={pending}
+                onSave={save}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {msg && <p className="mt-2 font-body text-[12px] text-primary-deep">{msg}</p>}
+    </section>
+  );
+}
+
+function TemplateRow({
+  tpl,
+  pending,
+  onSave,
+}: {
+  tpl: AdminOverview["templates"][number];
+  pending: boolean;
+  onSave: (id: string, mode: "off" | "optional" | "required", bonus: number) => void;
+}) {
+  const [mode, setMode] = useState(tpl.photo_mode);
+  const [bonus, setBonus] = useState(String(tpl.photo_points_bonus));
+  const dirty = mode !== tpl.photo_mode || Number(bonus) !== tpl.photo_points_bonus;
+
+  return (
+    <tr className="border-b border-line last:border-0">
+      <td className="p-3 text-ink-soft">{tpl.phase}</td>
+      <td className="p-3 text-ink-soft">{tpl.kind}</td>
+      <td className="p-3 font-semibold text-ink">{tpl.title}</td>
+      <td className="p-3">
+        <select
+          value={mode}
+          onChange={(e) => setMode(e.target.value as typeof mode)}
+          className="rounded-[8px] border border-line bg-paper px-2 py-1 font-body text-[12px] text-ink outline-none"
+        >
+          {PHOTO_MODES.map((m) => (
+            <option key={m} value={m}>{PHOTO_MODE_LABELS[m]}</option>
+          ))}
+        </select>
+      </td>
+      <td className="p-3">
+        <input
+          type="number"
+          min={0}
+          max={50}
+          value={bonus}
+          onChange={(e) => setBonus(e.target.value)}
+          disabled={mode === "required"}
+          className="w-16 rounded-[8px] border border-line bg-paper px-2 py-1 font-body text-[12px] text-ink outline-none disabled:opacity-40"
+        />
+      </td>
+      <td className="p-3">
+        {dirty && (
+          <button
+            onClick={() => onSave(tpl.id, mode, Math.max(0, Number(bonus) || 0))}
+            disabled={pending}
+            className="rounded-full bg-primary px-3 py-1 font-body text-[12px] font-bold text-white disabled:opacity-50"
+          >
+            Save
+          </button>
+        )}
+      </td>
+    </tr>
+  );
+}
+
+function ConfigRow({ row }: { row: AutomationConfigRow }) {
+  const [val, setVal] = useState(row.value);
+  const [pending, startT] = useTransition();
+  const [msg, setMsg] = useState<string | null>(null);
+  const dirty = val !== row.value;
+
+  const isMessage = row.group_name === "messages";
+  const isThreshold = row.group_name === "thresholds";
+
+  const save = () =>
+    startT(async () => {
+      const r = await saveAutomationConfig(row.key, val);
+      setMsg(r.ok ? "Saved." : r.error ?? "Failed.");
+    });
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-body text-[12px] font-semibold text-ink">{row.label}</span>
+        {msg && <span className="font-body text-[11px] text-primary-deep">{msg}</span>}
+      </div>
+      {row.description && (
+        <p className="font-body text-[11px] text-ink-soft">{row.description}</p>
+      )}
+      {isMessage ? (
+        <textarea
+          value={val}
+          onChange={(e) => { setVal(e.target.value); setMsg(null); }}
+          rows={4}
+          className={`${field} resize-y w-full`}
+        />
+      ) : (
+        <input
+          type={isThreshold ? "number" : "text"}
+          value={val}
+          onChange={(e) => { setVal(e.target.value); setMsg(null); }}
+          className={`${field} w-full`}
+        />
+      )}
+      <button
+        onClick={save}
+        disabled={pending || !dirty}
+        className="self-start rounded-full bg-primary px-4 py-1.5 font-body text-[12px] font-bold text-white disabled:opacity-40"
+      >
+        {pending ? "Saving…" : "Save"}
+      </button>
+    </div>
+  );
+}
+
+const GROUP_LABELS: Record<string, string> = {
+  messages: "Message Templates",
+  destinations: "Notification Destinations",
+  thresholds: "Thresholds",
+  general: "General Settings",
+};
+
+function AutomationPanel({ rows }: { rows: AutomationConfigRow[] }) {
+  if (rows.length === 0) return null;
+
+  const byGroup = rows.reduce<Record<string, AutomationConfigRow[]>>((acc, r) => {
+    (acc[r.group_name] ??= []).push(r);
+    return acc;
+  }, {});
+
+  const groupOrder = ["messages", "destinations", "thresholds", "general"];
+  const groups = groupOrder.filter((g) => byGroup[g]);
+
+  return (
+    <section>
+      <h2 className="eyebrow mb-3">Automation Settings</h2>
+      <div className="flex flex-col gap-4">
+        {groups.map((group) => (
+          <div key={group} className="rounded-card border border-line bg-card p-4">
+            <h3 className="font-body text-[13px] font-bold text-ink mb-4">{GROUP_LABELS[group] ?? group}</h3>
+            <div className="flex flex-col gap-5">
+              {byGroup[group].map((row) => (
+                <ConfigRow key={row.key} row={row} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function AdminPanels({ overview }: { overview: AdminOverview }) {
   const [name, setName] = useState("");
   const [start, setStart] = useState("");
@@ -429,28 +623,9 @@ export function AdminPanels({ overview }: { overview: AdminOverview }) {
 
       <ResourcesPanel resources={overview.resources} />
 
-      <section>
-        <h2 className="eyebrow mb-3">Program templates ({overview.templates.length})</h2>
-        <div className="overflow-x-auto rounded-card border border-line bg-card">
-          <table className="w-full min-w-[520px] border-collapse font-body text-[13px]">
-            <thead>
-              <tr className="border-b border-line text-left text-ink-soft">
-                <th className="p-3 font-semibold">Phase</th><th className="p-3 font-semibold">Kind</th><th className="p-3 font-semibold">Title</th><th className="p-3 font-semibold">Subtitle</th>
-              </tr>
-            </thead>
-            <tbody>
-              {overview.templates.map((tpl) => (
-                <tr key={tpl.id} className="border-b border-line last:border-0">
-                  <td className="p-3 text-ink-soft">{tpl.phase}</td>
-                  <td className="p-3 text-ink-soft">{tpl.kind}</td>
-                  <td className="p-3 font-semibold text-ink">{tpl.title}</td>
-                  <td className="p-3 text-ink-soft">{tpl.subtitle}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <TaskTemplatesPanel templates={overview.templates} />
+
+      <AutomationPanel rows={overview.automationConfig} />
     </div>
   );
 }

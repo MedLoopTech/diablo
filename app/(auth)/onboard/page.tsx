@@ -21,7 +21,7 @@ export default function OnboardPage() {
     <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center bg-paper px-6">
       <div className="w-full max-w-sm">
         <div className="mb-2 font-display text-[13px] font-semibold uppercase tracking-widest text-primary">
-          Sehat/90
+          Loop<span className="text-marigold">/90</span>
         </div>
         <h1 className="font-display text-3xl font-semibold leading-tight text-ink">
           Welcome — let's get you set up

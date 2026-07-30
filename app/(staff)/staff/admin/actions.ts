@@ -137,6 +137,35 @@ export async function togglePlanFeature(plan: string, featureKey: string, enable
   return { ok: true };
 }
 
+export async function setTemplatePhotoMode(
+  templateId: string,
+  photoMode: "off" | "optional" | "required",
+  photoPtsBonus: number
+): Promise<{ ok: boolean; error?: string }> {
+  const { supabase, ok } = await requireAdmin();
+  if (!ok) return { ok: false, error: "Admins only." };
+  const { error } = await supabase
+    .from("task_templates")
+    .update({ photo_mode: photoMode, photo_points_bonus: photoPtsBonus })
+    .eq("id", templateId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/staff/admin");
+  return { ok: true };
+}
+
+export async function saveAutomationConfig(key: string, value: string): Promise<{ ok: boolean; error?: string }> {
+  const { supabase, ok } = await requireAdmin();
+  if (!ok) return { ok: false, error: "Admins only." };
+  if (!key) return { ok: false, error: "Key required." };
+  const { error } = await supabase
+    .from("automation_config")
+    .update({ value })
+    .eq("key", key);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/staff/admin");
+  return { ok: true };
+}
+
 export async function updatePersonName(id: string, name: string): Promise<{ ok: boolean; error?: string }> {
   const { supabase, ok } = await requireAdmin();
   if (!ok) return { ok: false, error: "Admins only." };

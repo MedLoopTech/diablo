@@ -1,22 +1,23 @@
 import type { GlucoseContext, GlucoseFlag } from "@/lib/types";
+import { THRESHOLDS } from "@/lib/thresholds";
 
 // Dial zone colors — must match the prototype's zone() in GlucoseDial.
 export const ZONE = {
-  inRange: "#14664F", // primary — < 130
-  elevated: "#EFA63C", // marigold — 130–179
-  high: "#DF5F4C", // coral — >= 180
+  inRange: "#14664F", // primary — < DIAL_ELEVATED
+  elevated: "#EFA63C", // marigold — DIAL_ELEVATED–ROUTINE_HIGH-1
+  high: "#DF5F4C", // coral — >= ROUTINE_HIGH
 } as const;
 
 export function zoneColor(value: number): string {
-  if (value < 130) return ZONE.inRange;
-  if (value < 180) return ZONE.elevated;
+  if (value < THRESHOLDS.DIAL_ELEVATED) return ZONE.inRange;
+  if (value < THRESHOLDS.ROUTINE_HIGH) return ZONE.elevated;
   return ZONE.high;
 }
 
 /** Server flagging thresholds, mirrored client-side for immediate feedback. */
 export function flagFor(value: number): GlucoseFlag {
-  if (value >= 250 || value <= 70) return "urgent";
-  if (value >= 180) return "routine";
+  if (value >= THRESHOLDS.URGENT_HIGH || value <= THRESHOLDS.URGENT_LOW) return "urgent";
+  if (value >= THRESHOLDS.ROUTINE_HIGH) return "routine";
   return "none";
 }
 

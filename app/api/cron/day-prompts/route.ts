@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendPushToUser } from "@/lib/push";
 
 // Called daily by Vercel Cron (vercel.json) or an external scheduler.
-// Creates consult bookings / escalation prompts at cohort days 45 and 90.
+// Creates chat messages and escalation prompts at cohort days 45 and 90.
 export async function POST(request: Request) {
   const secret = request.headers.get("x-cron-secret");
   if (secret !== process.env.CRON_SECRET) {
@@ -46,22 +47,24 @@ export async function POST(request: Request) {
 
     if (dayNum !== 45 && dayNum !== 90) continue;
 
-    const kind = dayNum === 45 ? "medication_review_day45" : "hba1c_lab_day90";
+    // Unique key stored in the escalation payload for idempotent dedup.
+    const milestoneKey = dayNum === 45 ? "medication_review_day45" : "hba1c_lab_day90";
     const body =
       dayNum === 45
         ? "You've reached Day 45 — a great time for a medication review with your doctor. Book a consult to discuss how your body is responding to the current plan."
         : "You've reached Day 90 — please schedule an HbA1c lab test to measure your remission progress. Your doctor will review the results in your final consult.";
 
-    // Check we haven't already created this prompt for this patient.
+    // Idempotent: skip if we've already created this milestone escalation for this patient.
+    // We store the milestone key inside the payload and query via JSONB @> containment.
     const { count } = await supabase
       .from("escalations")
       .select("id", { count: "exact", head: true })
       .eq("patient_id", row.patient_id)
-      .eq("kind", kind);
+      .contains("payload", { milestoneKey });
 
     if ((count ?? 0) > 0) continue;
 
-    // Insert a chat message (AI) and an escalation.
+    // Insert chat message (visible to patient) + escalation (visible to doctor).
     await Promise.all([
       supabase.from("chat_messages").insert({
         patient_id: row.patient_id,
@@ -71,11 +74,21 @@ export async function POST(request: Request) {
       supabase.from("escalations").insert({
         patient_id: row.patient_id,
         kind: "ai_routed",
-        payload: { kind, day: dayNum, message: body },
+        payload: { milestoneKey, day: dayNum, message: body },
         assigned_to: row.cohorts?.care_pods?.doctor_id ?? null,
         status: "open",
       }),
     ]);
+
+    // Push notification to the patient so they see it immediately.
+    await sendPushToUser(supabase, row.patient_id, {
+      title: dayNum === 45 ? "📅 Day 45 milestone" : "📅 Day 90 milestone",
+      body:
+        dayNum === 45
+          ? "Your doctor will review your medication plan. Book a consult if you haven't already."
+          : "Time for your final HbA1c lab test. Schedule it to measure your remission progress.",
+      url: "/care",
+    });
 
     prompted++;
   }

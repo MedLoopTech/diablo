@@ -1,6 +1,6 @@
 {
-  "name": "Sehat/90 — Diabetes Remission",
-  "short_name": "Sehat/90",
+  "name": "Loop/90 — Diabetes Remission",
+  "short_name": "Loop/90",
   "description": "90-day cohort-based type-2 diabetes remission program with a real care pod and AI coach.",
   "start_url": "/",
   "display": "standalone",

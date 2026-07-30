@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/lib/supabase/server";
-import { sendPushToPatient } from "@/lib/push";
+import { sendPushToUser } from "@/lib/push";
 
 export async function updateEscalationStatus(
   id: string,
@@ -40,7 +40,7 @@ export async function replyToPatient(
 
   // Push notification to patient.
   const roleLabel: Record<string, string> = { doctor: "Doctor", nutritionist: "Nutritionist", coach: "Coach" };
-  await sendPushToPatient(supabase, patientId, {
+  await sendPushToUser(supabase, patientId, {
     title: `Message from ${roleLabel[role] ?? "Care team"}`,
     body: `${name}: ${message.trim().slice(0, 100)}`,
     url: "/today",

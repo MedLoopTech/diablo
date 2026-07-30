@@ -14,6 +14,7 @@ export async function getChatContext(
     Date.now() - 7 * 24 * 60 * 60 * 1000
   ).toISOString();
 
+  // TODO: cache via React cache() or Redis (30 msg/day limit makes this acceptable for v1)
   const [{ data: readings }, { data: plan }, { data: mealPlan }, { data: cohortDay }] =
     await Promise.all([
       supabase

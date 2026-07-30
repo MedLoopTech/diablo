@@ -2,6 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPatientDetail } from "@/lib/staff";
 import { getCurrentProfile } from "@/lib/profile";
+import { createServerSupabase } from "@/lib/supabase/server";
+import { createAdminSupabase, PHOTO_BUCKET } from "@/lib/supabase/admin";
+import { karachiToday } from "@/lib/time";
 import { MedicationEditor } from "./MedicationEditor";
 import { MealPlanEditor } from "./MealPlanEditor";
 import { MovementPlanEditor } from "./MovementPlanEditor";
@@ -16,6 +19,35 @@ function pkt(iso: string) {
   });
 }
 
+async function getTaskEvidence(patientId: string) {
+  // Fetch the last 7 days of tasks that have photo evidence.
+  const supabase = createServerSupabase();
+  const today = karachiToday();
+  const sevenDaysAgo = new Date(new Date(today).getTime() - 6 * 86400000)
+    .toISOString()
+    .slice(0, 10);
+  const { data } = await supabase
+    .from("tasks")
+    .select("id, for_date, kind, title, evidence_url, evidence_at, done_at")
+    .eq("patient_id", patientId)
+    .not("evidence_url", "is", null)
+    .gte("for_date", sevenDaysAgo)
+    .order("evidence_at", { ascending: false })
+    .limit(20);
+  if (!data?.length) return [];
+
+  // Generate short-lived signed URLs so staff can view the thumbnails.
+  const admin = createAdminSupabase();
+  return Promise.all(
+    data.map(async (t) => {
+      const { data: signed } = await admin.storage
+        .from(PHOTO_BUCKET)
+        .createSignedUrl(t.evidence_url!, 3600);
+      return { ...t, signedUrl: signed?.signedUrl ?? null };
+    })
+  );
+}
+
 export default async function PatientDetailPage({
   params,
 }: {
@@ -23,6 +55,7 @@ export default async function PatientDetailPage({
 }) {
   const [p, viewer] = await Promise.all([getPatientDetail(params.id), getCurrentProfile()]);
   if (!p) notFound();
+  const evidence = await getTaskEvidence(params.id);
   const role = viewer?.role ?? "";
   const canEditMeds = role === "doctor" || role === "admin";
   const canEditMeals = role === "nutritionist" || role === "admin";
@@ -163,6 +196,38 @@ export default async function PatientDetailPage({
                 </div>
               );
             })}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h2 className="eyebrow mb-3">Task evidence (last 7 days)</h2>
+        {evidence.length === 0 ? (
+          <div className="rounded-card border border-line bg-card p-4 font-body text-[13px] text-ink-soft">
+            No photo evidence submitted yet.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {evidence.map((e) => (
+              <div key={e.id} className="overflow-hidden rounded-card border border-line bg-card">
+                {e.signedUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={e.signedUrl}
+                    alt={e.title}
+                    className="h-32 w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-32 items-center justify-center bg-card text-[28px]">📷</div>
+                )}
+                <div className="px-2 py-1.5">
+                  <div className="font-body text-[12px] font-semibold text-ink">{e.title}</div>
+                  <div className="font-body text-[10.5px] text-ink-soft">
+                    {e.for_date} · {e.evidence_at ? pkt(e.evidence_at) : "—"}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </section>

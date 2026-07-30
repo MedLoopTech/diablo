@@ -1,0 +1,754 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loop/90 for Professionals — Join the Care Network</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F5F0EB; --ink: #1A1A1A; --primary: #0C4A39; --primary-light: #14664F;
+    --mint: #E3F0E8; --marigold: #F5A623; --coral: #E85D4E; --blue: #4A90D9;
+    --white: #FFFFFF; --gray: #6B7280; --light-gray: #E5E7EB;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Outfit', sans-serif; background: var(--paper); color: var(--ink); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  h1, h2, h3, h4 { font-family: 'Fraunces', serif; font-weight: 600; line-height: 1.2; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+  nav { position: sticky; top: 0; background: rgba(245,240,235,0.95); backdrop-filter: blur(12px); z-index: 100; border-bottom: 1px solid var(--light-gray); }
+  nav .container { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .logo { font-family: 'Fraunces', serif; font-size: 1.5rem; font-weight: 700; color: var(--primary); text-decoration: none; }
+  .logo span { color: var(--marigold); }
+  .nav-cta { background: var(--primary); color: var(--white); padding: 10px 20px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 0.875rem; transition: all 0.2s; }
+  .nav-cta:hover { background: var(--primary-light); transform: translateY(-1px); }
+  .hero { padding: 80px 0 60px; text-align: center; position: relative; overflow: hidden; }
+  .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: var(--mint); color: var(--primary); padding: 8px 16px; border-radius: 999px; font-size: 0.875rem; font-weight: 600; margin-bottom: 24px; }
+  .hero-badge::before { content: ''; width: 8px; height: 8px; background: var(--primary); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .hero h1 { font-size: clamp(2.2rem, 5vw, 3.5rem); max-width: 800px; margin: 0 auto 20px; color: var(--ink); }
+  .hero h1 em { font-style: normal; color: var(--primary); position: relative; }
+  .hero h1 em::after { content: ''; position: absolute; bottom: 2px; left: 0; right: 0; height: 8px; background: var(--marigold); opacity: 0.3; z-index: -1; border-radius: 4px; }
+  .hero-sub { font-size: clamp(1rem, 2vw, 1.25rem); color: var(--gray); max-width: 600px; margin: 0 auto 32px; font-weight: 300; }
+  .hero-cta { display: inline-flex; flex-direction: column; align-items: center; gap: 16px; }
+  .btn-primary { background: var(--primary); color: var(--white); padding: 16px 40px; border-radius: 999px; text-decoration: none; font-weight: 700; font-size: 1.1rem; transition: all 0.2s; border: none; cursor: pointer; display: inline-block; }
+  .btn-primary:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(12,74,57,0.25); }
+  .btn-secondary { background: transparent; color: var(--primary); padding: 14px 32px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 1rem; transition: all 0.2s; border: 2px solid var(--primary); cursor: pointer; display: inline-block; }
+  .btn-secondary:hover { background: var(--primary); color: var(--white); }
+  .hero-guarantee { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: var(--gray); }
+  .hero-guarantee svg { flex-shrink: 0; }
+  .hero-stats { display: flex; justify-content: center; gap: 48px; margin-top: 48px; flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat-number { font-family: 'Fraunces', serif; font-size: 2rem; font-weight: 700; color: var(--primary); }
+  .stat-label { font-size: 0.875rem; color: var(--gray); margin-top: 4px; }
+  .problem { padding: 80px 0; background: var(--white); }
+  .section-header { text-align: center; max-width: 640px; margin: 0 auto 48px; }
+  .section-header h2 { font-size: clamp(1.8rem, 4vw, 2.5rem); margin-bottom: 16px; }
+  .section-header p { color: var(--gray); font-size: 1.1rem; }
+  .problem-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+  .problem-card { background: var(--paper); padding: 32px; border-radius: 20px; text-align: center; }
+  .problem-card .icon { width: 56px; height: 56px; background: var(--mint); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 1.5rem; }
+  .problem-card h3 { font-size: 1.1rem; margin-bottom: 8px; }
+  .problem-card p { font-size: 0.95rem; color: var(--gray); }
+  .solution { padding: 80px 0; }
+  .timeline { display: flex; flex-direction: column; gap: 0; max-width: 800px; margin: 0 auto; position: relative; }
+  .timeline::before { content: ''; position: absolute; left: 24px; top: 0; bottom: 0; width: 2px; background: var(--light-gray); }
+  .phase { display: flex; gap: 24px; padding: 24px 0; position: relative; }
+  .phase-dot { width: 48px; height: 48px; background: var(--primary); color: var(--white); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.1rem; flex-shrink: 0; z-index: 1; }
+  .phase-content h3 { font-size: 1.25rem; margin-bottom: 4px; }
+  .phase-content .days { font-size: 0.875rem; color: var(--primary); font-weight: 600; margin-bottom: 8px; }
+  .phase-content p { color: var(--gray); font-size: 0.95rem; }
+  .roles { padding: 80px 0; background: var(--white); }
+  .roles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-top: 48px; }
+  .role-card { background: var(--paper); border-radius: 20px; padding: 32px; text-align: center; transition: transform 0.2s; border: 2px solid transparent; }
+  .role-card:hover { transform: translateY(-4px); border-color: var(--primary); }
+  .role-card .avatar { width: 72px; height: 72px; background: var(--mint); border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 2rem; }
+  .role-card h3 { font-size: 1.25rem; margin-bottom: 4px; }
+  .role-card .role-tag { font-size: 0.875rem; color: var(--primary); font-weight: 600; margin-bottom: 12px; }
+  .role-card p { font-size: 0.9rem; color: var(--gray); margin-bottom: 16px; }
+  .role-card .earn { font-family: 'Fraunces', serif; font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+  .role-card .earn-label { font-size: 0.8rem; color: var(--gray); }
+
+  .referral { padding: 80px 0; background: var(--mint); }
+  .referral-card { background: var(--white); border-radius: 24px; padding: 48px; max-width: 720px; margin: 0 auto; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+  .referral-card .icon { width: 72px; height: 72px; background: var(--mint); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 2rem; }
+  .referral-card h3 { font-size: 1.5rem; margin-bottom: 8px; }
+  .referral-card .subtitle { color: var(--gray); margin-bottom: 32px; }
+  .referral-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 32px; }
+  .referral-step { text-align: center; }
+  .referral-step .step-num { width: 40px; height: 40px; background: var(--primary); color: var(--white); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-weight: 700; margin: 0 auto 12px; }
+  .referral-step h4 { font-size: 1rem; margin-bottom: 4px; }
+  .referral-step p { font-size: 0.85rem; color: var(--gray); }
+  .referral-highlight { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); color: var(--white); border-radius: 16px; padding: 24px; margin-bottom: 24px; }
+  .referral-highlight .big { font-family: 'Fraunces', serif; font-size: 2.5rem; font-weight: 700; line-height: 1; }
+  .referral-highlight .small { font-size: 0.9rem; opacity: 0.85; margin-top: 4px; }
+  .calculator { padding: 80px 0; background: linear-gradient(135deg, var(--primary) 0%, #0a3a2d 100%); color: var(--white); }
+  .calculator .section-header h2, .calculator .section-header p { color: var(--white); }
+  .calculator .section-header p { opacity: 0.85; }
+  .calc-card { background: var(--white); border-radius: 24px; padding: 40px; max-width: 640px; margin: 0 auto; color: var(--ink); }
+  .calc-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 32px; }
+  .calc-inputs .input-group { display: flex; flex-direction: column; gap: 6px; }
+  .calc-inputs label { font-size: 0.875rem; font-weight: 600; color: var(--ink); }
+  .calc-inputs select { width: 100%; padding: 14px 16px; border: 2px solid var(--light-gray); border-radius: 12px; font-size: 1rem; font-family: 'Outfit', sans-serif; background: var(--white); cursor: pointer; }
+  .calc-inputs select:focus { outline: none; border-color: var(--primary); }
+  .slider-group { grid-column: 1 / -1; }
+  .slider-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .slider-val { font-family: 'Fraunces', serif; font-size: 1.25rem; font-weight: 700; color: var(--primary); }
+  input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; background: var(--light-gray); border-radius: 4px; outline: none; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; background: var(--primary); border-radius: 50%; cursor: pointer; box-shadow: 0 2px 8px rgba(12,74,57,0.3); }
+  input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; background: var(--primary); border-radius: 50%; cursor: pointer; border: none; box-shadow: 0 2px 8px rgba(12,74,57,0.3); }
+  .calc-results { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .calc-result-box { background: var(--mint); border-radius: 16px; padding: 20px; text-align: center; }
+  .calc-result-box.highlight { background: var(--primary); color: var(--white); }
+  .calc-result-box .num { font-family: 'Fraunces', serif; font-size: 1.75rem; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .calc-result-box .label { font-size: 0.8rem; opacity: 0.8; }
+  .calc-note { text-align: center; font-size: 0.8rem; color: var(--gray); margin-top: 16px; }
+  .platform { padding: 80px 0; background: var(--white); }
+  .platform-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; margin-top: 48px; }
+  .platform-card { background: var(--paper); border-radius: 20px; padding: 32px; text-align: center; }
+  .platform-card .icon { width: 56px; height: 56px; background: var(--mint); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 1.5rem; }
+  .platform-card h3 { font-size: 1.1rem; margin-bottom: 8px; }
+  .platform-card p { font-size: 0.9rem; color: var(--gray); }
+  .social-proof { padding: 80px 0; text-align: center; }
+  .testimonial-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-top: 48px; }
+  .testimonial { background: var(--white); padding: 32px; border-radius: 20px; text-align: left; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+  .testimonial-stars { color: var(--marigold); font-size: 1.25rem; margin-bottom: 12px; }
+  .testimonial p { font-size: 1rem; color: var(--ink); margin-bottom: 16px; font-style: italic; }
+  .testimonial-author { display: flex; align-items: center; gap: 12px; }
+  .testimonial-author .thumb { width: 40px; height: 40px; background: var(--mint); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+  .testimonial-author strong { display: block; font-size: 0.9rem; }
+  .testimonial-author span { font-size: 0.8rem; color: var(--gray); }
+  .guarantee { padding: 80px 0; background: var(--mint); text-align: center; }
+  .guarantee h2 { font-size: clamp(1.8rem, 4vw, 2.5rem); margin-bottom: 16px; }
+  .guarantee > p { max-width: 600px; margin: 0 auto 40px; color: var(--gray); font-size: 1.1rem; }
+  .guarantee-box { background: var(--white); border-radius: 24px; padding: 40px; max-width: 720px; margin: 0 auto; text-align: left; }
+  .guarantee-item { display: flex; align-items: flex-start; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--light-gray); }
+  .guarantee-item:last-child { border-bottom: none; }
+  .guarantee-item .check { width: 28px; height: 28px; background: var(--primary); color: var(--white); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; font-size: 0.875rem; }
+  .guarantee-item h4 { font-size: 1rem; margin-bottom: 2px; }
+  .guarantee-item p { font-size: 0.9rem; color: var(--gray); }
+  .pricing { padding: 80px 0; text-align: center; }
+  .pricing-card { background: var(--white); border-radius: 24px; padding: 48px 32px; max-width: 520px; margin: 0 auto; box-shadow: 0 8px 32px rgba(0,0,0,0.08); border: 2px solid var(--primary); }
+  .pricing-badge { display: inline-block; background: var(--marigold); color: var(--ink); padding: 6px 16px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; margin-bottom: 16px; }
+  .pricing-card h3 { font-size: 1.5rem; margin-bottom: 8px; }
+  .price { font-family: 'Fraunces', serif; font-size: 3rem; font-weight: 700; color: var(--primary); line-height: 1; }
+  .price span { font-size: 1rem; color: var(--gray); font-weight: 400; font-family: 'Outfit', sans-serif; }
+  .price-note { font-size: 0.875rem; color: var(--gray); margin: 8px 0 24px; }
+  .pricing-features { text-align: left; max-width: 360px; margin: 0 auto 32px; }
+  .pricing-features li { list-style: none; padding: 8px 0; font-size: 0.95rem; display: flex; align-items: center; gap: 10px; }
+  .pricing-features li::before { content: '\2713'; color: var(--primary); font-weight: 700; }
+  .faq { padding: 80px 0; background: var(--white); }
+  .faq-list { max-width: 720px; margin: 48px auto 0; }
+  .faq-item { border-bottom: 1px solid var(--light-gray); }
+  .faq-question { width: 100%; background: none; border: none; padding: 24px 0; text-align: left; font-family: 'Outfit', sans-serif; font-size: 1.05rem; font-weight: 600; color: var(--ink); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+  .faq-question:hover { color: var(--primary); }
+  .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+  .faq-answer p { padding: 0 0 24px; color: var(--gray); font-size: 0.95rem; }
+  .faq-item.active .faq-answer { max-height: 200px; }
+  .faq-item.active .faq-question::after { transform: rotate(45deg); }
+  .faq-question::after { content: '+'; font-size: 1.5rem; color: var(--primary); transition: transform 0.2s; }
+  footer { background: var(--ink); color: var(--white); padding: 48px 0 24px; text-align: center; }
+  footer .logo { color: var(--white); margin-bottom: 16px; display: inline-block; }
+  footer .logo span { color: var(--marigold); }
+  footer p { color: rgba(255,255,255,0.6); font-size: 0.875rem; max-width: 500px; margin: 0 auto 24px; }
+  .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; }
+  .footer-links a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.875rem; }
+  .footer-links a:hover { color: var(--white); }
+  .disclaimer { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 24px; font-size: 0.75rem; color: rgba(255,255,255,0.4); max-width: 600px; margin: 0 auto; }
+  .whatsapp-float { position: fixed; bottom: 24px; right: 24px; z-index: 999; background: #25D366; color: var(--white); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(37,211,102,0.4); cursor: pointer; transition: all 0.3s ease; text-decoration: none; animation: whatsappPulse 2s infinite; }
+  .whatsapp-float:hover { transform: scale(1.1); box-shadow: 0 6px 24px rgba(37,211,102,0.5); }
+  .whatsapp-float svg { width: 32px; height: 32px; fill: var(--white); }
+  .whatsapp-tooltip { position: absolute; right: 70px; background: var(--ink); color: var(--white); padding: 8px 14px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; opacity: 0; transform: translateX(10px); transition: all 0.3s ease; pointer-events: none; }
+  .whatsapp-float:hover .whatsapp-tooltip { opacity: 1; transform: translateX(0); }
+  @keyframes whatsappPulse { 0%, 100% { box-shadow: 0 4px 16px rgba(37,211,102,0.4); } 50% { box-shadow: 0 4px 24px rgba(37,211,102,0.6); } }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 1000; display: flex; align-items: flex-start; justify-content: center; padding: 40px 20px; overflow-y: auto; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
+  .modal-overlay.active { opacity: 1; visibility: visible; }
+  .modal { background: var(--white); border-radius: 24px; padding: 40px; max-width: 520px; width: 100%; position: relative; flex-shrink: 0; transform: scale(0.9) translateY(20px); transition: transform 0.3s ease; }
+  .modal-overlay.active .modal { transform: scale(1) translateY(0); }
+  .modal-close { position: absolute; top: 16px; right: 16px; width: 36px; height: 36px; border-radius: 50%; background: var(--paper); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; color: var(--gray); transition: all 0.2s; }
+  .modal-close:hover { background: var(--light-gray); color: var(--ink); }
+  .modal h3 { font-size: 1.5rem; margin-bottom: 8px; text-align: center; }
+  .modal-subtitle { text-align: center; color: var(--gray); font-size: 0.95rem; margin-bottom: 28px; }
+  .modal-form .input-group { margin-bottom: 16px; }
+  .modal-form input, .modal-form select { width: 100%; padding: 14px 16px; border: 2px solid var(--light-gray); border-radius: 12px; font-size: 1rem; font-family: 'Outfit', sans-serif; transition: border-color 0.2s; background: var(--white); }
+  .modal-form input:focus, .modal-form select:focus { outline: none; border-color: var(--primary); }
+  .modal-form .btn-primary { width: 100%; margin-top: 8px; padding: 16px; font-size: 1rem; }
+  .modal-privacy { text-align: center; font-size: 0.75rem; color: var(--gray); margin-top: 16px; }
+  .modal-privacy a { color: var(--primary); text-decoration: none; }
+  .modal-success { display: none; text-align: center; padding: 20px 0; }
+  .modal-success.active { display: block; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .modal-success .success-icon { width: 64px; height: 64px; background: var(--mint); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 2rem; }
+  .modal-success h3 { margin-bottom: 8px; }
+  .modal-success p { color: var(--gray); margin-bottom: 20px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) {
+    .hero { padding: 60px 0 40px; } .hero-stats { gap: 24px; } .pricing-card { padding: 32px 20px; } .price { font-size: 2.5rem; }
+    .guarantee-box { padding: 24px; } .timeline::before { left: 20px; } .phase { gap: 16px; } .phase-dot { width: 40px; height: 40px; font-size: 0.9rem; }
+    .modal { padding: 32px 24px; } .whatsapp-float { width: 52px; height: 52px; bottom: 16px; right: 16px; } .whatsapp-float svg { width: 26px; height: 26px; }
+    .two-col { grid-template-columns: 1fr; } .referral-steps { grid-template-columns: 1fr; } .calc-inputs { grid-template-columns: 1fr; } .calc-results { grid-template-columns: 1fr; }
+    .referral-card { padding: 32px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="#" class="logo">Loop<span>/90</span></a>
+    <a href="#apply" class="nav-cta" onclick="openModal(); return false;">Apply to Join</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">Now recruiting care professionals — Cohort 1</div>
+    <h1>Doctors, Nutritionists & Coaches: <em>Monetize Your Expertise</em> at Scale</h1>
+    <p class="hero-sub">Join Pakistan's first diabetes remission care network. Stop trading hours for rupees. One care pod. Forty patients. Ninety days. Real impact — and real income.</p>
+    <div class="hero-cta">
+      <button class="btn-primary" onclick="openModal()">Apply to Join the Network</button>
+      <a href="#how" class="btn-secondary">See How It Works</a>
+      <div class="hero-guarantee">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 0L10.2 5.3L16 6.1L12 10.2L12.9 16L8 13.3L3.1 16L4 10.2L0 6.1L5.8 5.3L8 0Z" fill="#0C4A39"/></svg>
+        Verified professionals only. No MLM. No patient poaching.
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><div class="stat-number">PKR 120K+</div><div class="stat-label">Monthly earning potential</div></div>
+      <div class="stat"><div class="stat-number">40:1</div><div class="stat-label">Patients per care pod</div></div>
+      <div class="stat"><div class="stat-number">90</div><div class="stat-label">Day structured program</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="problem">
+  <div class="container">
+    <div class="section-header">
+      <h2>The Problem With Practicing in Pakistan</h2>
+      <p>You trained for years. You care deeply. But the system makes it hard to do your best work.</p>
+    </div>
+    <div class="problem-grid">
+      <div class="problem-card">
+        <div class="icon">&#128197;</div>
+        <h3>15-Minute Consultations</h3>
+        <p>You barely have time to explain diet changes before the next patient walks in. Real lifestyle counseling takes hours — not minutes.</p>
+      </div>
+      <div class="problem-card">
+        <div class="icon">&#128176;</div>
+        <h3>Income Ceiling</h3>
+        <p>Your earnings are tied to clinic hours. There's no leverage. No scale. No way to earn while you sleep — or while you treat other patients.</p>
+      </div>
+      <div class="problem-card">
+        <div class="icon">&#128583;</div>
+        <h3>Patients Relapse Anyway</h3>
+        <p>You prescribe the perfect plan. They nod along. Then they go home to the same kitchen, same habits, same chaos. No follow-up system exists.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="solution" id="how">
+  <div class="container">
+    <div class="section-header">
+      <h2>How Loop/90 Works for Professionals</h2>
+      <p>We handle operations. You handle patients. Everyone wins.</p>
+    </div>
+    <div class="timeline">
+      <div class="phase">
+        <div class="phase-dot">1</div>
+        <div class="phase-content">
+          <h3>Apply & Onboard</h3>
+          <div class="days">Week 1</div>
+          <p>Submit your credentials. We verify your license, review your experience, and conduct a 30-minute video interview. Once approved, you complete our 2-hour Loop/90 protocol training.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-dot">2</div>
+        <div class="phase-content">
+          <h3>Get Assigned a Cohort</h3>
+          <div class="days">Week 2</div>
+          <p>You're matched with a care pod: one doctor, one nutritionist, one coach, one AI — for 40 patients. The platform auto-generates your weekly schedule, meal review queues, and glucose trend alerts.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-dot">3</div>
+        <div class="phase-content">
+          <h3>Deliver Care — Get Paid</h3>
+          <div class="days">Days 1 – 90</div>
+          <p>You work within the Loop/90 app: review glucose logs, approve meal plans, answer patient questions, run group sessions. We handle billing, patient support, lab coordination, and compliance. You get paid weekly.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-dot">4</div>
+        <div class="phase-content">
+          <h3>Build Your Reputation</h3>
+          <div class="days">Day 90+</div>
+          <p>Patients graduate. You get verified reviews, outcome data, and a public Loop/90 profile. Top performers get priority placement in future cohorts and advisory board invitations.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="roles">
+  <div class="container">
+    <div class="section-header">
+      <h2>Who We're Looking For</h2>
+      <p>Three roles. One mission. Join as a care pod member or a referring partner.</p>
+    </div>
+    <div class="roles-grid">
+      <div class="role-card">
+        <div class="avatar">&#128104;&#8205;&#9877;&#65039;</div>
+        <h3>Endocrinologists & GPs</h3>
+        <div class="role-tag">Medical Lead</div>
+        <p>Review glucose trends, adjust medication guidance, handle escalations. Spend 30 min/day per cohort via the app. No clinic overhead.</p>
+        <div class="earn">PKR 45–60K</div>
+        <div class="earn-label">per cohort (90 days)</div>
+      </div>
+      <div class="role-card">
+        <div class="avatar">&#129367;</div>
+        <h3>Clinical Nutritionists</h3>
+        <div class="role-tag">Meal Architect</div>
+        <p>Build desi-aware meal plans. Review meal photos daily. Run weekly group nutrition sessions. Work from anywhere.</p>
+        <div class="earn">PKR 35–50K</div>
+        <div class="earn-label">per cohort (90 days)</div>
+      </div>
+      <div class="role-card">
+        <div class="avatar">&#129496;</div>
+        <h3>Fitness & Movement Coaches</h3>
+        <div class="role-tag">Activity Lead</div>
+        <p>Design home-based routines. Run live yoga / strength sessions twice weekly. Track step goals and celebrate wins.</p>
+        <div class="earn">PKR 25–40K</div>
+        <div class="earn-label">per cohort (90 days)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="referral" id="refer">
+  <div class="container">
+    <div class="section-header">
+      <h2>Too Busy for a Care Pod? Just Refer & Earn</h2>
+      <p>Keep your practice. Keep your patients. Add a new revenue stream with zero time commitment.</p>
+    </div>
+    <div class="referral-card">
+      <div class="icon">&#128279;</div>
+      <h3>Loop/90 Referral Partner</h3>
+      <p class="subtitle">For doctors who want to help patients access structured diabetes remission care — without joining a care pod.</p>
+      <div class="referral-steps">
+        <div class="referral-step">
+          <div class="step-num">1</div>
+          <h4>Sign Up</h4>
+          <p>Get your unique referral code in 2 minutes. No credentialing interview required.</p>
+        </div>
+        <div class="referral-step">
+          <div class="step-num">2</div>
+          <h4>Refer Patients</h4>
+          <p>Share your code via WhatsApp, SMS, or in-clinic. We handle enrollment and onboarding.</p>
+        </div>
+        <div class="referral-step">
+          <div class="step-num">3</div>
+          <h4>Get Paid</h4>
+          <p>Earn PKR 2,000 for every patient who enrolls using your code. Paid weekly.</p>
+        </div>
+      </div>
+      <div class="referral-highlight">
+        <div class="big">PKR 2,000</div>
+        <div class="small">per enrolled patient · Paid weekly · No cap</div>
+      </div>
+      <p style="color: var(--gray); font-size: 0.95rem; margin-bottom: 20px;">
+        Refer 10 patients a month = <strong>PKR 20,000</strong> extra income.<br>
+        Refer 25 patients a month = <strong>PKR 50,000</strong> extra income.<br>
+        Their primary care stays with you. Loop/90 handles the lifestyle layer.
+      </p>
+      <button class="btn-primary" onclick="openModal()">Become a Referral Partner</button>
+    </div>
+  </div>
+</section>
+
+<section class="calculator" id="calculator">
+  <div class="container">
+    <div class="section-header">
+      <h2>Calculate Your Earnings</h2>
+      <p>See how much you could make based on your role and commitment level.</p>
+    </div>
+    <div class="calc-card">
+      <div class="calc-inputs">
+        <div class="input-group">
+          <label for="calc-role">Your Role</label>
+          <select id="calc-role" onchange="updateCalc()">
+            <option value="doctor">Doctor (Endocrinologist / GP)</option>
+            <option value="nutritionist">Clinical Nutritionist</option>
+            <option value="coach">Fitness / Movement Coach</option>
+            <option value="referrer">Referral Partner Only</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label for="calc-refer">Also Refer Patients?</label>
+          <select id="calc-refer" onchange="updateCalc()">
+            <option value="0">No referrals</option>
+            <option value="5">5 patients/month</option>
+            <option value="10" selected>10 patients/month</option>
+            <option value="20">20 patients/month</option>
+            <option value="30">30 patients/month</option>
+          </select>
+        </div>
+        <div class="input-group slider-group">
+          <div class="slider-header">
+            <label for="calc-cohorts">Active Cohorts per Month</label>
+            <span class="slider-val" id="cohort-val">2</span>
+          </div>
+          <input type="range" id="calc-cohorts" min="1" max="5" value="2" oninput="updateCalc()">
+        </div>
+      </div>
+      <div class="calc-results">
+        <div class="calc-result-box">
+          <div class="num" id="res-monthly">--</div>
+          <div class="label">Monthly Earnings</div>
+        </div>
+        <div class="calc-result-box">
+          <div class="num" id="res-cohort">--</div>
+          <div class="label">Per Cohort</div>
+        </div>
+        <div class="calc-result-box highlight">
+          <div class="num" id="res-yearly">--</div>
+          <div class="label">Yearly Potential</div>
+        </div>
+      </div>
+      <p class="calc-note">Based on PKR 52,500 average per cohort for doctors, PKR 42,500 for nutritionists, PKR 32,500 for coaches. Referral bonus: PKR 2,000 per patient. Cohorts overlap — a new one starts every 30 days.</p>
+    </div>
+  </div>
+</section>
+
+<section class="platform">
+  <div class="container">
+    <div class="section-header">
+      <h2>The Platform Does the Heavy Lifting</h2>
+      <p>You focus on clinical judgment. We handle everything else.</p>
+    </div>
+    <div class="platform-grid">
+      <div class="platform-card">
+        <div class="icon">&#128241;</div>
+        <h3>Patient App</h3>
+        <p>Patients log glucose, meals, and steps. AI pre-screens questions. You only see what needs human eyes.</p>
+      </div>
+      <div class="platform-card">
+        <div class="icon">&#128200;</div>
+        <h3>Auto Dashboards</h3>
+        <p>Glucose trends, adherence scores, risk flags — all visualized. Know who needs attention in 10 seconds.</p>
+      </div>
+      <div class="platform-card">
+        <div class="icon">&#128179;</div>
+        <h3>Weekly Payouts</h3>
+        <p>No chasing patients for fees. No clinic rent. We collect from patients and transfer your earnings every Friday.</p>
+      </div>
+      <div class="platform-card">
+        <div class="icon">&#128221;</div>
+        <h3>Medico-Legal Shield</h3>
+        <p>Our terms clearly position you as a lifestyle advisor, not a replacement for the patient's primary physician.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="social-proof">
+  <div class="container">
+    <div class="section-header">
+      <h2>What Early Partners Are Saying</h2>
+      <p>Professionals who've seen the model and want in.</p>
+    </div>
+    <div class="testimonial-grid">
+      <div class="testimonial">
+        <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p>"I see 40 diabetes patients a day. I have 8 minutes per patient. With Loop/90, I can actually follow their glucose trends daily and intervene before things go wrong. This is the diabetes care I was trained to deliver."</p>
+        <div class="testimonial-author">
+          <div class="thumb">&#127477;&#127486;</div>
+          <div><strong>Dr. Imran Hussain</strong><span>Endocrinologist, Karachi — 12 years practice</span></div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p>"Finally, a platform that doesn't ask me to recommend quinoa. I can build meal plans around roti, daal, and karahi — and patients actually follow them because it's their food, not a foreign diet."</p>
+        <div class="testimonial-author">
+          <div class="thumb">&#127477;&#127486;</div>
+          <div><strong>Rabia Tariq, RD</strong><span>Clinical Nutritionist, Lahore</span></div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+        <p>"I run yoga classes at a gym in Islamabad. The income is unpredictable. Loop/90 gives me a fixed cohort, a structured program, and guaranteed weekly payments. I know exactly how much I'll earn each month."</p>
+        <div class="testimonial-author">
+          <div class="thumb">&#127477;&#127486;</div>
+          <div><strong>Bilal Khan</strong><span>Movement Coach, Islamabad</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="guarantee" id="guarantee">
+  <div class="container">
+    <h2>Our Promise to Professionals</h2>
+    <p>We know you've been burned by "platforms" before. Here's exactly what you get — and what we never do.</p>
+    <div class="guarantee-box">
+      <div class="guarantee-item">
+        <div class="check">&#10003;</div>
+        <div><h4>You keep your own patients</h4><p>We never poach. Loop/90 patients are explicitly told that you are their lifestyle advisor, not their new primary doctor. Their original physician relationship stays intact.</p></div>
+      </div>
+      <div class="guarantee-item">
+        <div class="check">&#10003;</div>
+        <div><h4>Transparent weekly payouts</h4><p>No "points." No "credits." Direct bank transfer every Friday for the work you completed that week. Full breakdown visible in your dashboard.</p></div>
+      </div>
+      <div class="guarantee-item">
+        <div class="check">&#10003;</div>
+        <div><h4>No patient acquisition cost</h4><p>We market to patients. We onboard them. We handle payments and support. You show up, deliver care, and get paid. Zero upfront investment.</p></div>
+      </div>
+      <div class="guarantee-item">
+        <div class="check">&#10003;</div>
+        <div><h4>Clinical autonomy within protocol</h4><p>We provide the framework (HbA1c targets, meal macros, exercise guidelines). You make the clinical decisions within it. No micromanagement.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pricing" id="apply">
+  <div class="container">
+    <div class="section-header">
+      <h2>Apply to the Care Network</h2>
+      <p>Cohort 1 launches soon. We're accepting 5 doctors, 5 nutritionists, and 5 coaches.</p>
+    </div>
+    <div class="pricing-card">
+      <div class="pricing-badge">LIMITED TO 15 PROFESSIONALS — COHORT 1</div>
+      <h3>Loop/90 Care Professional</h3>
+      <div class="price">Zero Cost <span>to join</span></div>
+      <p class="price-note">We invest in you. You earn per patient, per interaction.</p>
+      <ul class="pricing-features">
+        <li>Verified professional profile on Loop/90</li>
+        <li>Access to patient dashboard & AI tools</li>
+        <li>Weekly direct deposits to your bank</li>
+        <li>Structured 90-day protocol & training</li>
+        <li>Medico-legal coverage within our terms</li>
+        <li>Alumni network & advisory board access</li>
+        <li>Referral bonus: PKR 2,000 per patient you bring</li>
+      </ul>
+      <button class="btn-primary" style="width:100%" onclick="openModal()">Apply Now — It Takes 3 Minutes</button>
+      <p class="scarcity" style="margin-top:16px">&#9200; Applications close when 15 spots are filled</p>
+    </div>
+  </div>
+</section>
+
+<section class="faq">
+  <div class="container">
+    <div class="section-header"><h2>Questions? Answered.</h2></div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-question">What credentials do I need?</button>
+        <div class="faq-answer"><p>Doctors: Valid PMDC license + minimum 3 years post-residency experience. Nutritionists: BSc/MSc in Nutrition or Dietetics + RD certification preferred. Coaches: Certified fitness/yoga instructor + 2+ years client experience. All roles require a clean professional record and two references.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">How much time does this take per week?</button>
+        <div class="faq-answer"><p>Doctors: ~3–4 hours/week per cohort (daily glucose review + weekly group session). Nutritionists: ~5–6 hours/week (meal plan building + photo reviews + session). Coaches: ~4–5 hours/week (session prep + live classes + check-ins). Most professionals manage 2–3 cohorts simultaneously.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">Can I still work at my clinic / gym?</button>
+        <div class="faq-answer"><p>Absolutely. Loop/90 is designed as supplementary income, not a full-time replacement. All care delivery happens through our app — no physical clinic required. Many of our professionals run Loop/90 cohorts alongside their existing practice.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">What if a patient has a medical emergency?</button>
+        <div class="faq-answer"><p>Our platform has built-in safety protocols. Glucose readings below 70 or above 250 mg/dL trigger automatic alerts to you and the patient. You provide guidance within the app. For true emergencies, patients are directed to their primary physician or nearest ER. You are never the first responder.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">How do I get paid?</button>
+        <div class="faq-answer"><p>Weekly bank transfers every Friday. We calculate your earnings based on: per-patient onboarding fee, per-review meal photo checks, per-session group class rate, and performance bonuses for patients who hit their HbA1c targets. Full transparency — you see every line item.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question">Can I refer my own patients to Loop/90?</button>
+        <div class="faq-answer"><p>Yes — and we encourage it. You earn a PKR 2,000 referral bonus for every patient you refer who enrolls. Your patient gets structured lifestyle support. Their primary care stays with you. Everyone benefits. We even provide referral cards and WhatsApp templates.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <a href="#" class="logo">Loop<span>/90</span></a>
+    <p>Pakistan's first 90-day intensive lifestyle medicine program for type-2 diabetes remission. Built by professionals, for professionals.</p>
+    <div class="footer-links">
+      <a href="#guarantee">Our Promise</a>
+      <a href="#apply">Apply</a>
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms of Service</a>
+      <a href="mailto:partners@loop90.pk">partners@loop90.pk</a>
+    </div>
+    <p class="disclaimer">Loop/90 is a lifestyle education and care coordination program. Care professionals operate as independent advisors within our structured protocol. All medication decisions remain with the patient's personal physician. Loop/90 by MedLoop Technologies.</p>
+  </div>
+</footer>
+
+<a href="https://wa.me/923452739406?text=Hi%20Loop%2F90%20team%2C%20I'm%20a%20healthcare%20professional%20interested%20in%20joining%20the%20care%20network.%20Can%20we%20talk%3F" class="whatsapp-float" target="_blank" rel="noopener">
+  <span class="whatsapp-tooltip">Chat with us on WhatsApp</span>
+  <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+</a>
+
+<div class="modal-overlay" id="leadModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <div class="modal-form" id="modalForm">
+      <h3>Apply to the Loop/90 Care Network</h3>
+      <p class="modal-subtitle">Takes 3 minutes. We'll review your credentials and schedule a 30-min video interview within 48 hours.</p>
+      <div class="two-col">
+        <div class="input-group"><label for="lead-fname">First Name</label><input type="text" id="lead-fname" placeholder="e.g. Asif"></div>
+        <div class="input-group"><label for="lead-lname">Last Name</label><input type="text" id="lead-lname" placeholder="e.g. Khan"></div>
+      </div>
+      <div class="input-group"><label for="lead-email">Email</label><input type="email" id="lead-email" placeholder="e.g. dr.asif@clinic.pk"></div>
+      <div class="input-group"><label for="lead-phone">WhatsApp Number</label><input type="tel" id="lead-phone" placeholder="e.g. 03001234567"></div>
+      <div class="input-group">
+        <label for="lead-role">Your Role</label>
+        <select id="lead-role">
+          <option value="">Select your profession</option>
+          <option value="doctor">Doctor (Endocrinologist / GP)</option>
+          <option value="nutritionist">Clinical Nutritionist / Dietitian</option>
+          <option value="coach">Fitness / Movement Coach</option>
+          <option value="referrer">Referral Partner Only</option>
+          <option value="other">Other Healthcare Professional</option>
+        </select>
+      </div>
+      <div class="input-group"><label for="lead-city">City</label><input type="text" id="lead-city" placeholder="e.g. Karachi, Lahore, Islamabad"></div>
+      <div class="input-group" id="license-group"><label for="lead-license">License / Certification Number</label><input type="text" id="lead-license" placeholder="e.g. PMDC-12345 or RD-6789"></div>
+      <button class="btn-primary" onclick="submitLead()">Submit Application</button>
+      <p class="modal-privacy">Your information is encrypted and only shared with our credentialing team. <a href="#">Privacy Policy</a></p>
+    </div>
+    <div class="modal-success" id="modalSuccess">
+      <div class="success-icon">&#10003;</div>
+      <h3>Application Received!</h3>
+      <p>Our credentialing team will review your details and reach out via WhatsApp within 48 hours to schedule your interview.</p>
+      <a href="https://wa.me/923452739406?text=Hi%20Loop%2F90%2C%20I%20just%20submitted%20my%20care%20network%20application" class="btn-primary" target="_blank" rel="noopener">Message Us on WhatsApp</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  // FAQ accordion
+  document.querySelectorAll('.faq-question').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.parentElement;
+      const isActive = item.classList.contains('active');
+      document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('active'));
+      if (!isActive) item.classList.add('active');
+    });
+  });
+
+  // Smooth scroll
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  // ===== Earnings Calculator =====
+  const roleRates = {
+    doctor: 52500,
+    nutritionist: 42500,
+    coach: 32500,
+    referrer: 0
+  };
+
+  function formatPKR(num) {
+    return 'PKR ' + num.toLocaleString('en-PK');
+  }
+
+  function updateCalc() {
+    const role = document.getElementById('calc-role').value;
+    const referrals = parseInt(document.getElementById('calc-refer').value);
+    const cohorts = parseInt(document.getElementById('calc-cohorts').value);
+
+    document.getElementById('cohort-val').textContent = cohorts;
+
+    const perCohort = roleRates[role] || 0;
+    const monthlyCohortEarnings = perCohort * cohorts / 3; // 90-day cohort = 3 months
+    const monthlyReferralEarnings = referrals * 2000;
+    const monthlyTotal = monthlyCohortEarnings + monthlyReferralEarnings;
+    const yearlyTotal = monthlyTotal * 12;
+
+    document.getElementById('res-monthly').textContent = formatPKR(Math.round(monthlyTotal));
+    document.getElementById('res-cohort').textContent = formatPKR(perCohort);
+    document.getElementById('res-yearly').textContent = formatPKR(Math.round(yearlyTotal));
+  }
+
+  // Initialize calculator
+  updateCalc();
+
+  // ===== Lead Capture Modal =====
+  let modalShown = false;
+  const modal = document.getElementById('leadModal');
+
+  function openModal() {
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('active')) {
+      closeModal();
+    }
+  });
+
+  document.addEventListener('mouseleave', (e) => {
+    if (e.clientY < 10 && !modalShown) {
+      modalShown = true;
+      openModal();
+    }
+  });
+
+  setTimeout(() => {
+    if (!modalShown) {
+      modalShown = true;
+      openModal();
+    }
+  }, 45000);
+
+  function submitLead() {
+    const fname = document.getElementById('lead-fname').value.trim();
+    const lname = document.getElementById('lead-lname').value.trim();
+    const email = document.getElementById('lead-email').value.trim();
+    const phone = document.getElementById('lead-phone').value.trim();
+    const role = document.getElementById('lead-role').value;
+    const city = document.getElementById('lead-city').value.trim();
+    const license = document.getElementById('lead-license').value.trim();
+    if (!fname || !lname || !email || !phone || !role) {
+      alert('Please fill in all required fields.');
+      return;
+    }
+    const roleLabels = {
+      doctor: 'Doctor (Endocrinologist / GP)',
+      nutritionist: 'Clinical Nutritionist / Dietitian',
+      coach: 'Fitness / Movement Coach',
+      referrer: 'Referral Partner Only',
+      other: 'Other Healthcare Professional'
+    };
+    const msg = 'Hi%20Loop%2F90%2C%20I%20just%20applied%20to%20the%20care%20network.%0A'
+      + 'Name%3A%20' + encodeURIComponent(fname + ' ' + lname) + '%0A'
+      + 'Email%3A%20' + encodeURIComponent(email) + '%0A'
+      + 'WhatsApp%3A%20' + encodeURIComponent(phone) + '%0A'
+      + 'Role%3A%20' + encodeURIComponent(roleLabels[role] || role) + '%0A'
+      + 'City%3A%20' + encodeURIComponent(city) + '%0A'
+      + 'License%3A%20' + encodeURIComponent(license || 'Not provided');
+    document.querySelector('#modalSuccess a.btn-primary').href = 'https://wa.me/923452739406?text=' + msg;
+    document.getElementById('modalForm').style.display = 'none';
+    document.getElementById('modalSuccess').classList.add('active');
+  }
+</script>
+
+</body>
+</html>

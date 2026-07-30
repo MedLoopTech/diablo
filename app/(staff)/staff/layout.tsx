@@ -20,7 +20,7 @@ export default async function StaffLayout({
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <div className="flex items-baseline gap-3">
             <span className="font-display text-xl font-semibold text-ink">
-              Sehat<span className="text-marigold">/90</span>
+              Loop<span className="text-marigold">/90</span>
             </span>
             <span className="eyebrow">{t("title")}</span>
           </div>

@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Desi Diabetes Plate Guide — Loop/90</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&family=Outfit:wght@300;400;500;600;700&family=Noto+Nastaliq+Urdu:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── TOKENS ── */
+    :root {
+      --primary:       #0C4A39;
+      --primary-mid:   #15803D;
+      --primary-light: #E3F0E8;
+      --marigold:      #F5A623;
+      --marigold-pale: #FEF3C7;
+      --paper:         #F5F0EB;
+      --white:         #FFFFFF;
+      --ink:           #1A2A1A;
+      --ink-mid:       #2C4A38;
+      --ink-soft:      #64748B;
+      --border:        #E2E8F0;
+      --border-mid:    #C8DDD2;
+      --card-bg:       #FFFFFF;
+      --font-display:  'Fraunces', Georgia, serif;
+      --font-body:     'Outfit', system-ui, sans-serif;
+      --font-urdu:     'Noto Nastaliq Urdu', serif;
+      --r:   16px;
+      --r-md: 12px;
+      --r-sm: 8px;
+      --shadow-sm: 0 2px 6px rgba(12,74,57,0.06);
+      --shadow-md: 0 8px 24px rgba(12,74,57,0.10);
+    }
+
+    /* ── RESET ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 16px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      padding: 20px;
+    }
+    body.lang-ur {
+      font-family: var(--font-urdu);
+      direction: rtl;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+
+    /* ── WRAPPER ── */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border-radius: var(--r);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    /* ── LANGUAGE BAR ── */
+    .lang-bar {
+      display: flex;
+      justify-content: flex-end;
+      padding: 12px 20px;
+      background: #083327;
+    }
+    .lang-group {
+      display: inline-flex;
+      background: rgba(255,255,255,0.12);
+      border-radius: 100px;
+      padding: 3px;
+      border: 1px solid rgba(255,255,255,0.18);
+      gap: 2px;
+    }
+    .lang-btn {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.7);
+      padding: 6px 18px;
+      font-family: var(--font-body);
+      font-size: 0.82rem;
+      font-weight: 600;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: background 0.18s, color 0.18s;
+      letter-spacing: 0.04em;
+    }
+    .lang-btn.active {
+      background: var(--marigold);
+      color: #0C4A39;
+      font-weight: 700;
+    }
+    .lang-btn:focus-visible { outline: 2px solid var(--marigold); outline-offset: 2px; }
+
+    /* ── COVER / HEADER ── */
+    .cover {
+      background: #0C4A39;
+      color: #fff;
+      padding: 36px 36px 44px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .cover::before {
+      content: '';
+      position: absolute;
+      top: -80px; right: -80px;
+      width: 400px; height: 400px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.03);
+      pointer-events: none;
+    }
+    .brand-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.12);
+      color: var(--marigold);
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 5px 16px;
+      border-radius: 100px;
+      margin-bottom: 14px;
+      border: 1px solid rgba(245,166,35,0.3);
+    }
+    .cover h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.9rem, 5vw, 3rem);
+      font-weight: 600;
+      letter-spacing: -0.025em;
+      line-height: 1.1;
+      color: #fff;
+      text-wrap: balance;
+      margin-bottom: 10px;
+    }
+    .cover h1 em { font-style: italic; font-weight: 300; }
+    .cover .subtitle {
+      font-size: 1rem;
+      color: rgba(255,255,255,0.7);
+      max-width: 580px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* ── CONTENT ── */
+    .content { padding: 36px 32px; }
+    @media (max-width: 600px) { .content { padding: 24px 18px; } }
+
+    /* ── SECTION HEADINGS ── */
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 1.45rem;
+      font-weight: 600;
+      color: var(--primary);
+      letter-spacing: -0.015em;
+      margin: 36px 0 18px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--primary-light);
+      text-wrap: balance;
+    }
+    body.lang-ur .section-title { border-bottom: none; border-top: 2px solid var(--primary-light); padding-bottom: 0; padding-top: 8px; }
+
+    /* ── CARE POD NOTE ── */
+    .care-pod-note {
+      background: var(--primary-light);
+      border-left: 5px solid var(--primary-mid);
+      border-radius: 0 var(--r-sm) var(--r-sm) 0;
+      padding: 20px 22px;
+      margin-bottom: 8px;
+    }
+    body.lang-ur .care-pod-note { border-left: none; border-right: 5px solid var(--primary-mid); border-radius: var(--r-sm) 0 0 var(--r-sm); }
+    .care-pod-note h3 {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+    .care-pod-note p { font-size: 0.92rem; color: var(--ink-mid); line-height: 1.65; }
+
+    /* ── PLATE GRID ── */
+    .plate-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 16px;
+      margin-bottom: 8px;
+    }
+    .plate-card {
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 22px;
+      background: var(--card-bg);
+      box-shadow: var(--shadow-sm);
+    }
+    .plate-card.veg     { border-top: 4px solid #16A34A; }
+    .plate-card.protein { border-top: 4px solid var(--marigold); }
+    .plate-card.carbs   { border-top: 4px solid #2563EB; }
+    .plate-card h3 {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 6px;
+      text-wrap: balance;
+    }
+    .plate-card p { font-size: 0.83rem; color: var(--ink-soft); margin-bottom: 10px; line-height: 1.5; }
+    .plate-card ul { list-style: none; padding: 0; }
+    .plate-card li {
+      font-size: 0.88rem;
+      color: var(--ink-mid);
+      margin-bottom: 5px;
+      padding-left: 14px;
+      position: relative;
+      line-height: 1.4;
+    }
+    .plate-card li::before {
+      content: "•";
+      color: var(--primary-mid);
+      font-weight: 700;
+      font-size: 1rem;
+      position: absolute;
+      left: 0; top: -1px;
+    }
+    body.lang-ur .plate-card li { padding-left: 0; padding-right: 14px; }
+    body.lang-ur .plate-card li::before { left: auto; right: 0; }
+
+    /* ── RULES TABLE ── */
+    .table-wrap { overflow-x: auto; margin-bottom: 8px; }
+    .rules-table {
+      width: 100%;
+      border-collapse: collapse;
+      border-radius: var(--r-md);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      font-size: 0.88rem;
+    }
+    .rules-table thead th {
+      background: #0C4A39;
+      color: #fff;
+      padding: 13px 16px;
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 0.82rem;
+      letter-spacing: 0.04em;
+      text-align: left;
+    }
+    body.lang-ur .rules-table thead th { text-align: right; }
+    .rules-table td {
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--ink-mid);
+      line-height: 1.5;
+      vertical-align: top;
+    }
+    .rules-table tbody tr:last-child td { border-bottom: none; }
+    .rules-table tbody tr:nth-child(even) { background: var(--primary-light); }
+    .rules-table td strong { color: var(--ink); font-weight: 600; }
+
+    /* ── SWAP CARDS ── */
+    .swap-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 18px 20px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .swap-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 0.92rem;
+      margin-bottom: 10px;
+    }
+    body.lang-ur .swap-row { flex-direction: row-reverse; }
+    .swap-old {
+      color: #DC2626;
+      text-decoration: line-through;
+      text-decoration-color: #DC2626;
+      font-weight: 500;
+    }
+    .swap-arrow { color: var(--marigold); font-weight: 700; font-size: 1.1rem; }
+    .swap-new { color: var(--primary-mid); font-weight: 600; }
+    .swap-insight {
+      font-size: 0.82rem;
+      color: var(--ink-soft);
+      background: var(--paper);
+      padding: 8px 12px;
+      border-radius: var(--r-sm);
+      line-height: 1.55;
+    }
+
+    /* ── DAY PLAN CARDS ── */
+    .day-plan {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      margin-bottom: 16px;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .day-header {
+      background: var(--primary-light);
+      color: var(--primary);
+      padding: 11px 20px;
+      font-weight: 700;
+      font-size: 0.92rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      letter-spacing: 0.03em;
+    }
+    body.lang-ur .day-header { flex-direction: row-reverse; }
+    .day-target {
+      font-size: 0.8rem;
+      font-weight: 400;
+      color: var(--primary-mid);
+      opacity: 0.8;
+    }
+    .day-body { padding: 18px 20px; }
+    .meal-item {
+      margin-bottom: 9px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    .meal-tag {
+      font-weight: 700;
+      color: var(--primary);
+      display: inline-block;
+      width: 95px;
+      font-size: 0.82rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    body.lang-ur .meal-tag { width: auto; margin-left: 8px; }
+    .challenge-box {
+      margin-top: 14px;
+      background: var(--marigold-pale);
+      border: 1px dashed var(--marigold);
+      padding: 10px 14px;
+      border-radius: var(--r-sm);
+      font-size: 0.85rem;
+      color: #92400E;
+      line-height: 1.5;
+    }
+
+    /* ── FAQ ── */
+    .faq-item { margin-bottom: 18px; }
+    .faq-q {
+      font-family: var(--font-display);
+      font-weight: 600;
+      color: var(--primary);
+      font-size: 0.98rem;
+      margin-bottom: 4px;
+    }
+    .faq-a { color: var(--ink-soft); font-size: 0.9rem; line-height: 1.65; }
+
+    /* ── CTA ── */
+    .cta-box {
+      background: linear-gradient(135deg, #0C4A39 0%, #166534 100%);
+      color: #fff;
+      border-radius: var(--r);
+      padding: 40px 28px;
+      text-align: center;
+      margin-top: 40px;
+    }
+    .cta-box h2 {
+      font-family: var(--font-display);
+      font-size: clamp(1.4rem, 4vw, 1.9rem);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 10px;
+      text-wrap: balance;
+    }
+    .cta-box > p {
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.72);
+      max-width: 540px;
+      margin: 0 auto 22px;
+      line-height: 1.65;
+    }
+    .cta-features {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 26px;
+    }
+    .cta-badge {
+      background: rgba(255,255,255,0.13);
+      padding: 5px 14px;
+      border-radius: 100px;
+      font-size: 0.83rem;
+      color: rgba(255,255,255,0.9);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .btn-whatsapp {
+      display: inline-block;
+      background: #25D366;
+      color: #fff;
+      font-family: var(--font-body);
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-decoration: none;
+      padding: 14px 30px;
+      border-radius: 100px;
+      transition: background 0.18s;
+    }
+    .btn-whatsapp:hover, .btn-whatsapp:focus { background: #1EBE5D; outline: none; }
+    .btn-whatsapp:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+
+    /* ── FOOTER ── */
+    .footer {
+      text-align: center;
+      padding: 22px 24px;
+      font-size: 0.78rem;
+      color: var(--ink-soft);
+      border-top: 1px solid var(--border);
+      background: var(--paper);
+      line-height: 1.7;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      body { padding: 10px; }
+      .cover { padding: 28px 20px 36px; }
+      .cover h1 { font-size: 1.8rem; }
+      .rules-table thead th, .rules-table td { padding: 10px 12px; }
+      .meal-tag { display: block; margin-bottom: 2px; width: auto; }
+      .cta-box { padding: 28px 18px; }
+    }
+  </style>
+</head>
+<body class="lang-en">
+
+<div class="container">
+
+  <!-- ── LANGUAGE SWITCHER ── -->
+  <div class="lang-bar">
+    <div class="lang-group">
+      <button class="lang-btn active" id="btn-en" onclick="setLanguage('en')">English</button>
+      <button class="lang-btn" id="btn-ur" onclick="setLanguage('ur')">اردو</button>
+    </div>
+  </div>
+
+  <!-- ── COVER ── -->
+  <div class="cover">
+    <div class="brand-badge"
+      data-en="LOOP/90 CLINICAL GUIDE"
+      data-ur="لوپ/90 کلینیکل گائیڈ">LOOP/90 CLINICAL GUIDE</div>
+    <h1
+      data-en="The Desi Diabetes <em>Plate Guide</em>"
+      data-ur="دیسی ذیابیطس <em>پلیٹ گائیڈ</em>">The Desi Diabetes <em>Plate Guide</em></h1>
+    <p class="subtitle"
+      data-en="No quinoa bowls required. Lower your HbA1c using everyday Pakistani kitchen foods."
+      data-ur="کوئی مہنگی چیزیں نہیں۔ روزمرہ کے دیسی کھانوں سے HbA1c کم کریں۔">No quinoa bowls required. Lower your HbA1c using everyday Pakistani kitchen foods.</p>
+  </div>
+
+  <!-- ── CONTENT ── -->
+  <div class="content">
+
+    <!-- Care Pod Note -->
+    <div class="care-pod-note">
+      <h3
+        data-en="💡 A Message From Your Care Pod"
+        data-ur="💡 آپ کی کیئر ٹیم کی طرف سے ایک پیغام">💡 A Message From Your Care Pod</h3>
+      <p
+        data-en='"You don&rsquo;t need to abandon your culture to fix your blood sugar." Most generic diabetes diets fail because they ban roti, rice, and salan. At Loop/90, our clinical team builds protocols around real home-cooked desi food — focused on portion geometry, food pairing, and glucose timing.'
+        data-ur='"بلڈ شوگر کو کنٹرول کرنے کے لیے آپ کو اپنی ثقافت چھوڑنے کی ضرورت نہیں ہے۔" ذیابیطس کی زیادہ تر ڈائٹس اس لیے ناکام ہو جاتی ہیں کیونکہ وہ روٹی، چاول اور سالن پر پابندی لگا دیتی ہیں۔ لوپ/90 میں، ہماری کیئر ٹیم آپ کی خوراک کی مقدار اور طریقے کو بہتر بناتی ہے۔'>
+        "You don&rsquo;t need to abandon your culture to fix your blood sugar." Most generic diabetes diets fail because they ban roti, rice, and salan. At Loop/90, our clinical team builds protocols around real home-cooked desi food &mdash; focused on portion geometry, food pairing, and glucose timing.</p>
+    </div>
+
+    <!-- Section 1: Plate Rule -->
+    <h2 class="section-title"
+      data-en="🥗 The &frac12;&thinsp;&ndash;&thinsp;&frac14;&thinsp;&ndash;&thinsp;&frac14; Desi Plate Rule"
+      data-ur="🥗 ½ – ¼ – ¼ دیسی پلیٹ کا قانون">🥗 The &frac12;&thinsp;&ndash;&thinsp;&frac14;&thinsp;&ndash;&thinsp;&frac14; Desi Plate Rule</h2>
+    <p style="margin-bottom:18px;font-size:0.9rem;color:var(--ink-soft)"
+      data-en="Transform any ghar ka khana into a diabetes-friendly meal by arranging your plate in these proportions:"
+      data-ur="اپنی پلیٹ کو ان درست تناسب میں ترتیب دے کر گھر کے کسی بھی کھانے کو شوگر فرینڈلی بنائیں:">Transform any ghar ka khana into a diabetes-friendly meal by arranging your plate in these proportions:</p>
+
+    <div class="plate-grid">
+      <div class="plate-card veg">
+        <h3 data-en="🥦 ½ — Fiber &amp; Veggies" data-ur="🥦 ½ — فائبر اور سبزیاں">🥦 ½ — Fiber &amp; Veggies</h3>
+        <p data-en="Fills your stomach, slows digestion, and buffers glucose spikes." data-ur="پیٹ بھرتا ہے، ہضم کو سست کرتا ہے اور شوگر کے اضافے کو روکتا ہے۔">Fills your stomach, slows digestion, and buffers glucose spikes.</p>
+        <ul>
+          <li data-en="Kachumber salad (kheera, tomato, onion)" data-ur="کچومبر سلاد (کھیرا، ٹماٹر، پیاز)">Kachumber salad (kheera, tomato, onion)</li>
+          <li data-en="Bhindi, karela, tinda, or palak sabzi" data-ur="بھنڈی، کریلا، ٹنڈا یا پالک سبزی">Bhindi, karela, tinda, or palak sabzi</li>
+          <li data-en="Baingan bharta or lauki" data-ur="بیگن کا بھرتہ یا لوکی">Baingan bharta or lauki</li>
+        </ul>
+      </div>
+      <div class="plate-card protein">
+        <h3 data-en="🍗 ¼ — Protein &amp; Clean Fats" data-ur="🍗 ¼ — پروٹین اور صحت بخش چکنائی">🍗 ¼ — Protein &amp; Clean Fats</h3>
+        <p data-en="Preserves muscle and triggers satiety hormones." data-ur="پٹھوں کی حفاظت کرتا ہے اور زیادہ دیر آسودہ رکھتا ہے۔">Preserves muscle and triggers satiety hormones.</p>
+        <ul>
+          <li data-en="Chicken / beef / mutton karahi (moderate oil)" data-ur="چکن / بیف / مٹن کڑاہی (کم تیل)">Chicken / beef / mutton karahi (moderate oil)</li>
+          <li data-en="Chana dal, daal mash, or rajma" data-ur="چنا دال، دال ماش یا راجما">Chana dal, daal mash, or rajma</li>
+          <li data-en="Eggs, fish, or paneer tikka" data-ur="انڈے، مچھلی یا پنیر ٹکہ">Eggs, fish, or paneer tikka</li>
+        </ul>
+      </div>
+      <div class="plate-card carbs">
+        <h3 data-en="🌾 ¼ — Controlled Carbs" data-ur="🌾 ¼ — محدود کاربوہائیڈریٹس">🌾 ¼ — Controlled Carbs</h3>
+        <p data-en="Pick ONE per meal. Never mix two starches in one sitting." data-ur="ہر کھانے میں صرف ایک کا انتخاب کریں۔ کبھی دو نشاستے اکٹھے نہ کریں۔">Pick ONE per meal. Never mix two starches in one sitting.</p>
+        <ul>
+          <li data-en="1 medium whole-wheat tawa roti" data-ur="1 درمیانی چکی کی روٹی">1 medium whole-wheat tawa roti</li>
+          <li data-en="OR ½ cup cooked basmati rice" data-ur="یا ½ کپ پکے ہوئے باسمتی چاول">OR ½ cup cooked basmati rice</li>
+          <li data-en="Rule: never roti + rice in the same meal" data-ur="قانون: ایک کھانے میں روٹی اور چاول اکٹھے نہیں">Rule: never roti + rice in the same meal</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Section 2: 3 Micro-Habits -->
+    <h2 class="section-title"
+      data-en="⚡ The 3 Non-Negotiable Micro-Habits"
+      data-ur="⚡ 3 لازمی بنیادی عادتیں">⚡ The 3 Non-Negotiable Micro-Habits</h2>
+    <div class="table-wrap">
+      <table class="rules-table">
+        <thead>
+          <tr>
+            <th data-en="Micro-Habit" data-ur="عادت">Micro-Habit</th>
+            <th data-en="Why It Works" data-ur="یہ کیوں کام کرتی ہے">Why It Works</th>
+            <th data-en="Pro-Tip 💡" data-ur="خاص مشورہ 💡">Pro-Tip 💡</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong data-en="1. Veggies First 🥗" data-ur="1. سبزیاں پہلے 🥗">1. Veggies First 🥗</strong></td>
+            <td data-en="Fiber forms a protective layer in the gut, slowing sugar absorption." data-ur="فائبر معدے میں ایک تحفظاتی تہہ بناتا ہے جو شوگر کو آہستہ جذب کرتا ہے۔">Fiber forms a protective layer in the gut, slowing sugar absorption.</td>
+            <td data-en="Eat your kachumber 5 minutes before touching your roti." data-ur="روٹی کو ہاتھ لگانے سے 5 منٹ پہلے کچومبر سلاد کھائیں۔">Eat your kachumber 5 minutes before touching your roti.</td>
+          </tr>
+          <tr>
+            <td><strong data-en="2. One Starch Only ⚖️" data-ur="2. ایک نشاستہ ⚖️">2. One Starch Only ⚖️</strong></td>
+            <td data-en="Combining multiple carb sources causes severe, prolonged blood sugar spikes." data-ur="ایک سے زیادہ کاربوہائیڈریٹ ملانے سے بلڈ شوگر میں لمبے وقت تک اضافہ ہوتا ہے۔">Combining multiple carb sources causes severe, prolonged blood sugar spikes.</td>
+            <td data-en="Choose roti OR rice. If eating biryani, double the salad!" data-ur="روٹی یا چاول میں سے ایک چنیں۔ اگر بریانی کھا رہے ہیں تو سلاد دگنا کریں!">Choose roti OR rice. If eating biryani, double the salad!</td>
+          </tr>
+          <tr>
+            <td><strong data-en="3. Post-Meal Walk 🚶" data-ur="3. کھانے کے بعد واک 🚶">3. Post-Meal Walk 🚶</strong></td>
+            <td data-en="Muscles pull glucose from the bloodstream without needing extra insulin." data-ur="پٹھے انسولین کے بغیر براہ راست خون سے شوگر حاصل کرتے ہیں۔">Muscles pull glucose from the bloodstream without needing extra insulin.</td>
+            <td data-en="Take a 10–15 minute walk right after lunch or dinner." data-ur="دوپہر یا رات کے کھانے کے فوراً بعد 10 سے 15 منٹ کی واک کریں۔">Take a 10–15 minute walk right after lunch or dinner.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Section 3: Smart Swaps -->
+    <h2 class="section-title"
+      data-en="🔄 Kitchen Smart Swaps"
+      data-ur="🔄 باورچی خانے کی سمارٹ تبدیلیاں">🔄 Kitchen Smart Swaps</h2>
+
+    <div class="swap-card">
+      <div class="swap-row">
+        <span class="swap-old" data-en="❌ 2 large white-flour rotis" data-ur="❌ 2 بڑی میدے کی روٹیاں">❌ 2 large white-flour rotis</span>
+        <span class="swap-arrow">→</span>
+        <span class="swap-new" data-en="✅ 1 whole-wheat roti with 1 tsp desi ghee" data-ur="✅ 1 چکی کی روٹی بمعہ 1 چمچ دیسی گھی">✅ 1 whole-wheat roti with 1 tsp desi ghee</span>
+      </div>
+      <div class="swap-insight" data-en="💡 A small amount of desi ghee lowers the roti's glycemic index and prevents sharp insulin spikes." data-ur="💡 تھوڑا سا دیسی گھی روٹی کا گلائیسیمک انڈیکس کم کرتا ہے اور انسولین کو دم سے نہیں بڑھنے دیتا۔">💡 A small amount of desi ghee lowers the roti's glycemic index and prevents sharp insulin spikes.</div>
+    </div>
+
+    <div class="swap-card">
+      <div class="swap-row">
+        <span class="swap-old" data-en="❌ Full plate of white rice + daal" data-ur="❌ چاولوں کا پہاڑ بمعہ دال">❌ Full plate of white rice + daal</span>
+        <span class="swap-arrow">→</span>
+        <span class="swap-new" data-en="✅ ½ cup rice + extra daal + heavy kachumber" data-ur="✅ ½ کپ چاول + زیادہ دال + زیادہ کچومبر">✅ ½ cup rice + extra daal + heavy kachumber</span>
+      </div>
+      <div class="swap-insight" data-en="💡 Flipping to daal/salad-heavy keeps you full longer without flooding your liver with excess glucose." data-ur="💡 دال اور سلاد زیادہ کرنے سے پیٹ بھی بھر جاتا ہے اور جگر پر شوگر کا دباؤ بھی نہیں آتا۔">💡 Flipping to daal/salad-heavy keeps you full longer without flooding your liver with excess glucose.</div>
+    </div>
+
+    <div class="swap-card">
+      <div class="swap-row">
+        <span class="swap-old" data-en="❌ Sweet milk chai ×3 daily" data-ur="❌ دن میں 3 بار میٹھی چائے">❌ Sweet milk chai ×3 daily</span>
+        <span class="swap-arrow">→</span>
+        <span class="swap-new" data-en="✅ Darchini chai — half sugar or stevia + cinnamon" data-ur="✅ دارچینی چائے — آدھی چینی یا اسٹیویا + دارچینی">✅ Darchini chai — half sugar or stevia + cinnamon</span>
+      </div>
+      <div class="swap-insight" data-en="💡 Cinnamon increases insulin sensitivity. Halve your sugar gradually over 7 days — you won't notice after a week." data-ur="💡 دارچینی انسولین کی صلاحیت کو بہتر بناتی ہے۔ 7 دنوں میں آہستہ آہستہ چینی آدھی کریں۔">💡 Cinnamon increases insulin sensitivity. Halve your sugar gradually over 7 days &mdash; you won't notice after a week.</div>
+    </div>
+
+    <div class="swap-card">
+      <div class="swap-row">
+        <span class="swap-old" data-en="❌ Fried paratha at breakfast" data-ur="❌ ناشتے میں تلا پراٹھا">❌ Fried paratha at breakfast</span>
+        <span class="swap-arrow">→</span>
+        <span class="swap-new" data-en="✅ Tawa roti (dry or 1 tsp ghee)" data-ur="✅ توا روٹی (سوکھی یا 1 چائے چمچ گھی)">✅ Tawa roti (dry or 1 tsp ghee)</span>
+      </div>
+      <div class="swap-insight" data-en="💡 Fried paratha is one of the biggest morning glucose spikes. Even swapping 4 days a week makes a measurable difference." data-ur="💡 تلا پراٹھا صبح کی سب سے بڑی شوگر اسپائک میں سے ایک ہے۔ ہفتے میں 4 دن بدلنے سے بھی واضح فرق پڑتا ہے۔">💡 Fried paratha is one of the biggest morning glucose spikes. Even swapping 4 days a week makes a measurable difference.</div>
+    </div>
+
+    <div class="swap-card">
+      <div class="swap-row">
+        <span class="swap-old" data-en="❌ Cold drink or packaged juice" data-ur="❌ کولڈ ڈرنک یا پیک جوس">❌ Cold drink or packaged juice</span>
+        <span class="swap-arrow">→</span>
+        <span class="swap-new" data-en="✅ Nimbu pani (no sugar) or plain water" data-ur="✅ نمبو پانی (بغیر چینی) یا سادہ پانی">✅ Nimbu pani (no sugar) or plain water</span>
+      </div>
+      <div class="swap-insight" data-en="💡 A single cold drink can spike blood glucose by 40–60 mg/dL within 30 minutes." data-ur="💡 ایک کولڈ ڈرنک 30 منٹ میں بلڈ شوگر کو 40–60 mg/dL بڑھا سکتا ہے۔">💡 A single cold drink can spike blood glucose by 40&ndash;60 mg/dL within 30 minutes.</div>
+    </div>
+
+    <!-- Section 4: 7-Day Plan -->
+    <h2 class="section-title"
+      data-en="📅 7-Day Desi Action Plan"
+      data-ur="📅 7 دن کا دیسی ایکشن پلان">📅 7-Day Desi Action Plan</h2>
+
+    <!-- Day 1 -->
+    <div class="day-plan">
+      <div class="day-header">
+        <span data-en="DAY 1 — KICKSTART" data-ur="دن 1 — پہلا قدم">DAY 1 — KICKSTART</span>
+        <span class="day-target" data-en="Target: Fiber Buffer" data-ur="ہدف: فائبر بفر">Target: Fiber Buffer</span>
+      </div>
+      <div class="day-body">
+        <div class="meal-item"><span class="meal-tag" data-en="Breakfast" data-ur="ناشتہ">Breakfast</span> <span data-en="2 boiled eggs + 1 small chakki roti + sliced tomato &amp; cucumber" data-ur="2 اُبلے انڈے + 1 چھوٹی چکی کی روٹی + ٹماٹر اور کھیرا">2 boiled eggs + 1 small chakki roti + sliced tomato &amp; cucumber</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Lunch" data-ur="دوپہر">Lunch</span> <span data-en="Chana dal + 1 tawa roti + large bowl of kachumber salad" data-ur="چنا دال + 1 توا روٹی + کچومبر سلاد کا بڑا پیالہ">Chana dal + 1 tawa roti + large bowl of kachumber salad</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Snack" data-ur="ناشتا">Snack</span> <span data-en="Handful of bhuney chanay" data-ur="ایک مٹھی بھنے چنے">Handful of bhuney chanay</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Dinner" data-ur="رات">Dinner</span> <span data-en="Roasted chicken (no cream) + bhindi sabzi + ½ cup rice or 1 roti" data-ur="روسٹڈ چکن (بلا کریم) + بھنڈی سبزی + ½ کپ چاول یا 1 روٹی">Roasted chicken (no cream) + bhindi sabzi + ½ cup rice or 1 roti</span></div>
+        <div class="challenge-box">💬 <strong data-en="Daily Challenge:" data-ur="آج کا چیلنج:">Daily Challenge:</strong> <span data-en="Halve the sugar in your morning chai today." data-ur="آج صبح کی چائے میں چینی آدھی کر دیں۔">Halve the sugar in your morning chai today.</span></div>
+      </div>
+    </div>
+
+    <!-- Day 2 -->
+    <div class="day-plan">
+      <div class="day-header">
+        <span data-en="DAY 2 — PROTEIN PAIRING" data-ur="دن 2 — پروٹین کا استعمال">DAY 2 — PROTEIN PAIRING</span>
+        <span class="day-target" data-en="Target: Glycemic Balance" data-ur="ہدف: گلائیسیمک توازن">Target: Glycemic Balance</span>
+      </div>
+      <div class="day-body">
+        <div class="meal-item"><span class="meal-tag" data-en="Breakfast" data-ur="ناشتہ">Breakfast</span> <span data-en="Vegetable dalia (cracked wheat) with tomato, onion &amp; cucumber" data-ur="سبزی دلیہ (ٹوٹا گندم) ٹماٹر، پیاز اور کھیرے کے ساتھ">Vegetable dalia (cracked wheat) with tomato, onion &amp; cucumber</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Lunch" data-ur="دوپہر">Lunch</span> <span data-en="Karela sabzi + 1 roti + bowl of plain yogurt" data-ur="کریلے کی سبزی + 1 روٹی + سادہ دہی کا پیالہ">Karela sabzi + 1 roti + bowl of plain yogurt</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Snack" data-ur="ناشتا">Snack</span> <span data-en="10 almonds + 2 walnuts" data-ur="10 بادام + 2 اخروٹ">10 almonds + 2 walnuts</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Dinner" data-ur="رات">Dinner</span> <span data-en="Fish curry + palak sabzi + 1 roti" data-ur="مچھلی کری + پالک سبزی + 1 روٹی">Fish curry + palak sabzi + 1 roti</span></div>
+        <div class="challenge-box">💬 <strong data-en="Daily Challenge:" data-ur="آج کا چیلنج:">Daily Challenge:</strong> <span data-en="Take a 12-minute walk immediately after dinner." data-ur="رات کے کھانے کے فوراً بعد 12 منٹ کی واک کریں۔">Take a 12-minute walk immediately after dinner.</span></div>
+      </div>
+    </div>
+
+    <!-- Day 3 -->
+    <div class="day-plan">
+      <div class="day-header">
+        <span data-en="DAY 3 — KARAHI SMART" data-ur="دن 3 — کڑاہی اسمارٹ">DAY 3 — KARAHI SMART</span>
+        <span class="day-target" data-en="Target: Meal Timing" data-ur="ہدف: کھانے کا وقت">Target: Meal Timing</span>
+      </div>
+      <div class="day-body">
+        <div class="meal-item"><span class="meal-tag" data-en="Breakfast" data-ur="ناشتہ">Breakfast</span> <span data-en="1 boiled egg + 1 roti + sliced cucumber &amp; tomato" data-ur="1 ابلا انڈا + 1 روٹی + کٹا کھیرا اور ٹماٹر">1 boiled egg + 1 roti + sliced cucumber &amp; tomato</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Lunch" data-ur="دوپہر">Lunch</span> <span data-en="Chicken karahi + kachumber salad + 1 roti" data-ur="چکن کڑاہی + کچومبر سلاد + 1 روٹی">Chicken karahi + kachumber salad + 1 roti</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Snack" data-ur="ناشتا">Snack</span> <span data-en="Bhuney makhana or a small orange" data-ur="بھنا مخانہ یا چھوٹا سنترہ">Bhuney makhana or a small orange</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Dinner" data-ur="رات">Dinner</span> <span data-en="Masoor dal (ghee tarka) + bhindi + ½ cup rice" data-ur="مسور دال (گھی تڑکا) + بھنڈی + آدھا کپ چاول">Masoor dal (ghee tarka) + bhindi + ½ cup rice</span></div>
+        <div class="challenge-box">💬 <strong data-en="Daily Challenge:" data-ur="آج کا چیلنج:">Daily Challenge:</strong> <span data-en="Eat your heaviest meal at lunch, not dinner. Heavy meals late at night worsen morning readings." data-ur="سب سے بھاری کھانا دوپہر میں کھائیں، رات کو نہیں۔ رات کا بھاری کھانا صبح کی شوگر خراب کرتا ہے۔">Eat your heaviest meal at lunch, not dinner.</span></div>
+      </div>
+    </div>
+
+    <!-- Day 4 -->
+    <div class="day-plan">
+      <div class="day-header">
+        <span data-en="DAY 4 — VEGGIE POWER" data-ur="دن 4 — سبزیوں کی طاقت">DAY 4 — VEGGIE POWER</span>
+        <span class="day-target" data-en="Target: Insulin Sensitivity" data-ur="ہدف: انسولین کی حساسیت">Target: Insulin Sensitivity</span>
+      </div>
+      <div class="day-body">
+        <div class="meal-item"><span class="meal-tag" data-en="Breakfast" data-ur="ناشتہ">Breakfast</span> <span data-en="Veggie omelette (2 eggs, onion, tomato, green chilli) + 1 roti" data-ur="سبزی آملیٹ (2 انڈے، پیاز، ٹماٹر، ہری مرچ) + 1 روٹی">Veggie omelette (2 eggs, onion, tomato, green chilli) + 1 roti</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Lunch" data-ur="دوپہر">Lunch</span> <span data-en="Palak paneer + 1 roti + salad" data-ur="پالک پنیر + 1 روٹی + سلاد">Palak paneer + 1 roti + salad</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Snack" data-ur="ناشتا">Snack</span> <span data-en="Small apple or 1 boiled egg" data-ur="چھوٹا سیب یا 1 ابلا انڈا">Small apple or 1 boiled egg</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Dinner" data-ur="رات">Dinner</span> <span data-en="Grilled chicken tikka + kachumber + ½ cup rice" data-ur="گرلڈ چکن ٹکہ + کچومبر + آدھا کپ چاول">Grilled chicken tikka + kachumber + ½ cup rice</span></div>
+        <div class="challenge-box">💬 <strong data-en="Daily Challenge:" data-ur="آج کا چیلنج:">Daily Challenge:</strong> <span data-en="Restaurant tikka marinades often contain added sugar. Grill at home this week." data-ur="ریستوران کے ٹکہ مرینیڈ میں چینی ہوتی ہے۔ اس ہفتے گھر پر گرل کریں۔">Restaurant tikka marinades often contain added sugar. Grill at home this week.</span></div>
+      </div>
+    </div>
+
+    <!-- Day 5 -->
+    <div class="day-plan">
+      <div class="day-header">
+        <span data-en="DAY 5 — PARATHA SWAP" data-ur="دن 5 — پراٹھے کی تبدیلی">DAY 5 — PARATHA SWAP</span>
+        <span class="day-target" data-en="Target: Spike Reduction" data-ur="ہدف: اسپائک میں کمی">Target: Spike Reduction</span>
+      </div>
+      <div class="day-body">
+        <div class="meal-item"><span class="meal-tag" data-en="Breakfast" data-ur="ناشتہ">Breakfast</span> <span data-en="1 roti + peanut butter or boiled egg — no fried paratha today" data-ur="1 روٹی + مونگ پھلی مکھن یا ابلا انڈا — آج تلا پراٹھا نہیں">1 roti + peanut butter or boiled egg &mdash; no fried paratha today</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Lunch" data-ur="دوپہر">Lunch</span> <span data-en="Chana dal + karela or tinda + 1 roti" data-ur="چنا دال + کریلا یا ٹنڈا + 1 روٹی">Chana dal + karela or tinda + 1 roti</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Snack" data-ur="ناشتا">Snack</span> <span data-en="Walnuts or bhuney chanay" data-ur="اخروٹ یا بھنے چنے">Walnuts or bhuney chanay</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Dinner" data-ur="رات">Dinner</span> <span data-en="Fish or chicken curry + sabzi + 1 roti" data-ur="مچھلی یا چکن کری + سبزی + 1 روٹی">Fish or chicken curry + sabzi + 1 roti</span></div>
+        <div class="challenge-box">💬 <strong data-en="Daily Challenge:" data-ur="آج کا چیلنج:">Daily Challenge:</strong> <span data-en="Replace fried paratha with tawa roti 4 mornings this week. You won't miss it after a month." data-ur="اس ہفتے 4 صبح تلے پراٹھے کی جگہ توا روٹی کھائیں۔ ایک ماہ بعد یاد نہیں آئے گا۔">Replace fried paratha with tawa roti 4 mornings this week.</span></div>
+      </div>
+    </div>
+
+    <!-- Day 6 -->
+    <div class="day-plan">
+      <div class="day-header">
+        <span data-en="DAY 6 — DARCHINI DAY" data-ur="دن 6 — دارچینی کا دن">DAY 6 — DARCHINI DAY</span>
+        <span class="day-target" data-en="Target: Sugar Regulation" data-ur="ہدف: شوگر کا قابو">Target: Sugar Regulation</span>
+      </div>
+      <div class="day-body">
+        <div class="meal-item"><span class="meal-tag" data-en="Breakfast" data-ur="ناشتہ">Breakfast</span> <span data-en="Doodh dalia — no sugar, pinch of cinnamon + almonds on top" data-ur="دودھ دلیہ — بغیر چینی، دارچینی کی چٹکی + اوپر بادام">Doodh dalia &mdash; no sugar, pinch of cinnamon + almonds on top</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Lunch" data-ur="دوپہر">Lunch</span> <span data-en="Bhindi masala + moong dal + 1 roti" data-ur="بھنڈی مصالہ + مونگ دال + 1 روٹی">Bhindi masala + moong dal + 1 roti</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Snack" data-ur="ناشتا">Snack</span> <span data-en="Kheera &amp; tomato salad with chaat masala" data-ur="کھیرا اور ٹماٹر سلاد + چاٹ مصالہ">Kheera &amp; tomato salad with chaat masala</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Dinner" data-ur="رات">Dinner</span> <span data-en="Chicken or paneer stir-fry + ½ cup rice" data-ur="چکن یا پنیر اسٹر فرائی + آدھا کپ چاول">Chicken or paneer stir-fry + ½ cup rice</span></div>
+        <div class="challenge-box">💬 <strong data-en="Daily Challenge:" data-ur="آج کا چیلنج:">Daily Challenge:</strong> <span data-en="Add a pinch of cinnamon to your morning chai — it adds warmth and helps regulate blood sugar without sugar." data-ur="صبح کی چائے میں دارچینی کی چٹکی شامل کریں — ذائقہ بھی بڑھے گا، شوگر بھی قابو میں رہے گی۔">Add a pinch of cinnamon to your morning chai.</span></div>
+      </div>
+    </div>
+
+    <!-- Day 7 -->
+    <div class="day-plan">
+      <div class="day-header" style="background:rgba(245,166,35,0.15);color:#92400E">
+        <span data-en="DAY 7 — LIGHT FINISH 🎯" data-ur="دن 7 — ہلکا اختتام 🎯">DAY 7 — LIGHT FINISH 🎯</span>
+        <span class="day-target" style="color:#B45309" data-en="Target: Morning Reading" data-ur="ہدف: صبح کی شوگر">Target: Morning Reading</span>
+      </div>
+      <div class="day-body">
+        <div class="meal-item"><span class="meal-tag" data-en="Breakfast" data-ur="ناشتہ">Breakfast</span> <span data-en="2 boiled eggs + salad + 1 roti" data-ur="2 ابلے انڈے + سلاد + 1 روٹی">2 boiled eggs + salad + 1 roti</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Lunch" data-ur="دوپہر">Lunch</span> <span data-en="Mixed vegetable curry + dal + 1 roti" data-ur="ملی جلی سبزی + دال + 1 روٹی">Mixed vegetable curry + dal + 1 roti</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Snack" data-ur="ناشتا">Snack</span> <span data-en="Small pear or bhuney chanay" data-ur="چھوٹا ناشپاتی یا بھنے چنے">Small pear or bhuney chanay</span></div>
+        <div class="meal-item"><span class="meal-tag" data-en="Dinner" data-ur="رات">Dinner</span> <span data-en="Light chicken shorba + grilled chicken + salad" data-ur="ہلکا چکن شوربہ + گرلڈ چکن + سلاد">Light chicken shorba + grilled chicken + salad</span></div>
+        <div class="challenge-box" style="border-color:#F5A623;background:rgba(245,166,35,0.08)">💬 <strong data-en="Week 1 Complete:" data-ur="پہلا ہفتہ مکمل:">Week 1 Complete:</strong> <span data-en="End the week with a light dinner and check your fasting reading tomorrow morning. That number is your Week 1 baseline." data-ur="ہفتے کو ہلکے کھانے سے ختم کریں اور کل صبح اپنی فاسٹنگ شوگر چیک کریں۔ وہ نمبر آپ کا پہلے ہفتے کا بیس لائن ہے۔">End the week with a light dinner and check your fasting reading tomorrow morning.</span></div>
+      </div>
+    </div>
+
+    <!-- Section 5: FAQs -->
+    <h2 class="section-title"
+      data-en="❓ Myths &amp; FAQs"
+      data-ur="❓ عام غلط فہمیاں اور سوالات">❓ Myths &amp; FAQs</h2>
+
+    <div class="faq-item">
+      <div class="faq-q" data-en="Can I never eat mangoes or fruit again?" data-ur="کیا میں کبھی آم یا پھل نہیں کھا سکتا؟">Can I never eat mangoes or fruit again?</div>
+      <div class="faq-a" data-en="You can. Treat fruit as a structured snack, not a post-dinner dessert. Eat half a mango paired with 5–6 almonds to prevent a fast spike. Avoid combining fruit with a heavy meal." data-ur="آپ کھا سکتے ہیں۔ لیکن پھل کو سنیک کے طور پر لیں، کھانے کے بعد نہیں۔ شوگر کو تیزی سے بڑھنے سے روکنے کے لیے آدھا آم 5–6 بادام کے ساتھ کھائیں۔">You can. Treat fruit as a structured snack, not a post-dinner dessert. Eat half a mango paired with 5&ndash;6 almonds to prevent a fast spike.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" data-en="Is desi ghee completely banned?" data-ur="کیا دیسی گھی بالکل بند ہے؟">Is desi ghee completely banned?</div>
+      <div class="faq-a" data-en="Not at all. 1 tsp of pure desi ghee on your roti slows carb digestion. Avoid vanaspati (processed vegetable shortening) entirely — but pure ghee in moderation is beneficial." data-ur="بالکل نہیں۔ آپ کی روٹی پر 1 چائے کا چمچ خالص دیسی گھی کاربوہائیڈریٹ کے ہضم کو سست کرتا ہے۔ وناسپتی سے مکمل پرہیز کریں، لیکن خالص دیسی گھی اعتدال میں فائدہ مند ہے۔">Not at all. 1 tsp of pure desi ghee on your roti slows carb digestion. Avoid vanaspati entirely &mdash; pure ghee in moderation is beneficial.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" data-en="What if I can't walk after every meal?" data-ur="اگر میں ہر کھانے کے بعد چل نہ سکوں تو؟">What if I can't walk after every meal?</div>
+      <div class="faq-a" data-en="Prioritise the walk after your biggest meal of the day. Even 10 minutes of standing or light household movement helps muscles clear glucose from the bloodstream." data-ur="اپنے سب سے بڑے کھانے کے بعد چلنے کو ترجیح دیں۔ یہاں تک کہ 10 منٹ کھڑے رہنا یا گھر کا ہلکا کام بھی خون سے شوگر صاف کرنے میں مدد کرتا ہے۔">Prioritise the walk after your biggest meal of the day. Even 10 minutes of standing or light household movement helps.</div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-box">
+      <h2 data-en="Ready to Reverse Diabetes in 90 Days?" data-ur="کیا آپ 90 دنوں میں ذیابیطس کو کنٹرول کرنے کے لیے تیار ہیں؟">Ready to Reverse Diabetes in 90 Days?</h2>
+      <p data-en="Join the next Loop/90 cohort and get paired with a dedicated care pod — a doctor, nutritionist, and movement coach — plus a 24/7 AI health coach." data-ur="لوپ/90 کوہورٹ میں شامل ہوں اور اپنی کیئر ٹیم — ڈاکٹر، نیوٹریشنسٹ، موومنٹ کوچ — اور 24/7 اے آئی ہیلتھ کوچ کے ساتھ جوڑے جائیں۔">Join the next Loop/90 cohort and get paired with a dedicated care pod &mdash; a doctor, nutritionist, and movement coach &mdash; plus a 24/7 AI health coach.</p>
+      <div class="cta-features">
+        <span class="cta-badge" data-en="✓ Lab-verified HbA1c tests" data-ur="✓ لیب سے مصدقہ HbA1c ٹیسٹ">✓ Lab-verified HbA1c tests</span>
+        <span class="cta-badge" data-en="✓ Money-back guarantee" data-ur="✓ واپسی کی گارنٹی">✓ Money-back guarantee</span>
+        <span class="cta-badge" data-en="✓ 100% desi kitchen-friendly" data-ur="✓ 100٪ دیسی کچن کے مطابق">✓ 100% desi kitchen-friendly</span>
+      </div>
+      <a href="https://wa.me/923452739406?text=Hi%20Loop%2F90%2C%20I%20read%20the%20Desi%20Diabetes%20Guide%20and%20I%27d%20like%20to%20learn%20more%20about%20joining%20a%20cohort."
+        class="btn-whatsapp"
+        target="_blank"
+        data-en="💬 Reserve Your Spot on WhatsApp"
+        data-ur="💬 واٹس ایپ پر اپنی نشست محفوظ کریں">💬 Reserve Your Spot on WhatsApp</a>
+    </div>
+
+  </div><!-- /content -->
+
+  <div class="footer">
+    &copy; 2026 Loop/90 Health Technologies &nbsp;&middot;&nbsp; loop90.pk<br>
+    <span
+      data-en="Medical Disclaimer: This guide is for educational purposes only. Consult your doctor or care team before making major adjustments to insulin or medication dosage."
+      data-ur="طبی انتباہ: یہ گائیڈ صرف تعلیمی مقاصد کے لیے ہے۔ انسولین یا ادویات کی خوراک میں اہم تبدیلیوں سے پہلے اپنے ڈاکٹر سے مشورہ کریں۔">Medical Disclaimer: This guide is for educational purposes only. Consult your doctor or care team before making major adjustments to insulin or medication dosage.</span>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+  function setLanguage(lang) {
+    const body = document.body;
+    const btnEn = document.getElementById('btn-en');
+    const btnUr = document.getElementById('btn-ur');
+
+    if (lang === 'ur') {
+      body.classList.add('lang-ur');
+      document.documentElement.setAttribute('dir', 'rtl');
+      document.documentElement.setAttribute('lang', 'ur');
+      btnUr.classList.add('active');
+      btnEn.classList.remove('active');
+    } else {
+      body.classList.remove('lang-ur');
+      document.documentElement.setAttribute('dir', 'ltr');
+      document.documentElement.setAttribute('lang', 'en');
+      btnEn.classList.add('active');
+      btnUr.classList.remove('active');
+    }
+
+    document.querySelectorAll('[data-en][data-ur]').forEach(el => {
+      el.innerHTML = el.getAttribute('data-' + lang);
+    });
+  }
+</script>
+
+</body>
+</html>

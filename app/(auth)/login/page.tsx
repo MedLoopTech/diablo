@@ -4,7 +4,7 @@ import { LoginForm } from "./LoginForm";
 
 export const metadata: Metadata = {
   title: "Sign in",
-  description: "Sign in to Sehat/90 to access your 90-day diabetes remission program.",
+  description: "Sign in to Loop/90 to access your 90-day diabetes remission program.",
 };
 
 export default function LoginPage() {
@@ -15,8 +15,7 @@ export default function LoginPage() {
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-5 py-10">
       <div className="text-center">
         <div className="font-display text-3xl font-semibold text-ink">
-          {tc("appName").split("/")[0]}
-          <span className="text-marigold">/90</span>
+          Loop<span className="text-marigold">/90</span>
         </div>
         <div className="eyebrow mt-1">{tc("tagline")}</div>
       </div>

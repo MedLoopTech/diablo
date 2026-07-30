@@ -9,6 +9,7 @@ import {
   getMyMovementPlan,
 } from "@/lib/data";
 import { CONTEXT_LABEL } from "@/lib/glucose";
+import { THRESHOLDS } from "@/lib/thresholds";
 import { dialFraction } from "@/lib/time";
 import { Disclaimer } from "@/components/Disclaimer";
 import { TaskList } from "./TaskList";
@@ -47,7 +48,7 @@ export default async function TodayPage({
     readings.length > 0 ? Math.round((inRange / readings.length) * 100) : null;
 
   const latest = readings[readings.length - 1];
-  const urgentReading = readings.find((r) => r.value_mgdl >= 250 || r.value_mgdl <= 70);
+  const urgentReading = readings.find((r) => r.value_mgdl >= THRESHOLDS.URGENT_HIGH || r.value_mgdl <= THRESHOLDS.URGENT_LOW);
   const nudge =
     latest && latest.value_mgdl >= 180
       ? t("nudgeHigh", { value: latest.value_mgdl })

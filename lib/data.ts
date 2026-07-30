@@ -57,7 +57,7 @@ export async function getTodaysTasks(): Promise<Task[]> {
   const forDate = karachiToday(); // yyyy-mm-dd matching tasks.for_date
   const { data } = await supabase
     .from("tasks")
-    .select("id, for_date, cohort_day, title, subtitle, kind, done_at")
+    .select("id, for_date, cohort_day, title, subtitle, kind, done_at, photo_mode, photo_prompt, photo_points_bonus, evidence_url, evidence_at")
     .eq("patient_id", user.id)
     .eq("for_date", forDate)
     .order("created_at", { ascending: true });

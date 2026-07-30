@@ -9,6 +9,7 @@ export type PlanFeatures = {
   aiCoach: boolean;
   consultBooking: boolean;
   resourceLibrary: boolean;
+  cgmSync: boolean;
 };
 
 export type PlanFlag = {
@@ -21,9 +22,9 @@ export type PlanFlag = {
 
 /** Fallback features used when DB is unavailable. */
 const FALLBACK: Record<Plan, PlanFeatures> = {
-  basic:   { glucometerPhotoRequired: false, aiMealAnalysis: true, aiCoach: true, consultBooking: true, resourceLibrary: true },
-  plus:    { glucometerPhotoRequired: false, aiMealAnalysis: true, aiCoach: true, consultBooking: true, resourceLibrary: true },
-  premium: { glucometerPhotoRequired: false, aiMealAnalysis: true, aiCoach: true, consultBooking: true, resourceLibrary: true },
+  basic:   { glucometerPhotoRequired: false, aiMealAnalysis: true, aiCoach: true, consultBooking: true, resourceLibrary: true, cgmSync: false },
+  plus:    { glucometerPhotoRequired: false, aiMealAnalysis: true, aiCoach: true, consultBooking: true, resourceLibrary: true, cgmSync: false },
+  premium: { glucometerPhotoRequired: false, aiMealAnalysis: true, aiCoach: true, consultBooking: true, resourceLibrary: true, cgmSync: true  },
 };
 
 function flagsToFeatures(flags: { feature_key: string; enabled: boolean }[], plan: Plan): PlanFeatures {
@@ -35,6 +36,7 @@ function flagsToFeatures(flags: { feature_key: string; enabled: boolean }[], pla
     aiCoach:                 m["ai_coach"]                   ?? fb.aiCoach,
     consultBooking:          m["consult_booking"]            ?? fb.consultBooking,
     resourceLibrary:         m["resource_library"]           ?? fb.resourceLibrary,
+    cgmSync:                 m["cgm_sync"]                   ?? fb.cgmSync,
   };
 }
 

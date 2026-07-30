@@ -34,11 +34,11 @@ export async function sendPush(
   }
 }
 
-/** Send to all subscriptions for a patient. Returns count sent. */
-export async function sendPushToPatient(
+/** Send to all subscriptions for any user (patient or staff). Returns count sent. */
+export async function sendPushToUser(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
-  patientId: string,
+  userId: string,
   payload: PushPayload
 ): Promise<number> {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return 0;
@@ -46,11 +46,14 @@ export async function sendPushToPatient(
   const { data } = (await supabase
     .from("push_subscriptions")
     .select("endpoint, p256dh, auth_key")
-    .eq("patient_id", patientId)) as { data: { endpoint: string; p256dh: string; auth_key: string }[] | null };
+    .eq("patient_id", userId)) as { data: { endpoint: string; p256dh: string; auth_key: string }[] | null };
   const subs = data ?? [];
   const results = await Promise.allSettled(subs.map((s) => sendPush(s, payload)));
   return results.filter((r) => r.status === "fulfilled" && r.value).length;
 }
+
+/** @deprecated Use sendPushToUser instead. */
+export const sendPushToPatient = sendPushToUser;
 
 export function vapidConfigured(): boolean {
   return Boolean(VAPID_PUBLIC && VAPID_PRIVATE);

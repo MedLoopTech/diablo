@@ -158,6 +158,11 @@ export function CoachSheet({ open, onClose, seed }: { open: boolean; onClose: ()
                 >
                   {m.text}
                 </div>
+                {m.escalated && (
+                  <div className="ml-1 mt-0.5 font-body text-[10.5px] text-ink-soft">
+                    Flagged for your doctor · usually within 4 hours
+                  </div>
+                )}
               </div>
             );
           })}

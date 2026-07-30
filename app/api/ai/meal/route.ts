@@ -27,6 +27,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "image required" }, { status: 400 });
   }
 
+  const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp", "image/heic"];
+  if (!ALLOWED_MIME.includes(file.type)) {
+    return NextResponse.json({ error: "Only JPEG, PNG, WebP, or HEIC images are accepted." }, { status: 415 });
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    return NextResponse.json({ error: "Image must be under 5 MB." }, { status: 413 });
+  }
+
   const supabase = createServerSupabase();
   const {
     data: { user },

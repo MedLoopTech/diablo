@@ -1,8 +1,9 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { requireSupabase } from "@/lib/env";
 
-export function createServerSupabase() {
+export const createServerSupabase = cache(function createServerSupabase() {
   const cookieStore = cookies();
   const { url, anonKey } = requireSupabase();
 
@@ -29,4 +30,4 @@ export function createServerSupabase() {
       },
     }
   );
-}
+});

@@ -11,6 +11,7 @@ const nextConfig = {
     ],
   },
   async headers() {
+    const isDev = process.env.NODE_ENV === "development";
     return [
       {
         source: "/:path*",
@@ -19,8 +20,8 @@ const nextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              // Next.js requires unsafe-eval in dev; unsafe-inline is needed for Tailwind
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+              // unsafe-eval is only needed for Next.js HMR in dev; strip it in production
+              `script-src 'self'${isDev ? " 'unsafe-eval'" : ""} 'unsafe-inline'`,
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://*.supabase.co",
               "connect-src 'self' https://*.supabase.co https://api.anthropic.com https://generativelanguage.googleapis.com wss://*.supabase.co",

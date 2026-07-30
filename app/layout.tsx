@@ -20,8 +20,8 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: {
-    default: "Sehat/90 — Diabetes Remission Challenge",
-    template: "%s | Sehat/90",
+    default: "Loop/90 — Diabetes Remission Challenge",
+    template: "%s | Loop/90",
   },
   description:
     "A 90-day cohort-based type-2 diabetes remission program with a real care pod and an always-on AI coach.",
@@ -29,11 +29,11 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Sehat/90",
+    title: "Loop/90",
   },
   formatDetection: { telephone: false },
   openGraph: {
-    title: "Sehat/90 — Diabetes Remission Challenge",
+    title: "Loop/90 — Diabetes Remission Challenge",
     description:
       "90 days. Your care pod. Real remission science.",
     type: "website",

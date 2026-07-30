@@ -1,6 +1,7 @@
 import { createServerSupabase } from "@/lib/supabase/server";
 import type { Resource } from "@/lib/resources-shared";
 import type { PlanFlag } from "@/lib/plan";
+import type { AutomationConfigRow } from "@/lib/automation";
 
 export type AdminCohort = {
   id: string;
@@ -13,7 +14,16 @@ export type AdminCohort = {
   coach: string | null;
 };
 export type Person = { id: string; name: string | null; role: string; plan: string | null };
-export type Template = { id: string; phase: number; kind: string; title: string; subtitle: string | null };
+export type Template = {
+  id: string;
+  phase: number;
+  kind: string;
+  title: string;
+  subtitle: string | null;
+  photo_mode: "off" | "optional" | "required";
+  photo_prompt: string | null;
+  photo_points_bonus: number;
+};
 
 export type AppointmentStat = { role: string; label: string; total: number; upcoming: number; completed: number };
 
@@ -25,21 +35,23 @@ export type AdminOverview = {
   resources: (Resource & { is_active: boolean })[];
   planFlags: PlanFlag[];
   appointmentStats: AppointmentStat[];
+  automationConfig: AutomationConfigRow[];
 };
 
 export async function getAdminOverview(): Promise<AdminOverview> {
   const supabase = createServerSupabase();
 
-  const [{ data: cohorts }, { data: pods }, { data: members }, { data: profiles }, { data: templates }, { data: resources }, { data: planFlagsRaw }, { data: bookingsRaw }] =
+  const [{ data: cohorts }, { data: pods }, { data: members }, { data: profiles }, { data: templates }, { data: resources }, { data: planFlagsRaw }, { data: bookingsRaw }, { data: automationRows }] =
     await Promise.all([
       supabase.from("cohorts").select("id, name, start_date, status").order("start_date", { ascending: false }),
       supabase.from("care_pods").select("cohort_id, doctor_id, nutritionist_id, coach_id"),
       supabase.from("cohort_members").select("cohort_id, patient_id"),
       supabase.from("profiles").select("id, full_name, role, plan"),
-      supabase.from("task_templates").select("id, phase, kind, title, subtitle").order("phase").order("sort_order"),
+      supabase.from("task_templates").select("id, phase, kind, title, subtitle, photo_mode, photo_prompt, photo_points_bonus").order("phase").order("sort_order"),
       supabase.from("resources").select("id, title, type, description, url, tags, is_active, created_at").order("created_at", { ascending: false }),
       supabase.from("plan_feature_flags").select("plan, feature_key, label, enabled, sort_order").order("sort_order").order("plan"),
       supabase.from("consult_bookings").select("status, consult_windows(staff_id, profiles:staff_id(role))"),
+      supabase.from("automation_config").select("key, value, label, description, group_name, sort_order, updated_at").order("group_name").order("sort_order"),
     ]);
 
   const nameOf = new Map((profiles ?? []).map((p) => [p.id as string, p.full_name as string | null]));
@@ -93,5 +105,6 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     resources: (resources ?? []) as (Resource & { is_active: boolean })[],
     planFlags: (planFlagsRaw as PlanFlag[]) ?? [],
     appointmentStats,
+    automationConfig: (automationRows ?? []) as AutomationConfigRow[],
   };
 }
