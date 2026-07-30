@@ -12,7 +12,7 @@ export default function DemoPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
       <div className="mb-2 font-display text-2xl font-semibold text-ink">
-        Sehat<span className="text-marigold">/90</span> demo
+        Loop<span className="text-marigold">/90</span> demo
       </div>
       <p className="mb-6 font-body text-[13.5px] text-ink-soft">
         Click a role to sign in as that seeded account and tour their portal.
