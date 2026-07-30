@@ -13,10 +13,10 @@ export default async function StaffLayout({
   const { items, unread } = await getNotifications();
 
   return (
-    <div className="flex min-h-dvh bg-paper">
-      {/* Sidebar */}
+    <div className="flex h-dvh overflow-hidden bg-paper">
+      {/* Sidebar — full viewport height, never scrolls */}
       <aside className="hidden md:flex w-52 shrink-0 flex-col border-r border-line bg-card">
-        <div className="px-5 pb-4 pt-5">
+        <div className="shrink-0 px-5 pb-4 pt-5">
           <span className="font-display text-xl font-semibold text-ink">
             Loop<span className="text-marigold">/90</span>
           </span>
@@ -27,8 +27,8 @@ export default async function StaffLayout({
 
         <StaffNav role={profile?.role ?? ""} />
 
-        {/* User identity at bottom of sidebar */}
-        <div className="mt-auto border-t border-line px-5 py-4">
+        {/* User identity — pinned at bottom, always visible */}
+        <div className="mt-auto shrink-0 border-t border-line px-5 py-4">
           <div className="font-body text-[13px] font-semibold text-ink">
             {profile?.full_name ?? "—"}
           </div>
@@ -38,21 +38,19 @@ export default async function StaffLayout({
         </div>
       </aside>
 
-      {/* Right column */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* Slim top bar — only actions, no nav */}
+      {/* Right column — header fixed, only main scrolls */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-line bg-card px-6">
-          {/* Mobile logo (sidebar hidden on small screens) */}
           <span className="font-display text-[15px] font-semibold text-ink md:hidden">
             Loop<span className="text-marigold">/90</span>
           </span>
-          <div className="flex items-center gap-3 ml-auto">
+          <div className="ml-auto flex items-center gap-3">
             <NotificationBell items={items} unread={unread} tone="light" />
             <SignOutButton label="Sign out" />
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto px-6 py-7 md:px-10 md:py-8">
+        <main className="flex-1 overflow-y-auto px-6 py-7 md:px-10 md:py-8">
           {children}
         </main>
       </div>
