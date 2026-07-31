@@ -7,9 +7,14 @@ export const metadata: Metadata = {
   description: "Sign in to Loop/90 to access your 90-day diabetes remission program.",
 };
 
-export default function LoginPage() {
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams?: { portal?: string };
+}) {
   const t = useTranslations("auth");
   const tc = useTranslations("common");
+  const isStaffPortal = searchParams?.portal === "staff";
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-5 py-10">
@@ -29,7 +34,7 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <LoginForm />
+      <LoginForm showGoogle={!isStaffPortal} />
 
       <p className="text-center font-body text-[11.5px] leading-relaxed text-ink-soft">
         {tc("disclaimer")}

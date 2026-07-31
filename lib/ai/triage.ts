@@ -24,6 +24,7 @@ export type TriageContext = {
   recentReadingsSummary?: string;
   activeMedications?: string[]; // names only, never dosing
   mealPlanSummary?: string; // from the nutritionist's plan
+  medicalContext?: string; // diabetes type, allergies, comorbidities — no pre-existing meds to AI
 };
 
 // If the LLM says "answerable" but is less sure than this, we route to a human.
@@ -200,6 +201,7 @@ export async function triage(
     ctx.recentReadingsSummary ? `Recent glucose: ${ctx.recentReadingsSummary}.` : "",
     ctx.activeMedications?.length ? `Active medications (names only): ${ctx.activeMedications.join(", ")}.` : "",
     ctx.mealPlanSummary ? `Current meal plan: ${ctx.mealPlanSummary}.` : "",
+    ctx.medicalContext ? `Medical background: ${ctx.medicalContext}.` : "",
   ].filter(Boolean).join(" ");
 
   let raw = "";

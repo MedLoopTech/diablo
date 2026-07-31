@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { getCurrentProfile } from "@/lib/profile";
 import { getAdminOverview } from "@/lib/admin";
-import { AdminPanels } from "./AdminPanels";
+import { AdminPanels, type Tab } from "./AdminPanels";
 
-export default async function AdminPage() {
+const VALID_TABS: Tab[] = ["cohorts", "staff", "patients", "plans", "resources", "templates", "automation", "referrals"];
+
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: { tab?: string };
+}) {
   const profile = await getCurrentProfile();
   if (profile?.role !== "admin") {
     return (
@@ -15,6 +21,10 @@ export default async function AdminPage() {
     );
   }
 
+  const tab: Tab = VALID_TABS.includes(searchParams.tab as Tab)
+    ? (searchParams.tab as Tab)
+    : "cohorts";
+
   const overview = await getAdminOverview();
 
   return (
@@ -25,7 +35,7 @@ export default async function AdminPage() {
           {overview.cohorts.length} cohorts · {overview.staff.length} staff · {overview.patients.length} patients
         </p>
       </div>
-      <AdminPanels overview={overview} />
+      <AdminPanels overview={overview} tab={tab} />
     </div>
   );
 }

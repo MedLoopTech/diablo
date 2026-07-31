@@ -47,10 +47,14 @@ export function geminiKey(): string | null {
 
 /**
  * Which AI provider to use. Production default is Anthropic (the decided stack);
- * set AI_PROVIDER=gemini in .env.local for free interactive dev testing.
+ * set AI_PROVIDER=gemini in .env.local for free interactive dev testing;
+ * set AI_PROVIDER=ollama + OLLAMA_BASE_URL for self-hosted (Pakistan PDPB compliant).
  */
-export function aiProvider(): "anthropic" | "gemini" {
-  return process.env.AI_PROVIDER === "gemini" ? "gemini" : "anthropic";
+export function aiProvider(): "anthropic" | "gemini" | "ollama" {
+  const v = process.env.AI_PROVIDER;
+  if (v === "gemini") return "gemini";
+  if (v === "ollama") return "ollama";
+  return "anthropic";
 }
 
 /** True only when both values needed for any Supabase call are present. */

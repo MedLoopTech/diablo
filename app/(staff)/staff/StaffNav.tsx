@@ -1,37 +1,88 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
-type NavItem = { href: string; label: string; roles?: string[] };
+const ADMIN_SUBTABS = [
+  { id: "cohorts",    label: "Cohorts" },
+  { id: "staff",      label: "Staff" },
+  { id: "patients",   label: "Patients" },
+  { id: "plans",      label: "Plans" },
+  { id: "resources",  label: "Resources" },
+  { id: "templates",  label: "Templates" },
+  { id: "automation", label: "Automation" },
+  { id: "referrals",  label: "Referrals" },
+];
 
-const NAV: NavItem[] = [
-  { href: "/staff",         label: "Dashboard" },
-  { href: "/staff/consults", label: "Consults"  },
-  { href: "/staff/admin",   label: "Admin",    roles: ["admin"] },
+const STAFF_NAV = [
+  { href: "/staff",                 label: "Dashboard",     exact: true },
+  { href: "/staff/prescriptions",   label: "Prescriptions" },
+  { href: "/staff/consults",        label: "Consults" },
+  { href: "/staff/escalations",     label: "Escalations" },
+  { href: "/staff/weekly-review",   label: "Weekly Review", roles: ["doctor", "admin"] },
 ];
 
 export function StaffNav({ role }: { role: string }) {
   const pathname = usePathname();
-  const items = NAV.filter((item) => !item.roles || item.roles.includes(role));
+  const searchParams = useSearchParams();
+  const activeTab = searchParams.get("tab") ?? "cohorts";
+  const onAdmin = pathname.startsWith("/staff/admin");
+
+  const linkCls = (active: boolean) =>
+    `block rounded-[10px] px-3 py-2 font-body text-[13px] font-medium transition-colors ${
+      active ? "bg-primary font-semibold text-white" : "text-ink-soft hover:bg-paper hover:text-ink"
+    }`;
+
+  if (role === "admin") {
+    return (
+      <nav className="flex flex-col gap-0.5 overflow-y-auto px-3 py-2">
+        <Link href="/staff/performance" className={linkCls(pathname.startsWith("/staff/performance"))}>
+          Performance
+        </Link>
+        <Link href="/staff/payouts" className={linkCls(pathname.startsWith("/staff/payouts"))}>
+          Payouts
+        </Link>
+
+        {onAdmin ? (
+          <>
+            <div className="px-3 py-2 font-body text-[13px] font-semibold text-ink">
+              Admin
+            </div>
+            <div className="ml-2 flex flex-col gap-0.5 border-l border-line pl-2">
+              {ADMIN_SUBTABS.map((sub) => (
+                <Link
+                  key={sub.id}
+                  href={`/staff/admin?tab=${sub.id}`}
+                  className={linkCls(activeTab === sub.id)}
+                >
+                  {sub.label}
+                </Link>
+              ))}
+            </div>
+          </>
+        ) : (
+          <Link href="/staff/admin" className={linkCls(false)}>
+            Admin
+          </Link>
+        )}
+      </nav>
+    );
+  }
+
+  const items = STAFF_NAV.filter((item) => {
+    if (item.href === "/staff/prescriptions") return ["doctor", "nutritionist", "coach"].includes(role);
+    if ((item as { roles?: string[] }).roles) return (item as { roles?: string[] }).roles!.includes(role);
+    return true;
+  });
 
   return (
     <nav className="flex flex-col gap-0.5 px-3 py-2">
       {items.map((item) => {
-        const active =
-          item.href === "/staff"
-            ? pathname === "/staff"
-            : pathname.startsWith(item.href);
+        const active = (item as { exact?: boolean }).exact
+          ? pathname === item.href
+          : pathname.startsWith(item.href);
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`rounded-[10px] px-3 py-2 font-body text-[13px] font-medium transition-colors ${
-              active
-                ? "bg-primary font-semibold text-white"
-                : "text-ink-soft hover:bg-paper hover:text-ink"
-            }`}
-          >
+          <Link key={item.href} href={item.href} className={linkCls(active)}>
             {item.label}
           </Link>
         );

@@ -8,8 +8,10 @@ import { karachiToday } from "@/lib/time";
 import { MedicationEditor } from "./MedicationEditor";
 import { MealPlanEditor } from "./MealPlanEditor";
 import { MovementPlanEditor } from "./MovementPlanEditor";
+import { MedicalHistoryEditor } from "./MedicalHistoryEditor";
 import { StaffReplyBox } from "./StaffReplyBox";
 import { PatientGlucoseChart } from "@/components/PatientGlucoseChart";
+import { GlucoseReviewButton } from "./GlucoseReviewButton";
 
 function pkt(iso: string) {
   return new Date(iso).toLocaleString("en-US", {
@@ -48,6 +50,27 @@ async function getTaskEvidence(patientId: string) {
   );
 }
 
+async function getPatientChat(patientId: string) {
+  const supabase = createServerSupabase();
+  const { data } = await supabase
+    .from("chat_messages")
+    .select("id, sender, body, created_at")
+    .eq("patient_id", patientId)
+    .order("created_at", { ascending: false })
+    .limit(30);
+  return (data ?? []).reverse();
+}
+
+async function getGlucoseReviewData(patientId: string) {
+  const supabase = createServerSupabase();
+  const { data } = await supabase
+    .from("glucose_readings")
+    .select("id, doctor_note, reviewed_at")
+    .eq("patient_id", patientId)
+    .neq("flag", "none");
+  return new Map((data ?? []).map((r) => [r.id as string, { note: (r.doctor_note as string | null) ?? null, reviewedAt: (r.reviewed_at as string | null) ?? null }]));
+}
+
 export default async function PatientDetailPage({
   params,
 }: {
@@ -55,11 +78,17 @@ export default async function PatientDetailPage({
 }) {
   const [p, viewer] = await Promise.all([getPatientDetail(params.id), getCurrentProfile()]);
   if (!p) notFound();
-  const evidence = await getTaskEvidence(params.id);
+  const [evidence, chatMessages, glucoseReviewMap] = await Promise.all([
+    getTaskEvidence(params.id),
+    getPatientChat(params.id),
+    getGlucoseReviewData(params.id),
+  ]);
   const role = viewer?.role ?? "";
   const canEditMeds = role === "doctor" || role === "admin";
   const canEditMeals = role === "nutritionist" || role === "admin";
   const canEditMovement = role === "coach" || role === "admin";
+  const canEditMedHistory = role === "doctor" || role === "admin";
+  const canSeeMeds = role !== "coach"; // coach sees allergies only, not pre-existing meds
 
   return (
     <div className="flex flex-col gap-8">
@@ -133,6 +162,59 @@ export default async function PatientDetailPage({
         </div>
       )}
 
+      {/* Medical History */}
+      {canEditMedHistory ? (
+        <MedicalHistoryEditor patientId={p.id} history={p.medicalHistory} />
+      ) : (
+        <div className="rounded-card border border-line bg-card p-4">
+          <h3 className="eyebrow mb-3">Medical history</h3>
+          {!p.medicalHistory ? (
+            <p className="font-body text-[13px] text-ink-soft">No medical history recorded yet.</p>
+          ) : (
+            <dl className="flex flex-col gap-2 font-body text-[13px]">
+              {p.medicalHistory.diabetes_type && (
+                <div className="flex gap-2">
+                  <dt className="font-semibold text-ink-soft w-28 flex-shrink-0">Type:</dt>
+                  <dd className="text-ink capitalize">{p.medicalHistory.diabetes_type.replace("type", "Type ")}</dd>
+                </div>
+              )}
+              {p.medicalHistory.diagnosis_year && (
+                <div className="flex gap-2">
+                  <dt className="font-semibold text-ink-soft w-28 flex-shrink-0">Diagnosed:</dt>
+                  <dd className="text-ink">{p.medicalHistory.diagnosis_year}</dd>
+                </div>
+              )}
+              {p.medicalHistory.allergies.length > 0 && (
+                <div className="flex gap-2">
+                  <dt className="font-semibold text-ink-soft w-28 flex-shrink-0">Allergies:</dt>
+                  <dd className="flex flex-wrap gap-1">
+                    {p.medicalHistory.allergies.map((a) => (
+                      <span key={a} className="rounded-full bg-red-50 px-2 py-0.5 text-[11.5px] font-semibold text-red-600">{a}</span>
+                    ))}
+                  </dd>
+                </div>
+              )}
+              {p.medicalHistory.comorbidities.length > 0 && (
+                <div className="flex gap-2">
+                  <dt className="font-semibold text-ink-soft w-28 flex-shrink-0">Conditions:</dt>
+                  <dd className="text-ink">{p.medicalHistory.comorbidities.join(", ")}</dd>
+                </div>
+              )}
+              {canSeeMeds && p.medicalHistory.pre_existing_meds.length > 0 && (
+                <div className="flex gap-2">
+                  <dt className="font-semibold text-ink-soft w-28 flex-shrink-0">Prior meds:</dt>
+                  <dd className="flex flex-col gap-0.5">
+                    {p.medicalHistory.pre_existing_meds.map((m, i) => (
+                      <span key={i} className="text-ink">{m.name}{m.dose ? ` — ${m.dose}` : ""}{m.frequency ? ` (${m.frequency})` : ""}</span>
+                    ))}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          )}
+        </div>
+      )}
+
       <section>
         <h2 className="eyebrow mb-3">Glucose readings</h2>
         <div className="rounded-card border border-line bg-card p-4">
@@ -148,12 +230,15 @@ export default async function PatientDetailPage({
                   <th className="p-3 font-semibold">Context</th>
                   <th className="p-3 font-semibold">Flag</th>
                   <th className="p-3 font-semibold">When (PKT)</th>
+                  {canEditMeds && <th className="p-3 font-semibold">Review</th>}
                 </tr>
               </thead>
               <tbody>
                 {p.readings
                   .filter((r) => r.flag !== "none")
-                  .map((r) => (
+                  .map((r) => {
+                    const rev = glucoseReviewMap.get(r.id);
+                    return (
                     <tr key={r.id} className="border-b border-line last:border-0">
                       <td className="p-3 font-semibold text-ink">{r.value_mgdl}</td>
                       <td className="p-3 text-ink-soft">{r.context}</td>
@@ -163,8 +248,18 @@ export default async function PatientDetailPage({
                         </span>
                       </td>
                       <td className="p-3 text-ink-soft">{pkt(r.taken_at)}</td>
+                      {canEditMeds && (
+                        <td className="p-3">
+                          <GlucoseReviewButton
+                            readingId={r.id}
+                            existingNote={rev?.note}
+                            reviewedAt={rev?.reviewedAt}
+                          />
+                        </td>
+                      )}
                     </tr>
-                  ))}
+                    );
+                  })}
               </tbody>
             </table>
           </div>
@@ -248,6 +343,34 @@ export default async function PatientDetailPage({
             ))
           )}
         </div>
+      </section>
+
+      <section>
+        <h2 className="eyebrow mb-3">Recent chat messages</h2>
+        {chatMessages.length === 0 ? (
+          <div className="rounded-card border border-line bg-card p-4 font-body text-[13px] text-ink-soft">
+            No messages yet.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2 rounded-card border border-line bg-card p-4">
+            {chatMessages.map((m) => {
+              const isPatient = m.sender === "patient";
+              return (
+                <div key={m.id} className={`flex ${isPatient ? "justify-start" : "justify-end"}`}>
+                  <div className={`max-w-[80%] rounded-[12px] px-3 py-2 font-body text-[13px] ${isPatient ? "bg-paper text-ink" : "bg-primary text-white"}`}>
+                    {!isPatient && (
+                      <div className="mb-0.5 text-[11px] font-semibold capitalize opacity-80">{m.sender}</div>
+                    )}
+                    <div>{m.body as string}</div>
+                    <div className={`mt-0.5 text-[10.5px] ${isPatient ? "text-ink-soft" : "opacity-70"}`}>
+                      {pkt(m.created_at as string)}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       <StaffReplyBox patientId={p.id} />

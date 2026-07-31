@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { AdminOverview, AdminCohort, Person, AppointmentStat } from "@/lib/admin";
+import type { AdminOverview, AdminCohort, Person, AppointmentStat, ReferralCodeRow, ReferralRow } from "@/lib/admin";
 import type { AutomationConfigRow } from "@/lib/automation";
 import type { PlanFlag } from "@/lib/plan";
 import { RESOURCE_LABELS, type ResourceType } from "@/lib/resources-shared";
-import { createCohort, assignPod, enrollPatient, setCohortStatus, createResource, toggleResource, inviteStaff, updatePersonName, setPatientPlan, togglePlanFeature, setTemplatePhotoMode, saveAutomationConfig } from "./actions";
+import { createCohort, assignPod, enrollPatient, setCohortStatus, createResource, toggleResource, inviteStaff, updatePersonName, setPatientPlan, togglePlanFeature, setTemplatePhotoMode, saveAutomationConfig, createReferralCode, toggleReferralCode, markReferralsPaid, saveReferralCodePayment } from "./actions";
 
 // ─── Shared ──────────────────────────────────────────────────────────────────
 
@@ -511,7 +511,16 @@ function TemplateRow({
 }) {
   const [mode, setMode] = useState(tpl.photo_mode);
   const [bonus, setBonus] = useState(String(tpl.photo_points_bonus));
-  const dirty = mode !== tpl.photo_mode || Number(bonus) !== tpl.photo_points_bonus;
+
+  const handleModeChange = (newMode: typeof mode) => {
+    setMode(newMode);
+    onSave(tpl.id, newMode, Math.max(0, Number(bonus) || 0));
+  };
+
+  const handleBonusBlur = () => {
+    const b = Math.max(0, Number(bonus) || 0);
+    if (b !== tpl.photo_points_bonus) onSave(tpl.id, mode, b);
+  };
 
   return (
     <tr className="border-b border-line last:border-0">
@@ -521,8 +530,9 @@ function TemplateRow({
       <td className="p-3">
         <select
           value={mode}
-          onChange={(e) => setMode(e.target.value as typeof mode)}
-          className="rounded-[8px] border border-line bg-paper px-2 py-1 font-body text-[12px] text-ink outline-none"
+          onChange={(e) => handleModeChange(e.target.value as typeof mode)}
+          disabled={pending}
+          className="rounded-[8px] border border-line bg-paper px-2 py-1 font-body text-[12px] text-ink outline-none disabled:opacity-50"
         >
           {PHOTO_MODES.map((m) => (
             <option key={m} value={m}>{PHOTO_MODE_LABELS[m]}</option>
@@ -533,20 +543,10 @@ function TemplateRow({
         <input
           type="number" min={0} max={50} value={bonus}
           onChange={(e) => setBonus(e.target.value)}
-          disabled={mode === "required"}
+          onBlur={handleBonusBlur}
+          disabled={mode === "required" || pending}
           className="w-16 rounded-[8px] border border-line bg-paper px-2 py-1 font-body text-[12px] text-ink outline-none disabled:opacity-40"
         />
-      </td>
-      <td className="p-3">
-        {dirty && (
-          <button
-            onClick={() => onSave(tpl.id, mode, Math.max(0, Number(bonus) || 0))}
-            disabled={pending}
-            className="rounded-full bg-primary px-3 py-1 font-body text-[12px] font-bold text-white disabled:opacity-50"
-          >
-            Save
-          </button>
-        )}
       </td>
     </tr>
   );
@@ -580,7 +580,6 @@ function TemplatesTab({ templates }: { templates: AdminOverview["templates"] }) 
               <th className="p-3 font-semibold">Title</th>
               <th className="p-3 font-semibold">Photo mode</th>
               <th className="p-3 font-semibold">Bonus pts</th>
-              <th className="p-3" />
             </tr>
           </thead>
           <tbody>
@@ -655,7 +654,10 @@ function ConfigRow({ row }: { row: AutomationConfigRow }) {
 }
 
 function AutomationTab({ rows }: { rows: AutomationConfigRow[] }) {
-  if (rows.length === 0) {
+  // Referral payout amount is shown in the Referrals tab — exclude from here
+  const filteredRows = rows.filter((r) => r.key !== "referral_payout_pkr");
+
+  if (filteredRows.length === 0) {
     return (
       <div className="rounded-card border border-line bg-card p-4 font-body text-[13px] text-ink-soft">
         Run migration 25 to enable automation configuration.
@@ -663,13 +665,13 @@ function AutomationTab({ rows }: { rows: AutomationConfigRow[] }) {
     );
   }
 
-  const byGroup = rows.reduce<Record<string, AutomationConfigRow[]>>((acc, r) => {
+  const byGroup = filteredRows.reduce<Record<string, AutomationConfigRow[]>>((acc, r) => {
     (acc[r.group_name] ??= []).push(r);
     return acc;
   }, {});
 
   const groupOrder = ["messages", "destinations", "thresholds", "general"];
-  const groups = groupOrder.filter((g) => byGroup[g]);
+  const groups = groupOrder.filter((g) => byGroup[g] && byGroup[g].length > 0);
 
   return (
     <div className="flex flex-col gap-4">
@@ -689,61 +691,406 @@ function AutomationTab({ rows }: { rows: AutomationConfigRow[] }) {
   );
 }
 
-// ─── Shell ────────────────────────────────────────────────────────────────────
+// ─── Referrals tab ───────────────────────────────────────────────────────────
 
-type Tab = "cohorts" | "staff" | "patients" | "plans" | "resources" | "templates" | "automation";
+const PAYMENT_METHODS = [
+  { value: "jazzcash",      label: "JazzCash" },
+  { value: "easypaisa",     label: "Easypaisa" },
+  { value: "bank_transfer", label: "Bank transfer (IBAN)" },
+  { value: "other",         label: "Other" },
+];
 
-export function AdminPanels({ overview }: { overview: AdminOverview }) {
-  const [tab, setTab] = useState<Tab>("cohorts");
+function NewCodeForm({ staff }: { staff: Person[] }) {
+  const [pending, startT] = useTransition();
+  const [referrerId, setReferrerId] = useState("");
+  const [partnerName, setPartnerName] = useState("");
+  const [partnerContact, setPartnerContact] = useState("");
+  const [notes, setNotes] = useState("");
+  const [result, setResult] = useState<string | null>(null);
 
-  const nav: { id: Tab; label: string; badge?: number }[] = [
-    { id: "cohorts",    label: "Cohorts",    badge: overview.cohorts.length },
-    { id: "staff",      label: "Staff",      badge: overview.staff.length },
-    { id: "patients",   label: "Patients",   badge: overview.patients.length },
-    { id: "plans",      label: "Plans" },
-    { id: "resources",  label: "Resources",  badge: overview.resources.length },
-    { id: "templates",  label: "Templates",  badge: overview.templates.length },
-    { id: "automation", label: "Automation" },
-  ];
+  const submit = () =>
+    startT(async () => {
+      const r = await createReferralCode(
+        referrerId || null,
+        partnerName.trim() || null,
+        partnerContact.trim() || null,
+        notes.trim() || null,
+        null, null, null,
+      );
+      if (r.ok) {
+        setResult(`Code created: ${r.code} — add payment info in the table below.`);
+        setReferrerId(""); setPartnerName(""); setPartnerContact(""); setNotes("");
+      } else {
+        setResult(r.error ?? "Failed.");
+      }
+    });
+
+  const L = "font-body text-[11px] font-semibold uppercase tracking-wider text-ink-soft";
 
   return (
-    <div className="flex gap-6 items-start">
-      {/* Left nav */}
-      <nav className="w-40 shrink-0 sticky top-4">
-        <div className="flex flex-col gap-0.5">
-          {nav.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setTab(item.id)}
-              className={`flex items-center justify-between rounded-[10px] px-3 py-2 text-left font-body text-[13px] font-medium transition-colors ${
-                tab === item.id
-                  ? "bg-primary font-semibold text-white"
-                  : "text-ink-soft hover:bg-paper hover:text-ink"
-              }`}
-            >
-              <span>{item.label}</span>
-              {item.badge !== undefined && (
-                <span className={`rounded-full px-1.5 py-0.5 font-body text-[10px] tabular-nums ${
-                  tab === item.id ? "bg-white/20 text-white" : "bg-line text-ink-soft"
-                }`}>
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          ))}
+    <div className="rounded-card border border-line bg-card p-4">
+      <h3 className="mb-3 font-body text-[13px] font-semibold text-ink">Create referral code</h3>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1">
+          <label className={L}>Assign to staff member</label>
+          <select value={referrerId} onChange={(e) => setReferrerId(e.target.value)} className={`${field} w-full`}>
+            <option value="">— External partner —</option>
+            {staff.map((s) => (
+              <option key={s.id} value={s.id}>{s.name ?? s.id} ({s.role})</option>
+            ))}
+          </select>
         </div>
-      </nav>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0 flex flex-col gap-6">
-        {tab === "cohorts"    && <CohortsTab overview={overview} />}
-        {tab === "staff"      && <StaffTab overview={overview} />}
-        {tab === "patients"   && <PatientsTab overview={overview} />}
-        {tab === "plans"      && <PlansTab flags={overview.planFlags} />}
-        {tab === "resources"  && <ResourcesTab resources={overview.resources} />}
-        {tab === "templates"  && <TemplatesTab templates={overview.templates} />}
-        {tab === "automation" && <AutomationTab rows={overview.automationConfig} />}
+        <div className="flex flex-col gap-1">
+          <label className={L}>Partner name (for code prefix)</label>
+          <input type="text" value={partnerName} onChange={(e) => setPartnerName(e.target.value)} placeholder="Dr. Ahmed / Clinic name" className={`${field} w-full`} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className={L}>Contact (WhatsApp / phone)</label>
+          <input type="text" value={partnerContact} onChange={(e) => setPartnerContact(e.target.value)} placeholder="+92 300 …" className={`${field} w-full`} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className={L}>Notes</label>
+          <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Clinic location, specialty…" className={`${field} w-full`} />
+        </div>
       </div>
+      <div className="mt-3 flex items-center gap-3">
+        <button onClick={submit} disabled={pending} className="rounded-full bg-primary px-5 py-2 font-body text-[13px] font-bold text-white disabled:opacity-50">
+          {pending ? "Creating…" : "Generate code"}
+        </button>
+        {result && <span className={`font-body text-[12.5px] ${result.startsWith("Code") ? "text-primary-deep font-semibold" : "text-red-600"}`}>{result}</span>}
+      </div>
+    </div>
+  );
+}
+
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  jazzcash: "JazzCash",
+  easypaisa: "Easypaisa",
+  bank_transfer: "Bank transfer",
+  other: "Other",
+};
+
+function InlinePaymentEdit({ rc }: { rc: ReferralCodeRow }) {
+  const [open, setOpen] = useState(false);
+  const [method, setMethod] = useState(rc.payment_method ?? "");
+  const [title, setTitle] = useState(rc.account_title ?? "");
+  const [number, setNumber] = useState(rc.account_number ?? "");
+  const [pending, startT] = useTransition();
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const save = () =>
+    startT(async () => {
+      const r = await saveReferralCodePayment(rc.id, method || null, title.trim() || null, number.trim() || null);
+      if (r.ok) { setMsg("Saved."); setOpen(false); }
+      else setMsg(r.error ?? "Failed.");
+    });
+
+  if (!open) {
+    if (!rc.payment_method) {
+      return (
+        <button onClick={() => setOpen(true)} className="font-body text-[12px] text-primary underline">
+          Add payment info
+        </button>
+      );
+    }
+    return (
+      <div className="flex flex-col gap-0.5">
+        <span className="font-body text-[12px] font-semibold text-ink">
+          {PAYMENT_METHOD_LABEL[rc.payment_method] ?? rc.payment_method}
+        </span>
+        {rc.account_title && <span className="font-body text-[11px] text-ink-soft">{rc.account_title}</span>}
+        {rc.account_number && <span className="font-mono text-[11px] text-primary-deep">{rc.account_number}</span>}
+        <button onClick={() => setOpen(true)} className="self-start font-body text-[11px] text-primary underline">
+          Edit
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2 py-1">
+      <select value={method} onChange={(e) => setMethod(e.target.value)} className={`${field} w-full text-[12px]`}>
+        <option value="">— Method —</option>
+        {PAYMENT_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+      </select>
+      <input
+        type="text"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Account holder name"
+        className={`${field} w-full text-[12px]`}
+      />
+      <input
+        type="text"
+        value={number}
+        onChange={(e) => setNumber(e.target.value)}
+        placeholder={method === "bank_transfer" ? "IBAN (PK36SCBL…)" : "Mobile number (03XX…)"}
+        className={`${field} w-full text-[12px]`}
+      />
+      <div className="flex items-center gap-2">
+        <button
+          onClick={save}
+          disabled={pending}
+          className="rounded-full bg-primary px-3 py-1 font-body text-[11px] font-bold text-white disabled:opacity-50"
+        >
+          {pending ? "Saving…" : "Save"}
+        </button>
+        <button onClick={() => { setOpen(false); setMsg(null); }} className="font-body text-[11px] text-ink-soft underline">
+          Cancel
+        </button>
+        {msg && <span className="font-body text-[11px] text-red-600">{msg}</span>}
+      </div>
+    </div>
+  );
+}
+
+function ReferralCodesTable({ codes }: { codes: ReferralCodeRow[] }) {
+  const [pending, startT] = useTransition();
+
+  if (!codes.length) {
+    return <div className="rounded-card border border-line bg-card p-4 font-body text-[13px] text-ink-soft">No codes yet. Create one above.</div>;
+  }
+
+  const pendingTotal = codes.reduce((s, c) => s + c.pending_pkr, 0);
+
+  return (
+    <div>
+      {pendingTotal > 0 && (
+        <div className="mb-3 rounded-[10px] bg-amber-50 border border-amber-200 px-4 py-2.5 font-body text-[13px] text-amber-800">
+          PKR {pendingTotal.toLocaleString()} pending across all partners this cycle.
+        </div>
+      )}
+      <div className="overflow-x-auto rounded-card border border-line bg-card">
+        <table className="w-full min-w-[820px] border-collapse">
+          <thead className="border-b border-line bg-paper">
+            <tr>
+              {["Code", "Partner", "Payment info", "Referrals", "Pending", "Paid", "Status"].map((h) => (
+                <th key={h} className="px-4 py-2.5 text-left font-body text-[11px] uppercase tracking-wider text-ink-soft">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {codes.map((rc) => (
+              <tr key={rc.id} className="hover:bg-paper/60">
+                <td className="px-4 py-3 font-body text-[13px]">
+                  <span className="rounded-full bg-mint px-2.5 py-0.5 font-mono text-[11px] font-bold text-primary-deep">{rc.code}</span>
+                </td>
+                <td className="px-4 py-3 font-body text-[13px] text-ink">
+                  <div className="font-semibold">{rc.referrer_name ?? rc.partner_name ?? "—"}</div>
+                  {rc.partner_contact && <div className="text-[11px] text-ink-soft">{rc.partner_contact}</div>}
+                  {rc.notes && <div className="text-[11px] text-ink-soft">{rc.notes}</div>}
+                </td>
+                <td className="px-4 py-3"><InlinePaymentEdit rc={rc} /></td>
+                <td className="px-4 py-3 font-body text-[13px] text-ink font-semibold">{rc.referral_count}</td>
+                <td className="px-4 py-3 font-body text-[13px]">
+                  {rc.pending_count > 0
+                    ? <span className="font-semibold text-amber-600">PKR {rc.pending_pkr.toLocaleString()} ({rc.pending_count})</span>
+                    : <span className="text-ink-soft">—</span>}
+                </td>
+                <td className="px-4 py-3 font-body text-[13px] text-primary-deep">
+                  {rc.paid_count > 0 ? `PKR ${rc.paid_pkr.toLocaleString()} (${rc.paid_count})` : "—"}
+                </td>
+                <td className="px-4 py-3">
+                  <button
+                    onClick={() => startT(async () => { await toggleReferralCode(rc.id, !rc.is_active); })}
+                    disabled={pending}
+                    className={`rounded-full px-3 py-1 font-body text-[11px] font-semibold ${rc.is_active ? "bg-mint text-primary-deep" : "bg-line text-ink-soft"}`}
+                  >
+                    {rc.is_active ? "Active" : "Inactive"}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ReferralPayoutsTable({ referrals }: { referrals: ReferralRow[] }) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [pending, startT] = useTransition();
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const pendingRows = referrals.filter((r) => r.payout_status === "pending");
+  const paidRows = referrals.filter((r) => r.payout_status === "paid");
+
+  const toggleAll = () =>
+    setSelected(selected.size === pendingRows.length ? new Set() : new Set(pendingRows.map((r) => r.id)));
+
+  const markPaid = () =>
+    startT(async () => {
+      const r = await markReferralsPaid(Array.from(selected));
+      setMsg(r.ok ? `Marked ${selected.size} paid.` : r.error ?? "Failed.");
+      setSelected(new Set());
+    });
+
+  return (
+    <div className="flex flex-col gap-3">
+      {pendingRows.length > 0 && (
+        <div className="flex items-center gap-3">
+          <button onClick={toggleAll} className="font-body text-[12px] text-primary underline">
+            {selected.size === pendingRows.length ? "Deselect all" : "Select all pending"}
+          </button>
+          <button
+            onClick={markPaid}
+            disabled={pending || selected.size === 0}
+            className="rounded-full bg-primary px-4 py-1.5 font-body text-[12px] font-bold text-white disabled:opacity-40"
+          >
+            {pending ? "Marking…" : `Mark ${selected.size} paid`}
+          </button>
+          {msg && <span className="font-body text-[12px] text-primary-deep">{msg}</span>}
+        </div>
+      )}
+      <div className="overflow-x-auto rounded-card border border-line bg-card">
+        <table className="w-full min-w-[600px] border-collapse">
+          <thead className="border-b border-line bg-paper">
+            <tr>
+              <th className="w-10 px-4 py-2.5" />
+              {["Code", "Referrer", "Patient", "Enrolled", "Amount", "Status"].map((h) => (
+                <th key={h} className="px-4 py-2.5 text-left font-body text-[11px] uppercase tracking-wider text-ink-soft">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {referrals.map((r) => (
+              <tr key={r.id} className={`hover:bg-paper/60 ${selected.has(r.id) ? "bg-mint/30" : ""}`}>
+                <td className="px-4 py-3">
+                  {r.payout_status === "pending" && (
+                    <input
+                      type="checkbox"
+                      checked={selected.has(r.id)}
+                      onChange={(e) => {
+                        const next = new Set(selected);
+                        e.target.checked ? next.add(r.id) : next.delete(r.id);
+                        setSelected(next);
+                      }}
+                      className="h-4 w-4 rounded border-line accent-primary"
+                    />
+                  )}
+                </td>
+                <td className="px-4 py-3 font-mono text-[11px] font-bold text-primary-deep">{r.code}</td>
+                <td className="px-4 py-3 font-body text-[13px] text-ink">{r.referrer_name ?? "—"}</td>
+                <td className="px-4 py-3 font-body text-[13px] text-ink">{r.patient_name ?? "—"}</td>
+                <td className="px-4 py-3 font-body text-[12px] text-ink-soft">
+                  {r.enrolled_at ? new Date(r.enrolled_at).toLocaleDateString("en-PK") : "—"}
+                </td>
+                <td className="px-4 py-3 font-body text-[13px] font-semibold text-ink">PKR {r.payout_pkr.toLocaleString()}</td>
+                <td className="px-4 py-3">
+                  {r.payout_status === "paid"
+                    ? <span className="rounded-full bg-mint px-2 py-0.5 font-body text-[11px] font-semibold text-primary-deep">Paid {r.paid_at ? new Date(r.paid_at).toLocaleDateString("en-PK") : ""}</span>
+                    : <span className="rounded-full bg-amber-100 px-2 py-0.5 font-body text-[11px] font-semibold text-amber-700">Pending</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {paidRows.length > 0 && pendingRows.length > 0 && (
+        <p className="font-body text-[11px] text-ink-soft">{paidRows.length} paid rows shown below pending.</p>
+      )}
+    </div>
+  );
+}
+
+function ReferralsTab({
+  codes,
+  referrals,
+  staff,
+  payoutConfig,
+}: {
+  codes: ReferralCodeRow[];
+  referrals: ReferralRow[];
+  staff: Person[];
+  payoutConfig?: AutomationConfigRow;
+}) {
+  const totalPending = codes.reduce((s, c) => s + c.pending_pkr, 0);
+  const totalPaid = codes.reduce((s, c) => s + c.paid_pkr, 0);
+  const payoutPkr = payoutConfig ? parseInt(payoutConfig.value, 10) || 2000 : 2000;
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-card border border-line bg-card p-4 text-center">
+          <div className="font-display text-2xl font-semibold text-ink">{codes.length}</div>
+          <div className="mt-0.5 font-body text-[12px] text-ink-soft">Referral codes</div>
+        </div>
+        <div className="rounded-card border border-line bg-card p-4 text-center">
+          <div className="font-display text-2xl font-semibold text-ink">{referrals.length}</div>
+          <div className="mt-0.5 font-body text-[12px] text-ink-soft">Total referrals</div>
+        </div>
+        <div className="rounded-card border border-line bg-card p-4 text-center">
+          <div className="font-display text-2xl font-semibold text-amber-600">PKR {totalPending.toLocaleString()}</div>
+          <div className="mt-0.5 font-body text-[12px] text-ink-soft">Pending payouts</div>
+        </div>
+        <div className="rounded-card border border-line bg-card p-4 text-center">
+          <div className="font-display text-2xl font-semibold text-primary-deep">PKR {totalPaid.toLocaleString()}</div>
+          <div className="mt-0.5 font-body text-[12px] text-ink-soft">Paid out (all time)</div>
+        </div>
+      </div>
+
+      <section>
+        <h2 className="eyebrow mb-3">Payout settings</h2>
+        <div className="rounded-card border border-line bg-card p-4">
+          {payoutConfig ? (
+            <ConfigRow row={payoutConfig} />
+          ) : (
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="font-body text-[13px] font-semibold text-ink">Payout per patient</div>
+                <div className="mt-0.5 font-body text-[12px] text-ink-soft">Amount paid to a referring partner per enrolled patient.</div>
+              </div>
+              <div className="font-display text-[22px] font-semibold text-primary-deep">
+                PKR {payoutPkr.toLocaleString()}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="eyebrow mb-3">Referral codes</h2>
+        <div className="flex flex-col gap-3">
+          <NewCodeForm staff={staff} />
+          <ReferralCodesTable codes={codes} />
+        </div>
+      </section>
+
+      <section>
+        <h2 className="eyebrow mb-3">Payout ledger</h2>
+        {referrals.length === 0
+          ? <div className="rounded-card border border-line bg-card p-4 font-body text-[13px] text-ink-soft">No referrals recorded yet.</div>
+          : <ReferralPayoutsTable referrals={referrals} />}
+      </section>
+    </div>
+  );
+}
+
+// ─── Shell ────────────────────────────────────────────────────────────────────
+
+export type Tab = "cohorts" | "staff" | "patients" | "plans" | "resources" | "templates" | "automation" | "referrals";
+
+export function AdminPanels({ overview, tab }: { overview: AdminOverview; tab: Tab }) {
+  const payoutConfig = overview.automationConfig.find((r) => r.key === "referral_payout_pkr");
+
+  return (
+    <div className="flex flex-col gap-6">
+      {tab === "cohorts"    && <CohortsTab overview={overview} />}
+      {tab === "staff"      && <StaffTab overview={overview} />}
+      {tab === "patients"   && <PatientsTab overview={overview} />}
+      {tab === "plans"      && <PlansTab flags={overview.planFlags} />}
+      {tab === "resources"  && <ResourcesTab resources={overview.resources} />}
+      {tab === "templates"  && <TemplatesTab templates={overview.templates} />}
+      {tab === "automation" && <AutomationTab rows={overview.automationConfig} />}
+      {tab === "referrals"  && (
+        <ReferralsTab
+          codes={overview.referralCodes}
+          referrals={overview.referrals}
+          staff={overview.staff}
+          payoutConfig={payoutConfig}
+        />
+      )}
     </div>
   );
 }

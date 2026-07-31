@@ -29,14 +29,33 @@ const KIND_RANK: Record<Escalation["kind"], number> = {
   glucose_routine: 3,
 };
 
-/** Open escalations visible to the current staff member (RLS scopes to pod). */
+/** Open escalations visible to the current staff member (RLS scopes to pod).
+ *  Doctors and admins see all open escalations for their pod patients.
+ *  Nutritionists and coaches see only escalations assigned to them (ai_routed). */
 export async function getOpenEscalations(): Promise<Escalation[]> {
   const supabase = createServerSupabase();
-  const { data } = await supabase
+  const { data: { user } } = await supabase.auth.getUser();
+  const uid = user?.id;
+
+  // Determine role to decide scope.
+  let role: string | null = null;
+  if (uid) {
+    const { data: prof } = await supabase.from("profiles").select("role").eq("id", uid).maybeSingle();
+    role = prof?.role ?? null;
+  }
+
+  let query = supabase
     .from("escalations")
     .select("id, patient_id, kind, payload, status, created_at, profiles:patient_id(full_name)")
     .neq("status", "resolved")
     .order("created_at", { ascending: false });
+
+  // Non-doctors only see their own assigned escalations.
+  if (uid && role && !["doctor", "admin"].includes(role)) {
+    query = query.eq("assigned_to", uid);
+  }
+
+  const { data } = await query;
 
   const rows = (data ?? []).map((e) => ({
     id: e.id as string,
@@ -187,6 +206,16 @@ export type MovementPlan = {
   notes: string | null;
 };
 
+export type MedicalHistoryRow = {
+  diabetes_type: string | null;
+  diagnosis_year: number | null;
+  allergies: string[];
+  comorbidities: string[];
+  pre_existing_meds: { name: string; dose?: string; frequency?: string }[];
+  family_history: string | null;
+  notes: string | null;
+};
+
 export type PatientDetail = {
   id: string;
   name: string | null;
@@ -197,12 +226,13 @@ export type PatientDetail = {
   currentMealPlan: MealPlan | null;
   currentMovementPlan: MovementPlan | null;
   bookings: { id: string; slot_time: string; reason: string | null; status: string; context_snapshot: Record<string, unknown> | null }[];
+  medicalHistory: MedicalHistoryRow | null;
 };
 
 /** Full timeline for one patient. RLS returns nothing if not in the doctor's pod. */
 export async function getPatientDetail(patientId: string): Promise<PatientDetail | null> {
   const supabase = createServerSupabase();
-  const [{ data: prof }, { data: readings }, { data: meals }, { data: esc }, { data: plan }, { data: mealPlan }, { data: movementPlan }, { data: bookings }] =
+  const [{ data: prof }, { data: readings }, { data: meals }, { data: esc }, { data: plan }, { data: mealPlan }, { data: movementPlan }, { data: bookings }, { data: mh }] =
     await Promise.all([
       supabase.from("profiles").select("id, full_name").eq("id", patientId).maybeSingle(),
       supabase.from("glucose_readings").select("id, value_mgdl, context, flag, taken_at").eq("patient_id", patientId).order("taken_at", { ascending: false }).limit(30),
@@ -212,6 +242,7 @@ export async function getPatientDetail(patientId: string): Promise<PatientDetail
       supabase.from("meal_plans").select("id, meals, effective_from, notes").eq("patient_id", patientId).order("effective_from", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("movement_plans").select("id, exercises, effective_from, notes").eq("patient_id", patientId).order("effective_from", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("consult_bookings").select("id, slot_time, reason, status, context_snapshot").eq("patient_id", patientId).order("created_at", { ascending: false }).limit(10),
+      supabase.from("medical_history").select("diabetes_type,diagnosis_year,allergies,comorbidities,pre_existing_meds,family_history,notes").eq("patient_id", patientId).maybeSingle(),
     ]);
 
   if (!prof) return null; // not visible under RLS or does not exist
@@ -225,6 +256,15 @@ export async function getPatientDetail(patientId: string): Promise<PatientDetail
     currentMealPlan: (mealPlan as MealPlan) ?? null,
     currentMovementPlan: (movementPlan as MovementPlan) ?? null,
     bookings: (bookings ?? []) as PatientDetail["bookings"],
+    medicalHistory: mh ? {
+      diabetes_type: (mh as MedicalHistoryRow).diabetes_type ?? null,
+      diagnosis_year: (mh as MedicalHistoryRow).diagnosis_year ?? null,
+      allergies: (mh as MedicalHistoryRow).allergies ?? [],
+      comorbidities: (mh as MedicalHistoryRow).comorbidities ?? [],
+      pre_existing_meds: ((mh as MedicalHistoryRow).pre_existing_meds as MedicalHistoryRow["pre_existing_meds"]) ?? [],
+      family_history: (mh as MedicalHistoryRow).family_history ?? null,
+      notes: (mh as MedicalHistoryRow).notes ?? null,
+    } : null,
   };
 }
 
@@ -308,6 +348,205 @@ export async function getCoachAnalytics(): Promise<CoachAnalytics> {
   };
 }
 
+// ─── Prescription + outcome rows ─────────────────────────────────────────────
+
+export type DoctorPatientRow = {
+  id: string;
+  name: string | null;
+  plan: { medications: Medication[]; effective_from: string } | null;
+  avgFasting30d: number | null;
+  fastingTrendPct: number | null; // negative = improving
+  estHba1c: number | null;
+  flags30d: number;
+  openEscalations: number;
+};
+
+export type NutritionistPatientRow = {
+  id: string;
+  name: string | null;
+  plan: { meals: MealItem[]; effective_from: string; notes: string | null } | null;
+  avgPostMeal30d: number | null;
+  weightChange30d: number | null; // kg, negative = lost
+  mealAdherence7d: number | null; // %
+};
+
+export type CoachPatientOutcomeRow = {
+  id: string;
+  name: string | null;
+  plan: { exercises: MovementExercise[]; effective_from: string } | null;
+  movementDone7d: number;
+  movementTotal7d: number;
+  movementPct7d: number;
+  streak: number;
+  points: number;
+};
+
+export async function getDoctorPrescriptionOutcomes(): Promise<DoctorPatientRow[]> {
+  const supabase = createServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const ids = await myPatientIds(supabase, user.id);
+  if (!ids.length) return [];
+
+  const thirtyAgo = new Date(Date.now() - 30 * 864e5).toISOString();
+  const fifteenAgo = new Date(Date.now() - 15 * 864e5).toISOString();
+
+  const [{ data: profiles }, { data: plans }, { data: readings }, { data: escalations }] =
+    await Promise.all([
+      supabase.from("profiles").select("id, full_name").in("id", ids),
+      supabase.from("medication_plans").select("patient_id, medications, effective_from").in("patient_id", ids).order("effective_from", { ascending: false }),
+      supabase.from("glucose_readings").select("patient_id, value_mgdl, flag, taken_at").in("patient_id", ids).eq("context", "fasting").gte("taken_at", thirtyAgo),
+      supabase.from("escalations").select("patient_id, kind, status").in("patient_id", ids).neq("status", "resolved"),
+    ]);
+
+  const nameOf = new Map((profiles ?? []).map((p) => [p.id as string, p.full_name as string | null]));
+  const planOf = new Map<string, { medications: Medication[]; effective_from: string }>();
+  for (const p of (plans ?? [])) {
+    if (!planOf.has(p.patient_id as string))
+      planOf.set(p.patient_id as string, { medications: p.medications as Medication[], effective_from: p.effective_from as string });
+  }
+  const readingMap = new Map<string, { value: number; takenAt: string; flag: string }[]>();
+  for (const r of (readings ?? [])) {
+    const arr = readingMap.get(r.patient_id as string) ?? [];
+    arr.push({ value: r.value_mgdl as number, takenAt: r.taken_at as string, flag: r.flag as string });
+    readingMap.set(r.patient_id as string, arr);
+  }
+  const escMap = new Map<string, number>();
+  for (const e of (escalations ?? [])) escMap.set(e.patient_id as string, (escMap.get(e.patient_id as string) ?? 0) + 1);
+
+  const avg = (arr: number[]) => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
+
+  return ids.map((id) => {
+    const rs = readingMap.get(id) ?? [];
+    const all = rs.map((r) => r.value);
+    const recent = rs.filter((r) => r.takenAt >= fifteenAgo).map((r) => r.value);
+    const earlier = rs.filter((r) => r.takenAt < fifteenAgo).map((r) => r.value);
+    const avg30 = avg(all);
+    const avgR = avg(recent); const avgE = avg(earlier);
+    const trendPct = avgR != null && avgE != null && avgE > 0 ? Math.round(((avgR - avgE) / avgE) * 100) : null;
+    return {
+      id, name: nameOf.get(id) ?? null,
+      plan: planOf.get(id) ?? null,
+      avgFasting30d: avg30,
+      fastingTrendPct: trendPct,
+      estHba1c: avg30 != null ? Math.round(((avg30 + 46.7) / 28.7) * 10) / 10 : null,
+      flags30d: rs.filter((r) => r.flag !== "none").length,
+      openEscalations: escMap.get(id) ?? 0,
+    };
+  });
+}
+
+export async function getNutritionistPlanOutcomes(): Promise<NutritionistPatientRow[]> {
+  const supabase = createServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const ids = await myPatientIds(supabase, user.id);
+  if (!ids.length) return [];
+
+  const thirtyAgo = new Date(Date.now() - 30 * 864e5).toISOString();
+  const sevenAgo = new Date(Date.now() - 7 * 864e5).toISOString();
+
+  const [{ data: profiles }, { data: plans }, { data: readings }, { data: weighIns }, { data: tasks }] =
+    await Promise.all([
+      supabase.from("profiles").select("id, full_name").in("id", ids),
+      supabase.from("meal_plans").select("patient_id, meals, effective_from, notes").in("patient_id", ids).order("effective_from", { ascending: false }),
+      supabase.from("glucose_readings").select("patient_id, value_mgdl").in("patient_id", ids).in("context", ["post_meal", "pre_meal"]).gte("taken_at", thirtyAgo),
+      supabase.from("weigh_ins").select("patient_id, weight_kg, taken_at").in("patient_id", ids).gte("taken_at", thirtyAgo).order("taken_at"),
+      supabase.from("tasks").select("patient_id, done_at").in("patient_id", ids).eq("kind", "meal").gte("for_date", sevenAgo.slice(0, 10)),
+    ]);
+
+  const nameOf = new Map((profiles ?? []).map((p) => [p.id as string, p.full_name as string | null]));
+  const planOf = new Map<string, { meals: MealItem[]; effective_from: string; notes: string | null }>();
+  for (const p of (plans ?? [])) {
+    if (!planOf.has(p.patient_id as string))
+      planOf.set(p.patient_id as string, { meals: p.meals as MealItem[], effective_from: p.effective_from as string, notes: p.notes as string | null });
+  }
+  const postMealMap = new Map<string, number[]>();
+  for (const r of (readings ?? [])) {
+    const arr = postMealMap.get(r.patient_id as string) ?? [];
+    arr.push(r.value_mgdl as number);
+    postMealMap.set(r.patient_id as string, arr);
+  }
+  const weightMap = new Map<string, number[]>();
+  for (const w of (weighIns ?? [])) {
+    const arr = weightMap.get(w.patient_id as string) ?? [];
+    arr.push(w.weight_kg as number);
+    weightMap.set(w.patient_id as string, arr);
+  }
+  const taskMap = new Map<string, { done: number; total: number }>();
+  for (const t of (tasks ?? [])) {
+    const cur = taskMap.get(t.patient_id as string) ?? { done: 0, total: 0 };
+    cur.total += 1; if (t.done_at) cur.done += 1;
+    taskMap.set(t.patient_id as string, cur);
+  }
+
+  const avg = (arr: number[]) => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
+
+  return ids.map((id) => {
+    const pm = postMealMap.get(id) ?? [];
+    const wt = weightMap.get(id) ?? [];
+    const tk = taskMap.get(id);
+    const weightChange = wt.length >= 2 ? Math.round((wt[wt.length - 1] - wt[0]) * 10) / 10 : null;
+    return {
+      id, name: nameOf.get(id) ?? null,
+      plan: planOf.get(id) ?? null,
+      avgPostMeal30d: avg(pm),
+      weightChange30d: weightChange,
+      mealAdherence7d: tk?.total ? Math.round((tk.done / tk.total) * 100) : null,
+    };
+  });
+}
+
+export async function getCoachPlanOutcomes(): Promise<CoachPatientOutcomeRow[]> {
+  const supabase = createServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const ids = await myPatientIds(supabase, user.id);
+  if (!ids.length) return [];
+
+  const sevenAgo = new Date(Date.now() - 7 * 864e5).toISOString();
+
+  const [{ data: profiles }, { data: plans }, { data: tasks }, { data: ledger }] =
+    await Promise.all([
+      supabase.from("profiles").select("id, full_name").in("id", ids),
+      supabase.from("movement_plans").select("patient_id, exercises, effective_from").in("patient_id", ids).order("effective_from", { ascending: false }),
+      supabase.from("tasks").select("patient_id, done_at").in("patient_id", ids).in("kind", ["walk", "yoga_live"]).gte("for_date", sevenAgo.slice(0, 10)),
+      supabase.from("points_ledger").select("patient_id, streak_day, points").in("patient_id", ids).order("created_at", { ascending: false }),
+    ]);
+
+  const nameOf = new Map((profiles ?? []).map((p) => [p.id as string, p.full_name as string | null]));
+  const planOf = new Map<string, { exercises: MovementExercise[]; effective_from: string }>();
+  for (const p of (plans ?? [])) {
+    if (!planOf.has(p.patient_id as string))
+      planOf.set(p.patient_id as string, { exercises: p.exercises as MovementExercise[], effective_from: p.effective_from as string });
+  }
+  const taskMap = new Map<string, { done: number; total: number }>();
+  for (const t of (tasks ?? [])) {
+    const cur = taskMap.get(t.patient_id as string) ?? { done: 0, total: 0 };
+    cur.total += 1; if (t.done_at) cur.done += 1;
+    taskMap.set(t.patient_id as string, cur);
+  }
+  const streakOf = new Map<string, number>();
+  const pointsOf = new Map<string, number>();
+  for (const l of (ledger ?? [])) {
+    const pid = l.patient_id as string;
+    if (!streakOf.has(pid)) streakOf.set(pid, (l.streak_day as number) ?? 0);
+    pointsOf.set(pid, (pointsOf.get(pid) ?? 0) + ((l.points as number) ?? 0));
+  }
+
+  return ids.map((id) => {
+    const t = taskMap.get(id) ?? { done: 0, total: 0 };
+    return {
+      id, name: nameOf.get(id) ?? null,
+      plan: planOf.get(id) ?? null,
+      movementDone7d: t.done, movementTotal7d: t.total,
+      movementPct7d: t.total ? Math.round((t.done / t.total) * 100) : 0,
+      streak: streakOf.get(id) ?? 0,
+      points: pointsOf.get(id) ?? 0,
+    };
+  }).sort((a, b) => b.movementPct7d - a.movementPct7d || b.streak - a.streak);
+}
+
 /** Flagged glucose readings for the doctor's patients (RLS scoped). */
 export async function getFlaggedReadings(): Promise<FlaggedReading[]> {
   const supabase = createServerSupabase();
@@ -328,4 +567,77 @@ export async function getFlaggedReadings(): Promise<FlaggedReading[]> {
     patient_name:
       (r as unknown as { profiles?: { full_name?: string } }).profiles?.full_name ?? null,
   }));
+}
+
+export type PatientReviewRow = {
+  id: string;
+  name: string | null;
+  existingReview: { status: string; note: string | null } | null;
+};
+
+/** Patients in the current staff member's pods, with their review status for `weekStart`. */
+export async function getWeeklyReviewData(weekStart: string): Promise<PatientReviewRow[]> {
+  const supabase = createServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const ids = await myPatientIds(supabase, user.id);
+  if (!ids.length) return [];
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, full_name")
+    .in("id", ids)
+    .order("full_name");
+
+  const { data: reviews } = await supabase
+    .from("patient_reviews")
+    .select("patient_id, status, note")
+    .in("patient_id", ids)
+    .eq("reviewed_by", user.id)
+    .eq("week_start", weekStart);
+
+  const reviewMap = new Map((reviews ?? []).map((r) => [r.patient_id as string, { status: r.status as string, note: (r.note as string | null) ?? null }]));
+
+  return (profiles ?? []).map((p) => ({
+    id: p.id as string,
+    name: (p.full_name as string | null) ?? null,
+    existingReview: reviewMap.get(p.id as string) ?? null,
+  }));
+}
+
+/** Returns the current staff member's own referral code + summary stats, or null if none assigned. */
+export async function getMyReferralCode(): Promise<{
+  code: string;
+  referral_count: number;
+  pending_pkr: number;
+  paid_pkr: number;
+} | null> {
+  const supabase = createServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: rc } = await supabase
+    .from("referral_codes")
+    .select("code")
+    .eq("referrer_id", user.id)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (!rc) return null;
+
+  const { data: refs } = await supabase
+    .from("referrals")
+    .select("payout_pkr, payout_status")
+    .eq("code", rc.code as string);
+
+  const pending = (refs ?? []).filter((r) => r.payout_status === "pending");
+  const paid = (refs ?? []).filter((r) => r.payout_status === "paid");
+
+  return {
+    code: rc.code as string,
+    referral_count: (refs ?? []).length,
+    pending_pkr: pending.reduce((s, r) => s + ((r.payout_pkr as number) ?? 0), 0),
+    paid_pkr: paid.reduce((s, r) => s + ((r.payout_pkr as number) ?? 0), 0),
+  };
 }

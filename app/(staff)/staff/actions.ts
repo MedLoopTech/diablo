@@ -18,6 +18,44 @@ export async function updateEscalationStatus(
   return { ok: true };
 }
 
+export async function markGlucoseReviewed(
+  readingId: string,
+  note: string
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = createServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Unauthorized." };
+
+  const { error } = await supabase
+    .from("glucose_readings")
+    .update({ doctor_note: note.trim() || null, reviewed_at: new Date().toISOString(), reviewed_by: user.id })
+    .eq("id", readingId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/staff");
+  return { ok: true };
+}
+
+export async function savePatientReview(
+  patientId: string,
+  weekStart: string,
+  note: string,
+  status: "reviewed" | "needs_followup" | "escalated"
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = createServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Unauthorized." };
+
+  const { error } = await supabase
+    .from("patient_reviews")
+    .upsert(
+      { patient_id: patientId, reviewed_by: user.id, week_start: weekStart, note: note.trim() || null, status },
+      { onConflict: "patient_id,reviewed_by,week_start" }
+    );
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/staff/weekly-review");
+  return { ok: true };
+}
+
 export async function replyToPatient(
   patientId: string,
   message: string

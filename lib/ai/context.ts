@@ -15,7 +15,7 @@ export async function getChatContext(
   ).toISOString();
 
   // TODO: cache via React cache() or Redis (30 msg/day limit makes this acceptable for v1)
-  const [{ data: readings }, { data: plan }, { data: mealPlan }, { data: cohortDay }] =
+  const [{ data: readings }, { data: plan }, { data: mealPlan }, { data: cohortDay }, { data: mh }] =
     await Promise.all([
       supabase
         .from("glucose_readings")
@@ -38,6 +38,11 @@ export async function getChatContext(
         .limit(1)
         .maybeSingle(),
       supabase.rpc("sehat_cohort_day", { p: userId }),
+      supabase
+        .from("medical_history")
+        .select("diabetes_type,diagnosis_year,allergies,comorbidities")
+        .eq("patient_id", userId)
+        .maybeSingle(),
     ]);
 
   let recentReadingsSummary: string | undefined;
@@ -64,11 +69,21 @@ export async function getChatContext(
     : [];
   const mealPlanSummary = mealItems.length ? mealItems.join("; ") : undefined;
 
+  const mhRow = mh as { diabetes_type?: string; diagnosis_year?: number; allergies?: string[]; comorbidities?: string[] } | null;
+  const medParts = [
+    mhRow?.diabetes_type ? `Type: ${mhRow.diabetes_type}` : null,
+    mhRow?.diagnosis_year ? `Diagnosed: ${mhRow.diagnosis_year}` : null,
+    mhRow?.allergies?.length ? `Allergies: ${mhRow.allergies.join(", ")}` : null,
+    mhRow?.comorbidities?.length ? `Comorbidities: ${mhRow.comorbidities.join(", ")}` : null,
+  ].filter(Boolean);
+  const medicalContext = medParts.length ? medParts.join("; ") : undefined;
+
   return {
     cohortDay: (cohortDay as number) ?? undefined,
     recentReadingsSummary,
     activeMedications,
     mealPlanSummary,
+    medicalContext,
   };
 }
 

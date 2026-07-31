@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { getCurrentProfile } from "@/lib/profile";
-import { getOpenEscalations, getFlaggedReadings, getStaffAnalytics, getCoachAnalytics } from "@/lib/staff";
+import { getOpenEscalations, getFlaggedReadings, getStaffAnalytics, getCoachAnalytics, getMyReferralCode } from "@/lib/staff";
 import { EscalationQueue } from "./EscalationQueue";
 import { CohortTrendChart } from "@/components/CohortTrendChart";
 import { FlaggedByPatient } from "@/components/FlaggedByPatient";
@@ -81,10 +81,11 @@ export default async function StaffHome() {
     return <CoachDashboard firstName={firstName} />;
   }
 
-  const [a, escalations, flagged] = await Promise.all([
+  const [a, escalations, flagged, myCode] = await Promise.all([
     getStaffAnalytics(),
     getOpenEscalations(),
     getFlaggedReadings(),
+    getMyReferralCode(),
   ]);
 
   return (
@@ -139,7 +140,14 @@ export default async function StaffHome() {
         </section>
 
         <section>
-          <h2 className="eyebrow mb-3">Action queue</h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="eyebrow">Action queue</h2>
+            {escalations.length > 8 && (
+              <Link href="/staff/escalations" className="font-body text-[12px] text-primary hover:underline">
+                View all {escalations.length} →
+              </Link>
+            )}
+          </div>
           <EscalationQueue escalations={escalations.slice(0, 8)} />
         </section>
       </div>
@@ -149,6 +157,33 @@ export default async function StaffHome() {
         <h2 className="eyebrow mb-3">Flagged readings by patient</h2>
         <FlaggedByPatient flagged={flagged} />
       </section>
+
+      {/* Referral code widget — only shown if admin has assigned a code */}
+      {myCode && (
+        <section>
+          <h2 className="eyebrow mb-3">Your referral code</h2>
+          <div className="rounded-card border border-line bg-card p-5">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <div className="font-body text-[11px] uppercase tracking-wider text-ink-soft">Share this code with patients</div>
+                <div className="mt-1 font-mono text-[22px] font-bold tracking-widest text-primary">{myCode.code}</div>
+                <div className="mt-1.5 font-body text-[12px] text-ink-soft">
+                  {myCode.referral_count} patient{myCode.referral_count !== 1 ? "s" : ""} referred ·{" "}
+                  {myCode.pending_pkr > 0
+                    ? <span className="font-semibold text-amber-600">PKR {myCode.pending_pkr.toLocaleString()} pending</span>
+                    : "no pending payout"}{" "}
+                  · PKR {myCode.paid_pkr.toLocaleString()} paid
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5 text-[12px] text-ink-soft">
+                <div className="font-semibold text-ink">Earn PKR 2,000 per patient</div>
+                <div>Share via WhatsApp or SMS.</div>
+                <div>Payouts every Friday.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

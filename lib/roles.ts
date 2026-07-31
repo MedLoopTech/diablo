@@ -7,5 +7,6 @@ export function isStaffRole(role: string | null | undefined): boolean {
 }
 
 export function homePathForRole(role: string | null | undefined): string {
+  if (role === "admin") return "/staff/performance";
   return isStaffRole(role) ? "/staff" : "/today";
 }

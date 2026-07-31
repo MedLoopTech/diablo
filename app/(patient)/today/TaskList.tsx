@@ -3,6 +3,8 @@
 import { useState, useTransition, useRef } from "react";
 import { Card, Pill } from "@/components/ui";
 import type { Task } from "@/lib/types";
+import type { PatientMealPlan } from "@/lib/care";
+import type { MovementPlan } from "@/lib/staff";
 import { toggleTask } from "../actions";
 
 const KIND_ICON: Record<string, string> = {
@@ -13,7 +15,17 @@ const KIND_ICON: Record<string, string> = {
   custom: "📋",
 };
 
-export function TaskList({ tasks }: { tasks: Task[] }) {
+const EX_ICON: Record<string, string> = { cardio: "🚶", yoga: "🧘", strength: "💪", breathing: "🌬️" };
+
+export function TaskList({
+  tasks,
+  mealPlan,
+  movementPlan,
+}: {
+  tasks: Task[];
+  mealPlan?: PatientMealPlan | null;
+  movementPlan?: MovementPlan | null;
+}) {
   const [rows, setRows] = useState<Task[]>(tasks);
   const [, startTransition] = useTransition();
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -159,6 +171,48 @@ export function TaskList({ tasks }: { tasks: Task[] }) {
                       {task.photo_prompt}
                     </span>
                   )}
+
+                  {/* Inline meal plan detail */}
+                  {task.kind === "meal" && mealPlan?.meals?.length ? (
+                    <ul className="mt-1.5 flex flex-col gap-0.5">
+                      {mealPlan.meals.map((m, i) => (
+                        <li key={i} className="font-body text-[11.5px] text-ink-soft">
+                          <span className="font-semibold capitalize text-ink">{m.meal}:</span>{" "}
+                          {m.description}
+                          {m.carb_target_g ? (
+                            <span className="ml-1 text-[10.5px] text-ink-soft/70">({m.carb_target_g}g carbs)</span>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+
+                  {/* Inline movement plan detail */}
+                  {(task.kind === "walk" || task.kind === "yoga_live") && movementPlan?.exercises?.length ? (() => {
+                    const relevant = movementPlan.exercises.filter((ex) =>
+                      task.kind === "yoga_live" ? ex.category === "yoga" || ex.category === "breathing" : ex.category === "cardio" || ex.category === "strength"
+                    );
+                    const show = relevant.length ? relevant : movementPlan.exercises;
+                    return (
+                      <ul className="mt-1.5 flex flex-col gap-0.5">
+                        {show.map((ex, i) => (
+                          <li key={i} className="font-body text-[11.5px] text-ink-soft">
+                            <span className="mr-1">{EX_ICON[ex.category] ?? "⚡"}</span>
+                            <span className="font-semibold text-ink">{ex.name}</span>
+                            {[
+                              ex.duration_min ? `${ex.duration_min} min` : null,
+                              ex.sets && ex.reps ? `${ex.sets}×${ex.reps}` : ex.sets ? `${ex.sets} sets` : null,
+                            ].filter(Boolean).length ? (
+                              <span className="ml-1 text-[10.5px]">
+                                ({[ex.duration_min ? `${ex.duration_min} min` : null, ex.sets && ex.reps ? `${ex.sets}×${ex.reps}` : ex.sets ? `${ex.sets} sets` : null].filter(Boolean).join(", ")})
+                              </span>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  })() : null}
+
                   {errMsg && (
                     <span className="mt-0.5 block font-body text-[11px] text-red-500">
                       {errMsg}

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
+import { randomBytes } from "crypto";
 
 async function requireAdmin() {
   const supabase = createServerSupabase();
@@ -212,6 +213,82 @@ export async function inviteStaff(
     .update({ role, full_name: name.trim() })
     .eq("id", data.user.id);
 
+  revalidatePath("/staff/admin");
+  return { ok: true };
+}
+
+// ─── Referral actions ─────────────────────────────────────────────────────────
+
+function genCode(prefix: string): string {
+  const suffix = randomBytes(3).toString("hex").toUpperCase();
+  return `${prefix.toUpperCase().replace(/[^A-Z0-9]/g, "-").slice(0, 12)}-${suffix}`;
+}
+
+export async function createReferralCode(
+  referrerIdOrNull: string | null,
+  partnerName: string | null,
+  partnerContact: string | null,
+  notes: string | null,
+  paymentMethod: string | null,
+  accountTitle: string | null,
+  accountNumber: string | null,
+): Promise<{ ok: boolean; code?: string; error?: string }> {
+  const { supabase, ok } = await requireAdmin();
+  if (!ok) return { ok: false, error: "Admins only." };
+
+  const prefix = partnerName ?? "PARTNER";
+  const code = genCode(prefix);
+
+  const { error } = await supabase.from("referral_codes").insert({
+    code,
+    referrer_id: referrerIdOrNull,
+    partner_name: partnerName,
+    partner_contact: partnerContact,
+    notes,
+    payment_method: paymentMethod || null,
+    account_title: accountTitle || null,
+    account_number: accountNumber || null,
+  });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/staff/admin");
+  return { ok: true, code };
+}
+
+export async function saveReferralCodePayment(
+  id: string,
+  paymentMethod: string | null,
+  accountTitle: string | null,
+  accountNumber: string | null,
+): Promise<{ ok: boolean; error?: string }> {
+  const { supabase, ok } = await requireAdmin();
+  if (!ok) return { ok: false, error: "Admins only." };
+  const { error } = await supabase
+    .from("referral_codes")
+    .update({ payment_method: paymentMethod || null, account_title: accountTitle || null, account_number: accountNumber || null })
+    .eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/staff/admin");
+  return { ok: true };
+}
+
+export async function toggleReferralCode(id: string, isActive: boolean): Promise<{ ok: boolean; error?: string }> {
+  const { supabase, ok } = await requireAdmin();
+  if (!ok) return { ok: false, error: "Admins only." };
+  const { error } = await supabase.from("referral_codes").update({ is_active: isActive }).eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/staff/admin");
+  return { ok: true };
+}
+
+export async function markReferralsPaid(ids: string[]): Promise<{ ok: boolean; error?: string }> {
+  const { supabase, ok } = await requireAdmin();
+  if (!ok) return { ok: false, error: "Admins only." };
+  const { error } = await supabase
+    .from("referrals")
+    .update({ payout_status: "paid", paid_at: new Date().toISOString() })
+    .in("id", ids);
+  if (error) return { ok: false, error: error.message };
   revalidatePath("/staff/admin");
   return { ok: true };
 }

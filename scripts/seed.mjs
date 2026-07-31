@@ -50,7 +50,7 @@ async function ensureUser(email, role, name) {
   const { data: list } = await admin.auth.admin.listUsers();
   let u = list.users.find((x) => x.email === email);
   if (!u) u = (await admin.auth.admin.createUser({ email, email_confirm: true })).data.user;
-  await admin.from("profiles").update({ role, full_name: name }).eq("id", u.id);
+  await admin.from("profiles").update({ role, full_name: name, onboarding_complete: true }).eq("id", u.id);
   return u;
 }
 
@@ -60,6 +60,9 @@ async function clearSeed() {
     if (u.email?.endsWith("@sehat90.app")) await admin.auth.admin.deleteUser(u.id); // cascades most rows
   }
   await admin.from("cohorts").delete().eq("name", COHORT_NAME);
+  // referral_codes with no referrer_id (external partners) don't cascade on user delete
+  await admin.from("referrals").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  await admin.from("referral_codes").delete().neq("id", "00000000-0000-0000-0000-000000000000");
 }
 
 async function seed() {
@@ -175,25 +178,140 @@ async function seed() {
   const { data: todays } = await admin.from("tasks").select("id").eq("patient_id", lead.user.id).eq("for_date", dateOnly(0)).limit(2);
   for (const t of todays ?? []) await admin.from("tasks").update({ done_at: dayISO(0, 9) }).eq("id", t.id);
 
-  // A doctor-authored medication plan for the lead patient (fires audit trigger).
-  await admin.from("medication_plans").insert({
-    patient_id: lead.user.id, created_by: staff.doctor.id,
-    medications: [{ name: "Metformin", dose: "1000mg", schedule: "twice daily with meals" }],
-    effective_from: dateOnly(20), notes: "Day-45 review scheduled.",
-  });
+  // Medication plans — doctor authors for patients who need it
+  await admin.from("medication_plans").insert([
+    {
+      patient_id: lead.user.id, created_by: staff.doctor.id,
+      medications: [{ name: "Metformin", dose: "1000mg", schedule: "twice daily with meals" }],
+      effective_from: dateOnly(20), notes: "Day-45 review scheduled.",
+    },
+    {
+      patient_id: patients[1].user.id, created_by: staff.doctor.id,
+      medications: [{ name: "Metformin", dose: "500mg", schedule: "once daily with dinner" }],
+      effective_from: dateOnly(15), notes: "Half dose — titrating up at day 45 review.",
+    },
+  ]);
 
-  // A nutritionist-authored meal plan for the lead patient (fires audit trigger).
-  await admin.from("meal_plans").insert({
-    patient_id: lead.user.id, created_by: staff.nutritionist.id,
-    meals: [
-      { meal: "breakfast", description: "2 egg omelette + 1 whole-wheat roti + tea (no sugar)", carb_target_g: 25 },
-      { meal: "lunch", description: "Chicken/daal + 1 roti + big salad + yoghurt", carb_target_g: 40 },
-      { meal: "dinner", description: "Sabzi + 1 roti or half-cup brown rice + salad", carb_target_g: 35 },
-      { meal: "snack", description: "Handful of nuts or an apple", carb_target_g: 15 },
-    ],
-    effective_from: dateOnly(18),
-    notes: "Keep rice to post-walk days. Water before every meal. Aim ~115g carbs/day.",
-  });
+  // Meal plans — nutritionist authors for all patients
+  const MEAL_PLANS = [
+    { // Imran — lead
+      meals: [
+        { meal: "breakfast", description: "2 egg omelette + 1 whole-wheat roti + tea (no sugar)", carb_target_g: 25 },
+        { meal: "lunch", description: "Chicken/daal + 1 roti + big salad + yoghurt", carb_target_g: 40 },
+        { meal: "dinner", description: "Sabzi + 1 roti or half-cup brown rice + salad", carb_target_g: 35 },
+        { meal: "snack", description: "Handful of nuts or an apple", carb_target_g: 15 },
+      ],
+      notes: "Keep rice to post-walk days. Water before every meal. Aim ~115g carbs/day.",
+    },
+    { // Nadia
+      meals: [
+        { meal: "breakfast", description: "Boiled eggs + cucumber + green tea", carb_target_g: 10 },
+        { meal: "lunch", description: "Grilled chicken + daal + salad, no roti", carb_target_g: 30 },
+        { meal: "dinner", description: "Fish or chicken + sabzi + half roti", carb_target_g: 30 },
+        { meal: "snack", description: "Yoghurt (plain, no sugar) or almonds", carb_target_g: 10 },
+      ],
+      notes: "Lower carb target — Nadia tolerates this well. Re-evaluate at week 6.",
+    },
+    { // Bilal
+      meals: [
+        { meal: "breakfast", description: "Paratha (1 small, tawa not deep fried) + omelette + lassi (unsweetened)", carb_target_g: 30 },
+        { meal: "lunch", description: "Dal chawal (half cup rice) + salad", carb_target_g: 45 },
+        { meal: "dinner", description: "Karahi chicken + 1 roti + salad", carb_target_g: 35 },
+        { meal: "snack", description: "Fruit (banana avoided) or mixed nuts", carb_target_g: 15 },
+      ],
+      notes: "Bilal has high stress — meals timed to avoid 3pm cortisol spike.",
+    },
+    { // Hina
+      meals: [
+        { meal: "breakfast", description: "Dalia (oats porridge, no sugar) + boiled egg", carb_target_g: 25 },
+        { meal: "lunch", description: "Lentil soup + 1 roti + salad", carb_target_g: 35 },
+        { meal: "dinner", description: "Sabzi + 1 roti + yoghurt raita", carb_target_g: 30 },
+        { meal: "snack", description: "Apple or pear + 10 almonds", carb_target_g: 15 },
+      ],
+      notes: "Vegetarian days encouraged Mon/Wed/Fri. Good compliance — keep plan stable.",
+    },
+    { // Usman
+      meals: [
+        { meal: "breakfast", description: "2 fried eggs (in olive oil) + 1 toast + tea", carb_target_g: 20 },
+        { meal: "lunch", description: "Chicken seekh kebab + salad + raita — no naan", carb_target_g: 20 },
+        { meal: "dinner", description: "Fish curry + sabzi + half cup brown rice", carb_target_g: 35 },
+        { meal: "snack", description: "Cheese cube + cucumber", carb_target_g: 5 },
+      ],
+      notes: "Usman is active — slightly higher protein. Avoid refined carbs completely.",
+    },
+    { // Fatima
+      meals: [
+        { meal: "breakfast", description: "Smoothie: spinach + banana (half) + Greek yoghurt + chia seeds", carb_target_g: 25 },
+        { meal: "lunch", description: "Grilled chicken + quinoa (half cup) + roasted veggies", carb_target_g: 35 },
+        { meal: "dinner", description: "Daal + sabzi + 1 roti", carb_target_g: 35 },
+        { meal: "snack", description: "Handful of walnuts or a pear", carb_target_g: 15 },
+      ],
+      notes: "Fatima is doing great. Focus on portion control at dinner.",
+    },
+  ];
+  for (let i = 0; i < patients.length; i++) {
+    await admin.from("meal_plans").insert({
+      patient_id: patients[i].user.id, created_by: staff.nutritionist.id,
+      meals: MEAL_PLANS[i].meals, effective_from: dateOnly(14 + i * 2),
+      notes: MEAL_PLANS[i].notes,
+    });
+  }
+
+  // Movement plans — coach authors for all patients
+  const MOVEMENT_PLANS = [
+    { exercises: [{ name: "Morning walk", duration_min: 30, notes: "Fasted, brisk pace" }, { name: "Post-lunch walk", duration_min: 10, notes: "10 min after eating" }], notes: "Add resistance band on alternate days from week 5." },
+    { exercises: [{ name: "Evening walk", duration_min: 25, notes: "6pm, neighborhood route" }, { name: "Bodyweight squats", sets: 3, reps: 12, notes: "Before dinner" }], notes: "Nadia prefers evenings." },
+    { exercises: [{ name: "Morning jog/walk intervals", duration_min: 20, notes: "2 min jog, 3 min walk" }, { name: "Yoga", duration_min: 20, notes: "YouTube — Yoga with Adriene" }], notes: "Bilal has knee pain — avoid high impact." },
+    { exercises: [{ name: "Zumba or dance", duration_min: 30, notes: "Home, YouTube" }, { name: "Walking", duration_min: 15, notes: "After any main meal" }], notes: "Hina enjoys dance — lean into it for adherence." },
+    { exercises: [{ name: "Gym — weights", duration_min: 45, notes: "Mon/Wed/Fri" }, { name: "HIIT", duration_min: 20, notes: "Tue/Thu" }], notes: "Usman is already active — focus on consistency." },
+    { exercises: [{ name: "Morning walk", duration_min: 20, notes: "7am" }, { name: "Stretching", duration_min: 10, notes: "Before bed" }], notes: "Start gentle — Fatima is new to structured exercise." },
+  ];
+  for (let i = 0; i < patients.length; i++) {
+    await admin.from("movement_plans").insert({
+      patient_id: patients[i].user.id, created_by: staff.coach.id,
+      exercises: MOVEMENT_PLANS[i].exercises, effective_from: dateOnly(14 + i),
+      notes: MOVEMENT_PLANS[i].notes,
+    });
+  }
+
+  // Medical history for demo patients
+  const MEDICAL_HISTORIES = [
+    { diabetes_type: "type2", diagnosis_year: 2019, allergies: ["Sulfa"], comorbidities: ["Hypertension", "Obesity"], pre_existing_meds: [{ name: "Metformin", dose: "500mg", frequency: "Twice daily" }], family_history: "Father had T2D" },
+    { diabetes_type: "type2", diagnosis_year: 2021, allergies: [], comorbidities: ["Thyroid disorder"], pre_existing_meds: [{ name: "Levothyroxine", dose: "50mcg", frequency: "Daily" }], family_history: null },
+    { diabetes_type: "type2", diagnosis_year: 2018, allergies: ["Penicillin", "NSAIDs"], comorbidities: ["Hypertension", "Heart disease"], pre_existing_meds: [{ name: "Amlodipine", dose: "5mg", frequency: "Daily" }, { name: "Metformin", dose: "1000mg", frequency: "Twice daily" }], family_history: "Mother had hypertension" },
+    { diabetes_type: "prediabetes", diagnosis_year: 2023, allergies: [], comorbidities: ["PCOS", "Obesity"], pre_existing_meds: [], family_history: null },
+    { diabetes_type: "type2", diagnosis_year: 2017, allergies: ["Aspirin"], comorbidities: ["Hypertension", "Kidney disease"], pre_existing_meds: [{ name: "Lisinopril", dose: "10mg", frequency: "Daily" }, { name: "Glipizide", dose: "5mg", frequency: "Once daily" }], family_history: "Father and paternal uncle had T2D" },
+    { diabetes_type: "type2", diagnosis_year: 2022, allergies: [], comorbidities: ["Depression/Anxiety"], pre_existing_meds: [{ name: "Sertraline", dose: "50mg", frequency: "Daily" }], family_history: null },
+  ];
+  for (let i = 0; i < patients.length; i++) {
+    await admin.from("medical_history").upsert({
+      patient_id: patients[i].user.id,
+      ...MEDICAL_HISTORIES[i],
+      updated_by: staff.doctor.id,
+    }, { onConflict: "patient_id" });
+  }
+
+  // A consult window + patient booking so the doctor sees real appointments
+  const tomorrow = dateOnly(-1); // yesterday in seed = recent past
+  const { data: consultWindow } = await admin.from("consult_windows").insert({
+    staff_id: staff.doctor.id, date: dateOnly(1),
+    start_time: "10:00", end_time: "11:00", slot_minutes: 20,
+    meet_url: "https://meet.google.com/demo-consult",
+  }).select("id").single();
+  if (consultWindow) {
+    await admin.from("consult_bookings").insert({
+      window_id: consultWindow.id, patient_id: lead.user.id,
+      slot_time: "10:00", status: "confirmed",
+      reason: "Week 5 check-in — glucose trending up last 3 days",
+      context_snapshot: { readings: 5, meals: 3 },
+    });
+    await admin.from("consult_bookings").insert({
+      window_id: consultWindow.id, patient_id: patients[1].user.id,
+      slot_time: "10:20", status: "confirmed",
+      reason: "Medication dose review",
+      context_snapshot: { readings: 4, meals: 2 },
+    });
+  }
 
   console.log("Resource library…");
   await admin.from("resources").insert([
@@ -268,6 +386,64 @@ async function seed() {
       tags: ["nutrition", "food-labels", "education", "pakistan", "carbs"],
     },
   ]);
+
+  console.log("Referral codes + demo referrals…");
+  // Dr. Ayesha's referral code (staff member, paid via JazzCash)
+  const { data: ayeshaCode } = await admin.from("referral_codes").insert({
+    code: "DR-AYESHA-7A3F2E",
+    referrer_id: staff.doctor.id,
+    partner_name: "Dr. Ayesha Rahman",
+    partner_contact: "+92 300 111 2222",
+    payment_method: "jazzcash",
+    account_title: "Ayesha Rahman",
+    account_number: "03001112222",
+    notes: "Endocrinologist, Aga Khan Hospital Karachi",
+    is_active: true,
+  }).select("code").single();
+
+  // External GP referral code (no system account, paid via Easypaisa)
+  const { data: externalCode } = await admin.from("referral_codes").insert({
+    code: "DR-KHALID-3B9F1C",
+    referrer_id: null,
+    partner_name: "Dr. Khalid Mahmood",
+    partner_contact: "+92 321 555 7890",
+    payment_method: "easypaisa",
+    account_title: "Khalid Mahmood",
+    account_number: "03215557890",
+    notes: "GP, Clifton Clinic — sends 4–6 diabetic patients/month",
+    is_active: true,
+  }).select("code").single();
+
+  if (ayeshaCode && externalCode) {
+    // 3 referrals: 1 paid (Imran referred 30d ago), 2 pending (Nadia 28d ago, Bilal by external 25d ago)
+    await admin.from("referrals").insert([
+      {
+        code: ayeshaCode.code,
+        referrer_id: staff.doctor.id,
+        patient_id: patients[0].user.id,
+        enrolled_at: dayISO(30),
+        payout_pkr: 2000,
+        payout_status: "paid",
+        paid_at: dayISO(23),
+      },
+      {
+        code: ayeshaCode.code,
+        referrer_id: staff.doctor.id,
+        patient_id: patients[1].user.id,
+        enrolled_at: dayISO(28),
+        payout_pkr: 2000,
+        payout_status: "pending",
+      },
+      {
+        code: externalCode.code,
+        referrer_id: null,
+        patient_id: patients[2].user.id,
+        enrolled_at: dayISO(25),
+        payout_pkr: 2000,
+        payout_status: "pending",
+      },
+    ]);
+  }
 
   console.log("\nDone. Demo accounts (all @sehat90.app):");
   for (const s of STAFF) console.log(`  ${s.role.padEnd(12)} ${s.email}  (${s.name})`);

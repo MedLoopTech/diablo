@@ -27,6 +27,36 @@ export type Template = {
 
 export type AppointmentStat = { role: string; label: string; total: number; upcoming: number; completed: number };
 
+export type ReferralCodeRow = {
+  id: string;
+  code: string;
+  referrer_id: string | null;
+  referrer_name: string | null;
+  partner_name: string | null;
+  partner_contact: string | null;
+  payment_method: string | null;
+  account_title: string | null;
+  account_number: string | null;
+  is_active: boolean;
+  notes: string | null;
+  referral_count: number;
+  pending_count: number;
+  pending_pkr: number;
+  paid_count: number;
+  paid_pkr: number;
+};
+
+export type ReferralRow = {
+  id: string;
+  code: string;
+  referrer_name: string | null;
+  patient_name: string | null;
+  enrolled_at: string | null;
+  payout_pkr: number;
+  payout_status: string;
+  paid_at: string | null;
+};
+
 export type AdminOverview = {
   cohorts: AdminCohort[];
   staff: Person[];
@@ -36,12 +66,89 @@ export type AdminOverview = {
   planFlags: PlanFlag[];
   appointmentStats: AppointmentStat[];
   automationConfig: AutomationConfigRow[];
+  referralCodes: ReferralCodeRow[];
+  referrals: ReferralRow[];
 };
+
+export type StaffPerfRow = {
+  id: string;
+  name: string | null;
+  role: string;
+  patientCount: number;
+  consultsCompleted: number;
+  consultsUpcoming: number;
+  referralCount: number;
+  pendingPkr: number;
+  paidPkr: number;
+};
+
+export async function getStaffPerformance(): Promise<{ rows: StaffPerfRow[]; totalPatients: number }> {
+  const supabase = createServerSupabase();
+
+  const [{ data: staff }, { data: pods }, { data: cohortMembers }, { data: bookings }, { data: referrals }, { count: patientCount }] =
+    await Promise.all([
+      supabase.from("profiles").select("id, full_name, role").in("role", ["doctor", "nutritionist", "coach"]),
+      supabase.from("care_pods").select("cohort_id, doctor_id, nutritionist_id, coach_id"),
+      supabase.from("cohort_members").select("cohort_id"),
+      supabase.from("consult_bookings").select("status, slot_time, consult_windows(staff_id)"),
+      supabase.from("referrals").select("referrer_id, payout_pkr, payout_status"),
+      supabase.from("cohort_members").select("patient_id", { count: "exact", head: true }),
+    ]);
+
+  // Patient counts per cohort
+  const cohortSize = new Map<string, number>();
+  for (const m of cohortMembers ?? []) cohortSize.set(m.cohort_id as string, (cohortSize.get(m.cohort_id as string) ?? 0) + 1);
+
+  const patientsByStaff = new Map<string, number>();
+  for (const pod of pods ?? []) {
+    const n = cohortSize.get(pod.cohort_id as string) ?? 0;
+    if (pod.doctor_id) patientsByStaff.set(pod.doctor_id as string, (patientsByStaff.get(pod.doctor_id as string) ?? 0) + n);
+    if (pod.nutritionist_id) patientsByStaff.set(pod.nutritionist_id as string, (patientsByStaff.get(pod.nutritionist_id as string) ?? 0) + n);
+    if (pod.coach_id) patientsByStaff.set(pod.coach_id as string, (patientsByStaff.get(pod.coach_id as string) ?? 0) + n);
+  }
+
+  // Consult counts per staff
+  const now = new Date().toISOString();
+  const completedByStaff = new Map<string, number>();
+  const upcomingByStaff = new Map<string, number>();
+  for (const b of bookings ?? []) {
+    const staffId = (b as unknown as { consult_windows?: { staff_id?: string } }).consult_windows?.staff_id;
+    if (!staffId) continue;
+    if ((b as unknown as { status: string }).status === "completed") completedByStaff.set(staffId, (completedByStaff.get(staffId) ?? 0) + 1);
+    else if ((b as unknown as { slot_time: string }).slot_time > now) upcomingByStaff.set(staffId, (upcomingByStaff.get(staffId) ?? 0) + 1);
+  }
+
+  // Referral stats per staff
+  const refCount = new Map<string, number>();
+  const pendingPkr = new Map<string, number>();
+  const paidPkr = new Map<string, number>();
+  for (const r of referrals ?? []) {
+    const rid = r.referrer_id as string;
+    if (!rid) continue;
+    refCount.set(rid, (refCount.get(rid) ?? 0) + 1);
+    if ((r.payout_status as string) === "paid") paidPkr.set(rid, (paidPkr.get(rid) ?? 0) + ((r.payout_pkr as number) ?? 0));
+    else pendingPkr.set(rid, (pendingPkr.get(rid) ?? 0) + ((r.payout_pkr as number) ?? 0));
+  }
+
+  const rows = (staff ?? []).map((s) => ({
+    id: s.id as string,
+    name: s.full_name as string | null,
+    role: s.role as string,
+    patientCount: patientsByStaff.get(s.id as string) ?? 0,
+    consultsCompleted: completedByStaff.get(s.id as string) ?? 0,
+    consultsUpcoming: upcomingByStaff.get(s.id as string) ?? 0,
+    referralCount: refCount.get(s.id as string) ?? 0,
+    pendingPkr: pendingPkr.get(s.id as string) ?? 0,
+    paidPkr: paidPkr.get(s.id as string) ?? 0,
+  })).sort((a, b) => b.patientCount - a.patientCount);
+
+  return { rows, totalPatients: patientCount ?? 0 };
+}
 
 export async function getAdminOverview(): Promise<AdminOverview> {
   const supabase = createServerSupabase();
 
-  const [{ data: cohorts }, { data: pods }, { data: members }, { data: profiles }, { data: templates }, { data: resources }, { data: planFlagsRaw }, { data: bookingsRaw }, { data: automationRows }] =
+  const [{ data: cohorts }, { data: pods }, { data: members }, { data: profiles }, { data: templates }, { data: resources }, { data: planFlagsRaw }, { data: bookingsRaw }, { data: automationRows }, { data: refCodes }, { data: refRows }] =
     await Promise.all([
       supabase.from("cohorts").select("id, name, start_date, status").order("start_date", { ascending: false }),
       supabase.from("care_pods").select("cohort_id, doctor_id, nutritionist_id, coach_id"),
@@ -52,6 +159,8 @@ export async function getAdminOverview(): Promise<AdminOverview> {
       supabase.from("plan_feature_flags").select("plan, feature_key, label, enabled, sort_order").order("sort_order").order("plan"),
       supabase.from("consult_bookings").select("status, consult_windows(staff_id, profiles:staff_id(role))"),
       supabase.from("automation_config").select("key, value, label, description, group_name, sort_order, updated_at").order("group_name").order("sort_order"),
+      supabase.from("referral_codes").select("id, code, referrer_id, partner_name, partner_contact, payment_method, account_title, account_number, is_active, notes").order("created_at", { ascending: false }),
+      supabase.from("referrals").select("id, code, referrer_id, patient_id, enrolled_at, payout_pkr, payout_status, paid_at").order("enrolled_at", { ascending: false }),
     ]);
 
   const nameOf = new Map((profiles ?? []).map((p) => [p.id as string, p.full_name as string | null]));
@@ -97,6 +206,48 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     role, label: roleLabel[role] ?? role, ...s,
   }));
 
+  // Build referral code rows with aggregated stats
+  const refsByCode = new Map<string, { pending: number; paid: number; pending_pkr: number; paid_pkr: number }>();
+  for (const r of refRows ?? []) {
+    const code = r.code as string;
+    const cur = refsByCode.get(code) ?? { pending: 0, paid: 0, pending_pkr: 0, paid_pkr: 0 };
+    if ((r.payout_status as string) === "paid") { cur.paid += 1; cur.paid_pkr += (r.payout_pkr as number) ?? 0; }
+    else { cur.pending += 1; cur.pending_pkr += (r.payout_pkr as number) ?? 0; }
+    refsByCode.set(code, cur);
+  }
+  const referralCodes: ReferralCodeRow[] = (refCodes ?? []).map((rc) => {
+    const stats = refsByCode.get(rc.code as string) ?? { pending: 0, paid: 0, pending_pkr: 0, paid_pkr: 0 };
+    return {
+      id: rc.id as string,
+      code: rc.code as string,
+      referrer_id: (rc.referrer_id as string) ?? null,
+      referrer_name: rc.referrer_id ? (nameOf.get(rc.referrer_id as string) ?? null) : null,
+      partner_name: (rc.partner_name as string) ?? null,
+      partner_contact: (rc.partner_contact as string) ?? null,
+      payment_method: (rc.payment_method as string) ?? null,
+      account_title: (rc.account_title as string) ?? null,
+      account_number: (rc.account_number as string) ?? null,
+      is_active: rc.is_active as boolean,
+      notes: (rc.notes as string) ?? null,
+      referral_count: stats.pending + stats.paid,
+      pending_count: stats.pending,
+      pending_pkr: stats.pending_pkr,
+      paid_count: stats.paid,
+      paid_pkr: stats.paid_pkr,
+    };
+  });
+
+  const referrals: ReferralRow[] = (refRows ?? []).map((r) => ({
+    id: r.id as string,
+    code: r.code as string,
+    referrer_name: r.referrer_id ? (nameOf.get(r.referrer_id as string) ?? null) : null,
+    patient_name: r.patient_id ? (nameOf.get(r.patient_id as string) ?? null) : null,
+    enrolled_at: (r.enrolled_at as string) ?? null,
+    payout_pkr: (r.payout_pkr as number) ?? 2000,
+    payout_status: r.payout_status as string,
+    paid_at: (r.paid_at as string) ?? null,
+  }));
+
   return {
     cohorts: adminCohorts,
     staff: people.filter((p) => p.role !== "patient"),
@@ -106,5 +257,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     planFlags: (planFlagsRaw as PlanFlag[]) ?? [],
     appointmentStats,
     automationConfig: (automationRows ?? []) as AutomationConfigRow[],
+    referralCodes,
+    referrals,
   };
 }

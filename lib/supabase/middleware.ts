@@ -59,6 +59,11 @@ export async function updateSession(request: NextRequest) {
     if (isPublicPath(pathname)) return response;
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    // Signal to the login page that this redirect came from the staff area
+    // so it can hide social login (Google OAuth creates patient accounts only).
+    if (pathname === "/staff" || pathname.startsWith("/staff/")) {
+      url.searchParams.set("portal", "staff");
+    }
     return NextResponse.redirect(url);
   }
 

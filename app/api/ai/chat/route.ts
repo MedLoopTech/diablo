@@ -121,9 +121,33 @@ export async function POST(request: Request) {
         ? pods?.coach_id
         : pods?.doctor_id;
 
+  // Cooldown: suppress duplicate ai_routed escalations within 2 hours for the
+  // same patient+assignee pair (urgent/patient_flagged always fires).
+  const isUrgent = t.class === "urgent";
+  if (!isUrgent) {
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const { data: existing } = await supabase
+      .from("escalations")
+      .select("id")
+      .eq("patient_id", user.id)
+      .eq("kind", "ai_routed")
+      .neq("status", "resolved")
+      .gte("created_at", twoHoursAgo)
+      .limit(1)
+      .maybeSingle();
+    if (existing) {
+      // Open escalation already exists for this patient — don't flood the queue.
+      // Fall through to send the reply but skip the insert.
+      const label = roleLabel(routed);
+      const reply = `That's best handled by your ${label}. I've already flagged a question for them — they'll follow up on all your recent messages together.`;
+      await supabase.from("chat_messages").insert({ patient_id: user.id, sender: "ai", body: reply });
+      return NextResponse.json({ reply, triage: t, escalated: false });
+    }
+  }
+
   const { error: escErr } = await supabase.from("escalations").insert({
     patient_id: user.id,
-    kind: t.class === "urgent" ? "patient_flagged" : "ai_routed",
+    kind: isUrgent ? "patient_flagged" : "ai_routed",
     payload: { message, triage: t },
     assigned_to: assignedTo ?? null,
     status: "open",

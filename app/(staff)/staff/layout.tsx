@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getCurrentProfile } from "@/lib/profile";
 import { getNotifications } from "@/lib/notifications";
 import { SignOutButton } from "@/components/SignOutButton";
@@ -25,7 +26,9 @@ export default async function StaffLayout({
           </div>
         </div>
 
-        <StaffNav role={profile?.role ?? ""} />
+        <Suspense fallback={null}>
+          <StaffNav role={profile?.role ?? ""} />
+        </Suspense>
 
         {/* User identity — pinned at bottom, always visible */}
         <div className="mt-auto shrink-0 border-t border-line px-5 py-4">

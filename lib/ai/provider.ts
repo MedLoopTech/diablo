@@ -36,6 +36,10 @@ export async function getProvider(): Promise<AIProvider> {
     const { createGeminiProvider } = await import("./gemini");
     return createGeminiProvider();
   }
+  if (aiProvider() === "ollama") {
+    const { createOllamaProvider } = await import("./ollama");
+    return createOllamaProvider();
+  }
   const { createAnthropicProvider } = await import("./anthropic");
   return createAnthropicProvider();
 }
