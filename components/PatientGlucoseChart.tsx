@@ -27,9 +27,8 @@ function dotColor(flag: string) {
   return "#14664F";
 }
 
-function formatTime(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleDateString("en-US", {
+function formatDate(ts: number) {
+  return new Date(ts).toLocaleDateString("en-US", {
     timeZone: "Asia/Karachi",
     month: "short",
     day: "numeric",
@@ -72,7 +71,6 @@ export function PatientGlucoseChart({ readings }: { readings: Reading[] }) {
 
   const data = sorted.map((r) => ({
     ...r,
-    label: formatTime(r.taken_at),
     time: new Date(r.taken_at).getTime(),
   }));
 
@@ -107,11 +105,15 @@ export function PatientGlucoseChart({ readings }: { readings: Reading[] }) {
         <ComposedChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#DEE9E1" vertical={false} />
           <XAxis
-            dataKey="label"
+            dataKey="time"
+            type="number"
+            scale="time"
+            domain={["dataMin", "dataMax"]}
+            tickFormatter={formatDate}
             tick={{ fontSize: 10, fill: "#4C6A61" }}
             tickLine={false}
             axisLine={{ stroke: "#DEE9E1" }}
-            minTickGap={30}
+            minTickGap={50}
           />
           <YAxis
             tick={{ fontSize: 10, fill: "#4C6A61" }}
@@ -147,6 +149,13 @@ export function PatientGlucoseChart({ readings }: { readings: Reading[] }) {
               fontSize: 12,
             }}
             labelStyle={{ color: "#4C6A61", fontWeight: 600 }}
+            labelFormatter={(ts: number) =>
+              new Date(ts).toLocaleString("en-US", {
+                timeZone: "Asia/Karachi",
+                dateStyle: "medium",
+                timeStyle: "short",
+              })
+            }
             formatter={(v, _, entry) => {
               const r = entry.payload as Reading;
               return [`${v} mg/dL · ${r.context}${r.flag !== "none" ? ` · ${r.flag}` : ""}`, "glucose"] as [string, string];
