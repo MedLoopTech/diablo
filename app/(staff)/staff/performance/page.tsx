@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getStaffPerformance } from "@/lib/admin";
 
 const ROLE_LABEL: Record<string, string> = { doctor: "Doctor", nutritionist: "Nutritionist", coach: "Coach" };

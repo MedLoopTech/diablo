@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { getCurrentProfile } from "@/lib/profile";
 import { getAdminOverview } from "@/lib/admin";

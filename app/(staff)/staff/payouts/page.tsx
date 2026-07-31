@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { createServerSupabase } from "@/lib/supabase/server";
 import type { ReferralRow } from "@/lib/admin";
 import { PayoutsPanel } from "./PayoutsPanel";

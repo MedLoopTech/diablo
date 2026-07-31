@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getCurrentProfile } from "@/lib/profile";
 import {
   getDoctorPrescriptionOutcomes,
