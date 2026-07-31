@@ -28,6 +28,7 @@ function StaffSelect({ people, role, defaultLabel }: { people: Person[]; role: s
 function CohortCard({ c, staff, patients }: { c: AdminCohort; staff: Person[]; patients: Person[] }) {
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
+  const [localStatus, setLocalStatus] = useState(c.status);
   const [doc, setDoc] = useState("");
   const [nut, setNut] = useState("");
   const [coa, setCoa] = useState("");
@@ -66,8 +67,12 @@ function CohortCard({ c, staff, patients }: { c: AdminCohort; staff: Person[]; p
           </div>
         </div>
         <select
-          value={c.status}
-          onChange={(e) => start(() => setCohortStatus(c.id, e.target.value as "enrolling" | "active" | "completed").then(() => {}))}
+          value={localStatus}
+          onChange={(e) => {
+            const v = e.target.value as "enrolling" | "active" | "completed";
+            setLocalStatus(v);
+            start(() => setCohortStatus(c.id, v).then(() => {}));
+          }}
           className={field}
         >
           <option value="enrolling">enrolling</option>
@@ -230,10 +235,14 @@ function PeopleList({ people, showPlan }: { people: Person[]; showPlan?: boolean
   const [pending, start] = useTransition();
   const [editing, setEditing] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
+  const [names, setNames] = useState<Record<string, string>>(
+    Object.fromEntries(people.map((p) => [p.id, p.name ?? ""]))
+  );
 
   const save = (id: string) =>
     start(async () => {
       await updatePersonName(id, draftName);
+      setNames((prev) => ({ ...prev, [id]: draftName }));
       setEditing(null);
     });
 
@@ -259,7 +268,7 @@ function PeopleList({ people, showPlan }: { people: Person[]; showPlan?: boolean
           ) : (
             <>
               <div className="flex-1 min-w-0">
-                <span className="font-body text-[13.5px] font-semibold text-ink">{p.name ?? "(no name)"}</span>
+                <span className="font-body text-[13.5px] font-semibold text-ink">{names[p.id] || "(no name)"}</span>
                 <span className="ml-2 font-body text-[11px] text-ink-soft">{p.role}</span>
               </div>
               <div className="flex items-center gap-2">
@@ -425,6 +434,7 @@ const RESOURCE_TYPES: ResourceType[] = ["book", "research", "video", "exercise_p
 function ResourcesTab({ resources }: { resources: AdminOverview["resources"] }) {
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
+  const [items, setItems] = useState(resources);
   const [title, setTitle] = useState("");
   const [type, setType] = useState<ResourceType>("article");
   const [description, setDescription] = useState("");
@@ -436,6 +446,12 @@ function ResourcesTab({ resources }: { resources: AdminOverview["resources"] }) 
       const r = await createResource({ title, type, description, url, tags });
       setMsg(r.ok ? "Resource added." : r.error ?? "Failed.");
       if (r.ok) { setTitle(""); setDescription(""); setUrl(""); setTags(""); }
+    });
+
+  const toggle = (id: string, currentActive: boolean) =>
+    start(async () => {
+      await toggleResource(id, !currentActive);
+      setItems((prev) => prev.map((r) => r.id === id ? { ...r, is_active: !currentActive } : r));
     });
 
   return (
@@ -470,17 +486,17 @@ function ResourcesTab({ resources }: { resources: AdminOverview["resources"] }) 
       </section>
 
       <section>
-        <h2 className="eyebrow mb-3">Library ({resources.length})</h2>
-        {resources.length > 0 && (
+        <h2 className="eyebrow mb-3">Library ({items.length})</h2>
+        {items.length > 0 && (
           <div className="flex flex-col gap-2">
-            {resources.map((r) => (
+            {items.map((r) => (
               <div key={r.id} className="flex items-center justify-between rounded-card border border-line bg-card px-4 py-2.5">
                 <div>
                   <span className="font-body text-[11px] uppercase tracking-wider text-primary-deep">{RESOURCE_LABELS[r.type as ResourceType]}</span>
                   <div className="font-body text-[13px] font-bold text-ink">{r.title}</div>
                 </div>
                 <button
-                  onClick={() => start(() => toggleResource(r.id, !r.is_active).then(() => {}))}
+                  onClick={() => toggle(r.id, r.is_active)}
                   disabled={pending}
                   className={`rounded-full px-3 py-1 font-body text-[12px] font-semibold ${r.is_active ? "border border-line text-ink-soft" : "bg-primary-deep text-white"}`}
                 >
@@ -846,12 +862,13 @@ function InlinePaymentEdit({ rc }: { rc: ReferralCodeRow }) {
 
 function ReferralCodesTable({ codes }: { codes: ReferralCodeRow[] }) {
   const [pending, startT] = useTransition();
+  const [items, setItems] = useState(codes);
 
-  if (!codes.length) {
+  if (!items.length) {
     return <div className="rounded-card border border-line bg-card p-4 font-body text-[13px] text-ink-soft">No codes yet. Create one above.</div>;
   }
 
-  const pendingTotal = codes.reduce((s, c) => s + c.pending_pkr, 0);
+  const pendingTotal = items.reduce((s, c) => s + c.pending_pkr, 0);
 
   return (
     <div>
@@ -870,7 +887,7 @@ function ReferralCodesTable({ codes }: { codes: ReferralCodeRow[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
-            {codes.map((rc) => (
+            {items.map((rc) => (
               <tr key={rc.id} className="hover:bg-paper/60">
                 <td className="px-4 py-3 font-body text-[13px]">
                   <span className="rounded-full bg-mint px-2.5 py-0.5 font-mono text-[11px] font-bold text-primary-deep">{rc.code}</span>
@@ -892,7 +909,10 @@ function ReferralCodesTable({ codes }: { codes: ReferralCodeRow[] }) {
                 </td>
                 <td className="px-4 py-3">
                   <button
-                    onClick={() => startT(async () => { await toggleReferralCode(rc.id, !rc.is_active); })}
+                    onClick={() => startT(async () => {
+                      await toggleReferralCode(rc.id, !rc.is_active);
+                      setItems((prev) => prev.map((c) => c.id === rc.id ? { ...c, is_active: !rc.is_active } : c));
+                    })}
                     disabled={pending}
                     className={`rounded-full px-3 py-1 font-body text-[11px] font-semibold ${rc.is_active ? "bg-mint text-primary-deep" : "bg-line text-ink-soft"}`}
                   >
@@ -909,20 +929,26 @@ function ReferralCodesTable({ codes }: { codes: ReferralCodeRow[] }) {
 }
 
 function ReferralPayoutsTable({ referrals }: { referrals: ReferralRow[] }) {
+  const [items, setItems] = useState(referrals);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, startT] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
 
-  const pendingRows = referrals.filter((r) => r.payout_status === "pending");
-  const paidRows = referrals.filter((r) => r.payout_status === "paid");
+  const pendingRows = items.filter((r) => r.payout_status === "pending");
+  const paidRows = items.filter((r) => r.payout_status === "paid");
 
   const toggleAll = () =>
     setSelected(selected.size === pendingRows.length ? new Set() : new Set(pendingRows.map((r) => r.id)));
 
   const markPaid = () =>
     startT(async () => {
-      const r = await markReferralsPaid(Array.from(selected));
+      const ids = Array.from(selected);
+      const r = await markReferralsPaid(ids);
       setMsg(r.ok ? `Marked ${selected.size} paid.` : r.error ?? "Failed.");
+      if (r.ok) {
+        const now = new Date().toISOString();
+        setItems((prev) => prev.map((row) => selected.has(row.id) ? { ...row, payout_status: "paid" as const, paid_at: now } : row));
+      }
       setSelected(new Set());
     });
 
@@ -954,7 +980,7 @@ function ReferralPayoutsTable({ referrals }: { referrals: ReferralRow[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
-            {referrals.map((r) => (
+            {items.map((r) => (
               <tr key={r.id} className={`hover:bg-paper/60 ${selected.has(r.id) ? "bg-mint/30" : ""}`}>
                 <td className="px-4 py-3">
                   {r.payout_status === "pending" && (

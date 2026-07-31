@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Card, Eyebrow, Pill } from "@/components/ui";

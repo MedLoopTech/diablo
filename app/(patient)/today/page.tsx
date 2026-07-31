@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getTranslations } from "next-intl/server";
 import { Card, Eyebrow, Pill } from "@/components/ui";
 import { GlucoseDial, type DialReading } from "@/components/GlucoseDial";

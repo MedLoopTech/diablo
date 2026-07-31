@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getTranslations } from "next-intl/server";
 import { getPodDoctorName } from "@/lib/data";
 import { createServerSupabase } from "@/lib/supabase/server";

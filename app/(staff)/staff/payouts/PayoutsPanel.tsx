@@ -11,12 +11,13 @@ export function PayoutsPanel({
   referrals: ReferralRow[];
   payoutPkr: number;
 }) {
+  const [items, setItems] = useState(referrals);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, startT] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
 
-  const pendingRows = referrals.filter((r) => r.payout_status === "pending");
-  const paidRows = referrals.filter((r) => r.payout_status === "paid");
+  const pendingRows = items.filter((r) => r.payout_status === "pending");
+  const paidRows = items.filter((r) => r.payout_status === "paid");
 
   const pendingTotal = pendingRows.reduce((s, r) => s + r.payout_pkr, 0);
   const paidTotal = paidRows.reduce((s, r) => s + r.payout_pkr, 0);
@@ -30,8 +31,13 @@ export function PayoutsPanel({
 
   const markPaid = () =>
     startT(async () => {
-      const r = await markReferralsPaid(Array.from(selected));
+      const ids = Array.from(selected);
+      const r = await markReferralsPaid(ids);
       setMsg(r.ok ? `Marked ${selected.size} referral${selected.size !== 1 ? "s" : ""} as paid.` : r.error ?? "Failed.");
+      if (r.ok) {
+        const now = new Date().toISOString();
+        setItems((prev) => prev.map((row) => selected.has(row.id) ? { ...row, payout_status: "paid" as const, paid_at: now } : row));
+      }
       setSelected(new Set());
     });
 
@@ -44,7 +50,7 @@ export function PayoutsPanel({
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-card border border-line bg-card p-4">
           <div className="eyebrow">Total referrals</div>
-          <div className="mt-1 font-display text-[24px] font-semibold text-ink">{referrals.length}</div>
+          <div className="mt-1 font-display text-[24px] font-semibold text-ink">{items.length}</div>
         </div>
         <div className="rounded-card border border-line bg-card p-4">
           <div className="eyebrow">Pending</div>
