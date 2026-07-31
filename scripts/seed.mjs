@@ -55,9 +55,22 @@ async function ensureUser(email, role, name) {
 }
 
 async function clearSeed() {
-  const { data: list } = await admin.auth.admin.listUsers();
-  for (const u of list.users) {
-    if (u.email?.endsWith("@sehat90.app")) await admin.auth.admin.deleteUser(u.id); // cascades most rows
+  // Explicitly wipe per-patient tables first so stale rows can't accumulate
+  // when deleteUser() cascades slowly or a prior run was interrupted.
+  const seedEmails = [...STAFF.map(s => s.email), ...PATIENTS.map(p => p.email)];
+  const { data: list } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  const seedUsers = (list?.users ?? []).filter(u => u.email && seedEmails.includes(u.email));
+  const seedIds = seedUsers.map(u => u.id);
+  if (seedIds.length > 0) {
+    // Hard-delete data before deleting users to avoid cascade timing issues
+    await admin.from("glucose_readings").delete().in("patient_id", seedIds);
+    await admin.from("meals").delete().in("patient_id", seedIds);
+    await admin.from("tasks").delete().in("patient_id", seedIds);
+    await admin.from("weigh_ins").delete().in("patient_id", seedIds);
+    await admin.from("escalations").delete().in("patient_id", seedIds);
+    await admin.from("points_ledger").delete().in("patient_id", seedIds);
+    await admin.from("progress_snapshots").delete().in("patient_id", seedIds);
+    for (const u of seedUsers) await admin.auth.admin.deleteUser(u.id);
   }
   await admin.from("cohorts").delete().eq("name", COHORT_NAME);
   // referral_codes with no referrer_id (external partners) don't cascade on user delete
