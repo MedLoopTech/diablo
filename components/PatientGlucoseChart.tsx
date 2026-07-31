@@ -149,8 +149,8 @@ export function PatientGlucoseChart({ readings }: { readings: Reading[] }) {
               fontSize: 12,
             }}
             labelStyle={{ color: "#4C6A61", fontWeight: 600 }}
-            labelFormatter={(ts: number) =>
-              new Date(ts).toLocaleString("en-US", {
+            labelFormatter={(ts) =>
+              new Date(ts as number).toLocaleString("en-US", {
                 timeZone: "Asia/Karachi",
                 dateStyle: "medium",
                 timeStyle: "short",
