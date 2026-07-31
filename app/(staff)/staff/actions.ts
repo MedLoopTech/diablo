@@ -15,6 +15,7 @@ export async function updateEscalationStatus(
   const { error } = await supabase.from("escalations").update(patch).eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/staff");
+  revalidatePath("/staff/escalations");
   return { ok: true };
 }
 

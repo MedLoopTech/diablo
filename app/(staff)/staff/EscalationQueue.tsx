@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useOptimistic } from "react";
 import Link from "next/link";
 import type { Escalation } from "@/lib/staff";
 import { updateEscalationStatus, replyToPatient } from "./actions";
@@ -67,11 +67,21 @@ function ReplyBox({ patientId }: { patientId: string }) {
 
 export function EscalationQueue({ escalations }: { escalations: Escalation[] }) {
   const [pending, startTransition] = useTransition();
+  const [optimistic, applyOptimistic] = useOptimistic(
+    escalations,
+    (current, { id, status }: { id: string; status: "acknowledged" | "resolved" }) =>
+      status === "resolved"
+        ? current.filter((e) => e.id !== id)
+        : current.map((e) => (e.id === id ? { ...e, status } : e))
+  );
 
   const act = (id: string, status: "acknowledged" | "resolved") =>
-    startTransition(() => { void updateEscalationStatus(id, status); });
+    startTransition(async () => {
+      applyOptimistic({ id, status });
+      await updateEscalationStatus(id, status);
+    });
 
-  if (!escalations.length) {
+  if (!optimistic.length) {
     return (
       <div className="rounded-card border border-line bg-card p-6 text-center font-body text-[13px] text-ink-soft">
         No open escalations. 🎉
@@ -81,7 +91,7 @@ export function EscalationQueue({ escalations }: { escalations: Escalation[] }) 
 
   return (
     <div className="flex flex-col gap-2">
-      {escalations.map((e) => {
+      {optimistic.map((e) => {
         const style = KIND_STYLE[e.kind];
         return (
           <div key={e.id} className="rounded-card border border-line bg-card p-4">
