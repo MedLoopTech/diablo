@@ -1,16 +1,14 @@
 "use client";
 
 import {
-  ComposedChart,
+  LineChart,
   Line,
-  Scatter,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ReferenceLine,
   ResponsiveContainer,
-  Cell,
 } from "recharts";
 
 type Reading = {
@@ -102,7 +100,7 @@ export function PatientGlucoseChart({ readings }: { readings: Reading[] }) {
 
       {/* Chart */}
       <ResponsiveContainer width="100%" height={240}>
-        <ComposedChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+        <LineChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#DEE9E1" vertical={false} />
           <XAxis
             dataKey="time"
@@ -161,22 +159,15 @@ export function PatientGlucoseChart({ readings }: { readings: Reading[] }) {
               return [`${v} mg/dL · ${r.context}${r.flag !== "none" ? ` · ${r.flag}` : ""}`, "glucose"] as [string, string];
             }}
           />
-          {/* Connecting line (no dots) */}
           <Line
             type="monotone"
             dataKey="value_mgdl"
             stroke="#DEE9E1"
             strokeWidth={1.5}
-            dot={false}
-            activeDot={false}
+            dot={<CustomDot />}
+            activeDot={{ r: 5, stroke: "#fff", strokeWidth: 2 }}
           />
-          {/* Colored scatter dots on top */}
-          <Scatter dataKey="value_mgdl" shape={<CustomDot />}>
-            {data.map((entry, i) => (
-              <Cell key={i} fill={dotColor(entry.flag)} />
-            ))}
-          </Scatter>
-        </ComposedChart>
+        </LineChart>
       </ResponsiveContainer>
 
       {/* Legend */}
