@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendPushToUser } from "@/lib/push";
 
-// Called daily by Vercel Cron (vercel.json) or an external scheduler.
+// Called daily by Vercel Cron at 2 am UTC (7 am PKT).
 // Creates chat messages and escalation prompts at cohort days 45 and 90.
-export async function POST(request: Request) {
-  const secret = request.headers.get("x-cron-secret");
-  if (secret !== process.env.CRON_SECRET) {
+export async function GET(request: Request) {
+  const auth = request.headers.get("authorization");
+  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 

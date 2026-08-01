@@ -6,8 +6,9 @@ import { sendTelegram } from "@/lib/notify";
 // Runs daily at 7 am PKT (2 am UTC) via Vercel Cron.
 // Checks urgent glucose readings, inactive patients, and overdue tasks,
 // then sends a single ops report to the staff Telegram chat.
-export async function POST(request: Request) {
-  if (request.headers.get("x-cron-secret") !== process.env.CRON_SECRET) {
+export async function GET(request: Request) {
+  const auth = request.headers.get("authorization");
+  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 

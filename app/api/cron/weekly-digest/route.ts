@@ -3,10 +3,11 @@ import { createClient } from "@supabase/supabase-js";
 import { loadConfig, interpolate } from "@/lib/automation";
 import { sendWhatsApp } from "@/lib/notify";
 
-// Runs every Sunday at 8 am PKT (3 am UTC) via Vercel Cron.
+// Runs every Sunday at 3 am UTC (8 am PKT) via Vercel Cron.
 // Sends each active patient a weekly progress digest via WhatsApp.
-export async function POST(request: Request) {
-  if (request.headers.get("x-cron-secret") !== process.env.CRON_SECRET) {
+export async function GET(request: Request) {
+  const auth = request.headers.get("authorization");
+  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 

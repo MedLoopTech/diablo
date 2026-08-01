@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 // Weekly cron: writes a progress_snapshots row per active patient.
-// Vercel Cron should call this once per week (e.g. Sunday 00:00 PKT).
-export async function POST(request: Request) {
-  const secret = request.headers.get("x-cron-secret");
-  if (secret !== process.env.CRON_SECRET) {
+// Vercel Cron calls this every Sunday at 1 am UTC (6 am PKT).
+export async function GET(request: Request) {
+  const auth = request.headers.get("authorization");
+  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
