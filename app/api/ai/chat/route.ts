@@ -45,7 +45,25 @@ export async function POST(request: Request) {
     );
   }
 
-  const ctx = await getChatContext(supabase, user.id);
+  const [ctx, { data: historyRows }] = await Promise.all([
+    getChatContext(supabase, user.id),
+    supabase
+      .from("chat_messages")
+      .select("sender, body")
+      .eq("patient_id", user.id)
+      .in("sender", ["patient", "ai"])
+      .order("created_at", { ascending: false })
+      .limit(6),
+  ]);
+
+  // Last 6 messages (3 exchanges) as prior turns, oldest-first.
+  const priorMsgs = (historyRows ?? [])
+    .reverse()
+    .map((m: { sender: string; body: string }) => ({
+      role: m.sender === "patient" ? ("user" as const) : ("assistant" as const),
+      content: m.body,
+    }));
+
   const provider = await getProvider();
 
   // Step 1 — triage (deterministic safety rules, then LLM).
@@ -68,7 +86,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to save message. Please try again." }, { status: 500 });
   }
 
-  // Step 2a — AI-answerable: generate a reply.
+  // Step 2a — AI-answerable: stream the reply.
   if (t.class === "ai_answerable") {
     const tags = extractTags(message);
     const matchedResources = await getRelevantResources(supabase, tags);
@@ -79,25 +97,57 @@ export async function POST(request: Request) {
           .join("\n")
       : "";
 
+    const completeInput = {
+      system: CHAT_SYSTEM + resourceNote,
+      messages: [...priorMsgs, { role: "user" as const, content: message }],
+      maxTokens: 450,
+      temperature: 0.4,
+    };
+
+    // Stream if the provider supports it; fall back to complete() for tests/mocks.
+    if (provider.stream) {
+      const encoder = new TextEncoder();
+      const gen = provider.stream(completeInput);
+
+      const body = new ReadableStream({
+        async start(controller) {
+          let fullReply = "";
+          try {
+            for await (const chunk of gen) {
+              fullReply += chunk;
+              controller.enqueue(encoder.encode(chunk));
+            }
+          } catch {
+            const fallback = "I'm having trouble answering right now — please try again shortly.";
+            fullReply = fallback;
+            controller.enqueue(encoder.encode(fallback));
+          } finally {
+            controller.close();
+          }
+          // Save reply after stream closes. Best-effort in serverless.
+          supabase.from("chat_messages").insert({ patient_id: user.id, sender: "ai", body: fullReply })
+            .then(({ error }) => { if (error) console.error("[chat] AI reply insert failed:", error); });
+        },
+      });
+
+      return new Response(body, {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "X-Accel-Buffering": "no",
+          "Cache-Control": "no-cache",
+        },
+      });
+    }
+
+    // Non-streaming fallback (mocked provider in tests has no .stream).
     let reply: string;
     try {
-      reply = await provider.complete({
-        system: CHAT_SYSTEM + resourceNote,
-        messages: [{ role: "user", content: message }],
-        maxTokens: 450,
-        temperature: 0.4,
-      });
+      reply = await provider.complete(completeInput);
     } catch {
       reply = "I'm having trouble answering right now — I've noted your question for your care pod. Please try again shortly.";
     }
-
-    const { error: replyErr } = await supabase.from("chat_messages").insert({
-      patient_id: user.id,
-      sender: "ai",
-      body: reply,
-    });
+    const { error: replyErr } = await supabase.from("chat_messages").insert({ patient_id: user.id, sender: "ai", body: reply });
     if (replyErr) console.error("[chat] AI reply insert failed:", replyErr);
-
     return NextResponse.json({ reply, triage: t, escalated: false });
   }
 

@@ -14,6 +14,22 @@ export function createAnthropicProvider(): AIProvider {
   return {
     name: "anthropic",
 
+    async *stream({ system, messages, maxTokens = 1024, temperature = 0.3 }) {
+      const res = await client.messages.create({
+        model: MODEL,
+        max_tokens: maxTokens,
+        temperature,
+        system,
+        messages: messages.map((m) => ({ role: m.role, content: m.content })),
+        stream: true,
+      });
+      for await (const event of res) {
+        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+          yield event.delta.text;
+        }
+      }
+    },
+
     async complete({ system, messages, json, maxTokens = 1024, temperature = 0.3 }) {
       const res = await client.messages.create({
         model: MODEL,

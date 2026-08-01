@@ -66,8 +66,7 @@ export function CoachSheet({ open, onClose, seed }: { open: boolean; onClose: ()
     const text = input.trim();
     if (!text || busy) return;
     setInput("");
-    const newMsg: Msg = { ai: false, text, sender: "patient", ts: new Date().toISOString() };
-    setMsgs((m) => [...m, newMsg]);
+    setMsgs((m) => [...m, { ai: false, text, sender: "patient", ts: new Date().toISOString() }]);
     setBusy(true);
     try {
       const res = await fetch("/api/ai/chat", {
@@ -75,11 +74,31 @@ export function CoachSheet({ open, onClose, seed }: { open: boolean; onClose: ()
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text }),
       });
-      const data = await res.json();
-      setMsgs((m) => [
-        ...m,
-        { ai: true, text: data.reply ?? t("error"), escalated: Boolean(data.escalated), sender: "ai", ts: new Date().toISOString() },
-      ]);
+
+      if (!res.ok) throw new Error("request failed");
+
+      const isStream = res.headers.get("content-type")?.startsWith("text/plain");
+
+      if (isStream && res.body) {
+        // Add an empty AI bubble and fill it as chunks arrive.
+        const tempId = `stream-${Date.now()}`;
+        setMsgs((m) => [...m, { id: tempId, ai: true, text: "", sender: "ai", ts: new Date().toISOString() }]);
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let full = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          full += decoder.decode(value, { stream: true });
+          setMsgs((m) => m.map((msg) => msg.id === tempId ? { ...msg, text: full } : msg));
+        }
+      } else {
+        const data = await res.json() as { reply?: string; escalated?: boolean };
+        setMsgs((m) => [
+          ...m,
+          { ai: true, text: data.reply ?? t("error"), escalated: Boolean(data.escalated), sender: "ai", ts: new Date().toISOString() },
+        ]);
+      }
     } catch {
       setMsgs((m) => [...m, { ai: true, text: t("error"), sender: "ai" }]);
     } finally {

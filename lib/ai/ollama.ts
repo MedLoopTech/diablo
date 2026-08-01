@@ -42,6 +42,37 @@ export function createOllamaProvider(): AIProvider {
   return {
     name: "ollama",
 
+    async *stream({ system, messages, maxTokens }) {
+      const ollamaMessages: OllamaMessage[] = [
+        { role: "system", content: system },
+        ...messages.map((m) => ({ role: m.role, content: m.content })),
+      ];
+      const res = await fetch(`${BASE_URL}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: TEXT_MODEL, messages: ollamaMessages, stream: true, num_predict: maxTokens }),
+      });
+      if (!res.ok || !res.body) throw new Error(`Ollama stream error ${res.status}`);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const data = JSON.parse(line) as { message?: { content?: string }; done?: boolean };
+            if (data.message?.content) yield data.message.content;
+            if (data.done) return;
+          } catch { /* skip malformed lines */ }
+        }
+      }
+    },
+
     async complete({ system, messages, json = false }) {
       const ollamaMessages: OllamaMessage[] = [
         {

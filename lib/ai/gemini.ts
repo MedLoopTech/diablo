@@ -15,6 +15,19 @@ export function createGeminiProvider(): AIProvider {
   return {
     name: "gemini",
 
+    async *stream({ system, messages }) {
+      const model = genAI.getGenerativeModel({ model: MODEL, systemInstruction: system });
+      const contents = messages.map((m: ChatMsg) => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }],
+      }));
+      const result = await model.generateContentStream({ contents });
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        if (text) yield text;
+      }
+    },
+
     async complete({ system, messages, json }) {
       const model = genAI.getGenerativeModel({
         model: MODEL,

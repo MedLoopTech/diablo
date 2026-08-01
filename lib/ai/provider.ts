@@ -22,6 +22,8 @@ export type VisionInput = {
 export interface AIProvider {
   name: string;
   complete(input: CompleteInput): Promise<string>;
+  /** Token-by-token stream. Optional — falls back to complete() if absent. */
+  stream?(input: CompleteInput): AsyncIterable<string>;
   vision(input: VisionInput): Promise<string>;
 }
 

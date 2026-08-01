@@ -10,8 +10,8 @@ export async function getChatContext(
   supabase: SupabaseClient,
   userId: string
 ): Promise<TriageContext> {
-  const sevenDaysAgo = new Date(
-    Date.now() - 7 * 24 * 60 * 60 * 1000
+  const thirtyDaysAgo = new Date(
+    Date.now() - 30 * 24 * 60 * 60 * 1000
   ).toISOString();
 
   // TODO: cache via React cache() or Redis (30 msg/day limit makes this acceptable for v1)
@@ -21,7 +21,7 @@ export async function getChatContext(
         .from("glucose_readings")
         .select("value_mgdl, flag, taken_at")
         .eq("patient_id", userId)
-        .gte("taken_at", sevenDaysAgo)
+        .gte("taken_at", thirtyDaysAgo)
         .order("taken_at", { ascending: false }),
       supabase
         .from("medication_plans")
@@ -47,12 +47,27 @@ export async function getChatContext(
 
   let recentReadingsSummary: string | undefined;
   if (readings && readings.length) {
-    const vals = readings.map((r) => r.value_mgdl);
+    const sorted = [...readings].sort(
+      (a, b) => new Date(a.taken_at).getTime() - new Date(b.taken_at).getTime()
+    );
+    const vals = sorted.map((r) => r.value_mgdl);
     const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
     const min = Math.min(...vals);
     const max = Math.max(...vals);
     const flagged = readings.filter((r) => r.flag !== "none").length;
-    recentReadingsSummary = `${readings.length} readings in 7d, avg ${avg}, range ${min}-${max} mg/dL, ${flagged} flagged`;
+
+    // Simple trend: compare first-half avg vs second-half avg over the 30-day window.
+    let trend = "";
+    if (vals.length >= 6) {
+      const mid = Math.floor(vals.length / 2);
+      const firstAvg = vals.slice(0, mid).reduce((a, b) => a + b, 0) / mid;
+      const secondAvg = vals.slice(mid).reduce((a, b) => a + b, 0) / (vals.length - mid);
+      if (secondAvg - firstAvg > 10) trend = ", trend: rising";
+      else if (firstAvg - secondAvg > 10) trend = ", trend: improving";
+      else trend = ", trend: stable";
+    }
+
+    recentReadingsSummary = `${readings.length} readings in 30d, avg ${avg}, range ${min}-${max} mg/dL, ${flagged} flagged${trend}`;
   }
 
   // Names only — strip any dose/schedule fields defensively.
