@@ -3,11 +3,12 @@ import { createClient } from "@supabase/supabase-js";
 import { loadConfig, interpolate } from "@/lib/automation";
 import { sendWhatsApp } from "@/lib/notify";
 
-// Runs every hour via Vercel Cron.
+// Runs every hour via Vercel Cron (GET + Authorization: Bearer CRON_SECRET).
 // Sends 24-hour and 1-hour WhatsApp reminders for upcoming consultations.
 // Uses reminder_24h_sent / reminder_1h_sent flags to prevent duplicates.
-export async function POST(request: Request) {
-  if (request.headers.get("x-cron-secret") !== process.env.CRON_SECRET) {
+export async function GET(request: Request) {
+  const auth = request.headers.get("authorization");
+  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
