@@ -28,6 +28,7 @@ const config: Config = {
       fontFamily: {
         display: ["var(--font-fraunces)", "Georgia", "serif"],
         body: ["var(--font-outfit)", "Segoe UI", "sans-serif"],
+        urdu: ["var(--font-urdu)", "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", "serif"],
       },
       borderRadius: {
         card: "20px",

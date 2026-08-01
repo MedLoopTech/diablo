@@ -1,4 +1,5 @@
 import { BottomNav } from "@/components/BottomNav";
+import { LocaleToggle } from "@/components/LocaleToggle";
 import { NotificationBell } from "@/components/NotificationBell";
 import { PushSubscriber } from "@/components/PushSubscriber";
 import { SignOutButton } from "@/components/SignOutButton";
@@ -18,6 +19,7 @@ export default async function PatientLayout({
           Loop<span className="text-marigold">/90</span>
         </span>
         <div className="flex items-center gap-2">
+          <LocaleToggle />
           <NotificationBell
             items={notifications.items}
             unread={notifications.unread}
