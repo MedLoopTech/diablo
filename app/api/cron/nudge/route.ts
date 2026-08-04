@@ -58,7 +58,7 @@ function buildNudge(streak: number, cohortDay: number): { title: string; body: s
 export async function GET(request: Request) {
   // Vercel calls cron routes with Authorization: Bearer <CRON_SECRET>.
   const auth = request.headers.get("authorization");
-  if (CRON_SECRET && auth !== `Bearer ${CRON_SECRET}`) {
+  if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

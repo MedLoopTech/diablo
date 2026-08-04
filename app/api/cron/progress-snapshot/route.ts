@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 // Vercel Cron calls this every Sunday at 1 am UTC (6 am PKT).
 export async function GET(request: Request) {
   const auth = request.headers.get("authorization");
-  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 

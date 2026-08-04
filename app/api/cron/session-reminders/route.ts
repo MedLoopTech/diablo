@@ -8,7 +8,7 @@ import { sendWhatsApp } from "@/lib/notify";
 // Uses reminder_24h_sent / reminder_1h_sent flags to prevent duplicates.
 export async function GET(request: Request) {
   const auth = request.headers.get("authorization");
-  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
