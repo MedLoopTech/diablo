@@ -3,9 +3,19 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { toPlainText } from "@/lib/chat-text";
+import { VoiceRecorder } from "@/components/VoiceRecorder";
+import { VoicePlayer } from "@/components/VoicePlayer";
 
 type Sender = "patient" | "ai" | "doctor" | "nutritionist" | "coach";
-type Msg = { id?: string; ai: boolean; text: string; escalated?: boolean; sender?: Sender; ts?: string };
+type Msg = {
+  id?: string;
+  ai: boolean;
+  text: string;
+  escalated?: boolean;
+  sender?: Sender;
+  ts?: string;
+  audioUrl?: string | null;
+};
 
 const SENDER_LABEL: Record<Sender, string> = {
   patient: "You",
@@ -33,13 +43,16 @@ export function CoachSheet({ open, onClose, seed }: { open: boolean; onClose: ()
     if (historyLoaded) return;
     try {
       const res = await fetch("/api/ai/chat/history");
-      const data = await res.json() as { messages: { id: string; sender: Sender; body: string; created_at: string }[] };
+      const data = await res.json() as {
+        messages: { id: string; sender: Sender; body: string; audio_path?: string | null; signedAudioUrl?: string | null; created_at: string }[];
+      };
       const history: Msg[] = (data.messages ?? []).map((m) => ({
         id: m.id,
         ai: m.sender !== "patient",
         text: m.body,
         sender: m.sender,
         ts: m.created_at,
+        audioUrl: m.audio_path ? m.signedAudioUrl ?? null : undefined,
       }));
       setMsgs(history.length ? history : [{ ai: true, text: t("intro") }]);
     } catch {
@@ -105,6 +118,22 @@ export function CoachSheet({ open, onClose, seed }: { open: boolean; onClose: ()
     } finally {
       setBusy(false);
     }
+  };
+
+  const onVoiceSent = (result: { reply?: string; escalated?: boolean; error?: string }) => {
+    if (result.error) return; // recorder already shows the error inline
+    // No local echo of the recording itself — it has no signed URL until the
+    // next history reload. Just the confirmation, same as a routed text reply.
+    setMsgs((m) => [
+      ...m,
+      {
+        ai: true,
+        text: result.reply ?? t("error"),
+        escalated: Boolean(result.escalated),
+        sender: "ai",
+        ts: new Date().toISOString(),
+      },
+    ]);
   };
 
   if (!open) return null;
@@ -176,7 +205,11 @@ export function CoachSheet({ open, onClose, seed }: { open: boolean; onClose: ()
                       : "self-end bg-primary text-white"
                   }`}
                 >
-                  <span className="whitespace-pre-wrap">{toPlainText(m.text)}</span>
+                  {m.audioUrl !== undefined ? (
+                    <VoicePlayer url={m.audioUrl} light={!m.ai} />
+                  ) : (
+                    <span className="whitespace-pre-wrap">{toPlainText(m.text)}</span>
+                  )}
                 </div>
                 {m.escalated && (
                   <div className="ml-1 mt-0.5 font-body text-[10.5px] text-ink-soft">
@@ -195,6 +228,7 @@ export function CoachSheet({ open, onClose, seed }: { open: boolean; onClose: ()
 
         {/* Input */}
         <div className="mt-3 flex gap-2">
+          <VoiceRecorder onSent={onVoiceSent} disabled={busy} />
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}

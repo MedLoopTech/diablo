@@ -5,7 +5,8 @@ import { notFound } from "next/navigation";
 import { getPatientDetail } from "@/lib/staff";
 import { getCurrentProfile } from "@/lib/profile";
 import { createServerSupabase } from "@/lib/supabase/server";
-import { createAdminSupabase, PHOTO_BUCKET } from "@/lib/supabase/admin";
+import { createAdminSupabase, PHOTO_BUCKET, VOICE_BUCKET } from "@/lib/supabase/admin";
+import { VoicePlayer } from "@/components/VoicePlayer";
 import { karachiToday } from "@/lib/time";
 import { MedicationEditor } from "./MedicationEditor";
 import { MealPlanEditor } from "./MealPlanEditor";
@@ -59,11 +60,24 @@ async function getPatientChat(patientId: string) {
   const supabase = createServerSupabase();
   const { data } = await supabase
     .from("chat_messages")
-    .select("id, sender, body, created_at")
+    .select("id, sender, body, audio_path, created_at")
     .eq("patient_id", patientId)
     .order("created_at", { ascending: false })
     .limit(30);
-  return (data ?? []).reverse();
+  const rows = (data ?? []).reverse();
+
+  const withAudio = rows.filter((m) => m.audio_path);
+  if (withAudio.length === 0) return rows.map((m) => ({ ...m, signedAudioUrl: null as string | null }));
+
+  const admin = createAdminSupabase();
+  const signedByPath = new Map<string, string | null>();
+  await Promise.all(
+    withAudio.map(async (m) => {
+      const { data: signed } = await admin.storage.from(VOICE_BUCKET).createSignedUrl(m.audio_path!, 3600);
+      signedByPath.set(m.audio_path!, signed?.signedUrl ?? null);
+    })
+  );
+  return rows.map((m) => ({ ...m, signedAudioUrl: m.audio_path ? signedByPath.get(m.audio_path) ?? null : null }));
 }
 
 async function getGlucoseReviewData(patientId: string) {
@@ -284,7 +298,11 @@ export default async function PatientDetailPage({
                         {!isPatient && (
                           <div className="mb-0.5 text-[10px] font-semibold capitalize opacity-80">{m.sender}</div>
                         )}
-                        <div className="whitespace-pre-wrap">{toPlainText(m.body as string)}</div>
+                        {m.audio_path ? (
+                          <VoicePlayer url={m.signedAudioUrl} light={!isPatient} />
+                        ) : (
+                          <div className="whitespace-pre-wrap">{toPlainText(m.body as string)}</div>
+                        )}
                         <div className={`mt-0.5 text-[10px] ${isPatient ? "text-ink-soft" : "opacity-70"}`}>
                           {pkt(m.created_at as string)}
                         </div>

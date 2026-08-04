@@ -17,3 +17,4 @@ export function createAdminSupabase() {
 }
 
 export const PHOTO_BUCKET = "patient-photos";
+export const VOICE_BUCKET = "voice-notes";
