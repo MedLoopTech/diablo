@@ -183,6 +183,21 @@ async function seed() {
   }
   await admin.from("post_replies").insert({ post_id: post1.id, author_id: lead.user.id, body: "So happy for you Nadia! 🎉" });
 
+  console.log("Cohort announcements…");
+  await admin.from("cohort_announcements").insert([
+    {
+      cohort_id: cohort.id, created_by: staff.coach.id, published: true,
+      title: "Group walk this Saturday, 7am at F-9 Park",
+      body: "Meet at the main gate. 30 minutes, easy pace — bring water. Great for your post-meal walk streak.",
+      cta_label: "See the route", cta_url: "https://maps.google.com/?q=F-9+Park+Islamabad",
+    },
+    {
+      cohort_id: cohort.id, created_by: staff.nutritionist.id, published: true,
+      title: "This week's grocery list is up",
+      body: "Same low-glycaemic staples, swapped for what's in season — check your meal plan for the link.",
+    },
+  ]);
+
   console.log("Today's tasks + medication plan…");
   for (const p of patients) {
     await admin.rpc("ensure_daily_tasks", { p: p.user.id });

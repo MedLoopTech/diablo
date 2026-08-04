@@ -12,10 +12,12 @@ import {
 } from "@/lib/data";
 import { getMyMealPlan } from "@/lib/care";
 import type { PatientMealPlan } from "@/lib/care";
+import { getLiveAnnouncements } from "@/lib/announcements";
 import { CONTEXT_LABEL } from "@/lib/glucose";
 import { THRESHOLDS } from "@/lib/thresholds";
 import { dialFraction } from "@/lib/time";
 import { Disclaimer } from "@/components/Disclaimer";
+import { AnnouncementCards } from "@/components/AnnouncementCards";
 import { TaskList } from "./TaskList";
 import { TodayCoach } from "./TodayCoach";
 
@@ -32,13 +34,14 @@ export default async function TodayPage({
   const t = await getTranslations("today");
   const te = await getTranslations("errors");
 
-  const [profile, readings, tasks, stats, movementPlan, mealPlan] = await Promise.all([
+  const [profile, readings, tasks, stats, movementPlan, mealPlan, announcements] = await Promise.all([
     getCurrentProfile(),
     getTodaysReadings(),
     getTodaysTasks(),
     getPointsAndStreak(),
     getMyMovementPlan(),
     getMyMealPlan(),
+    getLiveAnnouncements(),
   ]);
 
   const firstName = profile?.full_name?.split(" ")[0] ?? "friend";
@@ -125,6 +128,7 @@ export default async function TodayPage({
         </Card>
       )}
 
+      <AnnouncementCards announcements={announcements} />
 
       <Disclaimer />
     </div>

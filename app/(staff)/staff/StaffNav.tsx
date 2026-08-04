@@ -19,6 +19,7 @@ const STAFF_NAV = [
   { href: "/staff/prescriptions",   label: "Prescriptions" },
   { href: "/staff/consults",        label: "Consults" },
   { href: "/staff/escalations",     label: "Escalations" },
+  { href: "/staff/announcements",   label: "Announcements" },
   { href: "/staff/weekly-review",   label: "Weekly Review", roles: ["doctor", "admin"] },
 ];
 
@@ -41,6 +42,9 @@ export function StaffNav({ role }: { role: string }) {
         </Link>
         <Link href="/staff/payouts" className={linkCls(pathname.startsWith("/staff/payouts"))}>
           Payouts
+        </Link>
+        <Link href="/staff/announcements" className={linkCls(pathname.startsWith("/staff/announcements"))}>
+          Announcements
         </Link>
 
         {onAdmin ? (
