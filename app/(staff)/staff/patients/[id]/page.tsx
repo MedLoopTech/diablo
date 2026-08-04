@@ -14,6 +14,7 @@ import { MedicalHistoryEditor } from "./MedicalHistoryEditor";
 import { StaffReplyBox } from "./StaffReplyBox";
 import { PatientGlucoseChart } from "@/components/PatientGlucoseChart";
 import { GlucoseReviewButton } from "./GlucoseReviewButton";
+import { toPlainText } from "@/lib/chat-text";
 
 function pkt(iso: string) {
   return new Date(iso).toLocaleString("en-US", {
@@ -272,7 +273,7 @@ export default async function PatientDetailPage({
                         {!isPatient && (
                           <div className="mb-0.5 text-[10px] font-semibold capitalize opacity-80">{m.sender}</div>
                         )}
-                        <div>{m.body as string}</div>
+                        <div className="whitespace-pre-wrap">{toPlainText(m.body as string)}</div>
                         <div className={`mt-0.5 text-[10px] ${isPatient ? "text-ink-soft" : "opacity-70"}`}>
                           {pkt(m.created_at as string)}
                         </div>

@@ -1,3 +1,6 @@
+import { notFound } from "next/navigation";
+import { demoModeEnabled } from "@/lib/env";
+
 // Demo portal switcher — restricted to @sehat90.app seed accounts only.
 const ACCOUNTS = [
   { role: "Doctor", email: "demo.doctor@sehat90.app", name: "Dr. Ayesha Rahman", desc: "Escalation queue, flagged readings, patient timelines, medication editor, consults." },
@@ -9,6 +12,8 @@ const ACCOUNTS = [
 ];
 
 export default function DemoPage() {
+  if (!demoModeEnabled()) notFound();
+
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
       <div className="mb-2 font-display text-2xl font-semibold text-ink">

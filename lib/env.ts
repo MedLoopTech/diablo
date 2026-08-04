@@ -57,6 +57,23 @@ export function aiProvider(): "anthropic" | "gemini" | "ollama" {
   return "anthropic";
 }
 
+/**
+ * Whether /demo and /api/demo-login exist. Those sign into a seeded account
+ * with no password, so the demo-login route's own docstring already promised
+ * it was "DISABLED in production" — nothing actually enforced that, so this
+ * makes the code match the contract.
+ *
+ * Off in production, on everywhere else. Set DEMO_MODE=true to deliberately
+ * re-enable it on a production build (a sales/demo deployment), or
+ * DEMO_MODE=false to force it off anywhere.
+ */
+export function demoModeEnabled(): boolean {
+  const flag = process.env.DEMO_MODE;
+  if (flag === "true") return true;
+  if (flag === "false") return false;
+  return process.env.NODE_ENV !== "production";
+}
+
 /** True only when both values needed for any Supabase call are present. */
 export function supabaseConfigured(): boolean {
   return Boolean(supabaseUrl() && supabaseAnonKey());

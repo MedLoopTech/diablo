@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
+import { toPlainText } from "@/lib/chat-text";
 
 type Sender = "patient" | "ai" | "doctor" | "nutritionist" | "coach";
 type Msg = { id?: string; ai: boolean; text: string; escalated?: boolean; sender?: Sender; ts?: string };
@@ -175,7 +176,7 @@ export function CoachSheet({ open, onClose, seed }: { open: boolean; onClose: ()
                       : "self-end bg-primary text-white"
                   }`}
                 >
-                  {m.text}
+                  <span className="whitespace-pre-wrap">{toPlainText(m.text)}</span>
                 </div>
                 {m.escalated && (
                   <div className="ml-1 mt-0.5 font-body text-[10.5px] text-ink-soft">

@@ -1,7 +1,19 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createServerSupabase } from "@/lib/supabase/server";
-import { serviceRoleKey, supabaseUrl } from "@/lib/env";
+import { serviceRoleKey, supabaseUrl, demoModeEnabled } from "@/lib/env";
+
+/**
+ * Never statically optimize this route. The gate below returns before
+ * createServerSupabase()'s cookies() call, so on the build-time code path
+ * (demoModeEnabled() is false during `next build`) Next never observes a
+ * dynamic-API access on this route and would otherwise cache its response
+ * as a static asset — permanently baking in "demo mode is disabled"
+ * regardless of the DEMO_MODE env var at runtime. Confirmed by testing:
+ * without this, `next start` with DEMO_MODE=true still served the
+ * build-time response for every request.
+ */
+export const dynamic = "force-dynamic";
 
 /**
  * Demo login: signs into one of the seeded demo accounts so the app can be
@@ -9,6 +21,10 @@ import { serviceRoleKey, supabaseUrl } from "@/lib/env";
  * the @sehat90.app demo accounts, so it can never impersonate a real user.
  */
 export async function GET(request: Request) {
+  if (!demoModeEnabled()) {
+    return NextResponse.json({ error: "demo mode is disabled" }, { status: 404 });
+  }
+
   const email = new URL(request.url).searchParams.get("email");
   if (!email || !email.endsWith("@sehat90.app")) {
     return NextResponse.json({ error: "demo accounts only (@sehat90.app)" }, { status: 400 });
