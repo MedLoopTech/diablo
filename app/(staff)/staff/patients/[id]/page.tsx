@@ -15,6 +15,10 @@ import { StaffReplyBox } from "./StaffReplyBox";
 import { PatientGlucoseChart } from "@/components/PatientGlucoseChart";
 import { GlucoseReviewButton } from "./GlucoseReviewButton";
 import { toPlainText } from "@/lib/chat-text";
+import { LabResults } from "./LabResults";
+import { DocumentsPanel } from "./DocumentsPanel";
+import { getPatientLabResults } from "@/lib/labs";
+import { getPatientDocuments } from "@/lib/documents";
 
 function pkt(iso: string) {
   return new Date(iso).toLocaleString("en-US", {
@@ -86,10 +90,12 @@ export default async function PatientDetailPage({
 }) {
   const [p, viewer] = await Promise.all([getPatientDetail(params.id), getCurrentProfile()]);
   if (!p) notFound();
-  const [evidence, chatMessages, glucoseReviewMap] = await Promise.all([
+  const [evidence, chatMessages, glucoseReviewMap, labResults, documents] = await Promise.all([
     getTaskEvidence(params.id),
     getPatientChat(params.id),
     getGlucoseReviewData(params.id),
+    getPatientLabResults(params.id),
+    getPatientDocuments(params.id),
   ]);
 
   const role = viewer?.role ?? "";
@@ -98,6 +104,7 @@ export default async function PatientDetailPage({
   const canEditMovement = role === "coach"         || role === "admin";
   const canEditMedHistory = role === "doctor"      || role === "admin";
   const canSeeMeds = role !== "coach";
+  const canEditLabs = role === "doctor" || role === "admin";
 
   const latestReading = p.readings[0] ?? null;
   const openEscalations = p.escalations.filter((e) => e.status !== "resolved");
@@ -210,6 +217,10 @@ export default async function PatientDetailPage({
               </div>
             )}
           </section>
+
+          <LabResults patientId={p.id} results={labResults} canEdit={canEditLabs} />
+
+          <DocumentsPanel patientId={p.id} documents={documents} />
 
           {/* Escalations — open/acknowledged always visible; resolved collapsed */}
           <section>

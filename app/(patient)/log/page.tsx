@@ -4,11 +4,15 @@ import { getTranslations } from "next-intl/server";
 import { getPodDoctorName } from "@/lib/data";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getMyPlanFeatures } from "@/lib/plan";
+import { getCurrentProfile } from "@/lib/profile";
+import { getMyLabResults } from "@/lib/labs";
+import { getMyDocuments } from "@/lib/documents";
 import { Disclaimer } from "@/components/Disclaimer";
 import { LogForm } from "./LogForm";
 import { MealCard } from "./MealCard";
 import { WeighInCard } from "./WeighInCard";
 import { CgmCard } from "./CgmCard";
+import { RecordsSection } from "./RecordsSection";
 
 export const metadata = {
   title: "Log",
@@ -19,7 +23,7 @@ export default async function LogPage() {
   const t = await getTranslations("log");
   const supabase = createServerSupabase();
 
-  const [doctorName, { data: cgmConn }, { features }] = await Promise.all([
+  const [doctorName, { data: cgmConn }, { features }, profile, labResults, documents] = await Promise.all([
     getPodDoctorName(),
     supabase
       .from("cgm_connections")
@@ -27,6 +31,9 @@ export default async function LogPage() {
       .eq("active", true)
       .maybeSingle(),
     getMyPlanFeatures(),
+    getCurrentProfile(),
+    getMyLabResults(),
+    getMyDocuments(),
   ]);
 
   const cgmStatus = cgmConn
@@ -46,6 +53,10 @@ export default async function LogPage() {
       <MealCard />
 
       <CgmCard cgmEnabled={features.cgmSync} status={cgmStatus} />
+
+      {profile && (
+        <RecordsSection myUserId={profile.id} labResults={labResults} documents={documents} />
+      )}
 
       <Disclaimer />
     </div>
