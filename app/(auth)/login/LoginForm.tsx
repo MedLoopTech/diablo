@@ -8,6 +8,25 @@ import { createBrowserSupabase } from "@/lib/supabase/client";
 type Channel = "phone" | "email";
 type Step = "identify" | "otp";
 
+/**
+ * Supabase's raw provider errors ("Unsupported phone provider", "Error
+ * sending confirmation email") are meaningless to a patient and shouldn't
+ * be shown verbatim — map the ones we know about to something actionable.
+ */
+function friendlyAuthError(message: string, channel: Channel): string {
+  const m = message.toLowerCase();
+  if (m.includes("unsupported phone provider") || m.includes("sms")) {
+    return "Phone sign-in isn't set up yet — try email instead, or use the demo below to look around.";
+  }
+  if (m.includes("error sending") || (channel === "email" && m.includes("500"))) {
+    return "We couldn't send that code right now — try again in a moment, or use the demo below to look around.";
+  }
+  if (m.includes("provider is not enabled")) {
+    return "Google sign-in isn't set up yet — try phone or email instead.";
+  }
+  return message;
+}
+
 /** Normalize a Pakistani phone entry to E.164 (+92…). */
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/[^\d+]/g, "");
@@ -42,7 +61,7 @@ export function LoginForm({ showGoogle = true }: { showGoogle?: boolean }) {
           ? await supabase.auth.signInWithOtp({ phone: normalizePhone(phone) })
           : await supabase.auth.signInWithOtp({ email: email.trim() });
       if (error) {
-        setError(error.message || t("errorGeneric"));
+        setError(friendlyAuthError(error.message, channel) || t("errorGeneric"));
         return;
       }
       setStep("otp");
@@ -94,9 +113,9 @@ export function LoginForm({ showGoogle = true }: { showGoogle?: boolean }) {
           redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
-      if (error) setError(error.message || t("errorGeneric"));
+      if (error) setError(friendlyAuthError(error.message, "email") || t("errorGeneric"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("errorGeneric"));
+      setError(e instanceof Error ? friendlyAuthError(e.message, "email") : t("errorGeneric"));
       setBusy(false);
     }
     // don't setBusy(false) on success — page is navigating away

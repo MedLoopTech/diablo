@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { LoginForm } from "./LoginForm";
+import { demoModeEnabled } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: "Sign in",
@@ -35,6 +37,15 @@ export default function LoginPage({
       </div>
 
       <LoginForm showGoogle={!isStaffPortal} />
+
+      {demoModeEnabled() && (
+        <Link
+          href="/demo"
+          className="rounded-2xl border border-line bg-card px-4 py-3 text-center font-body text-[13px] font-semibold text-primary-deep hover:border-primary"
+        >
+          Just here to look around? Try the demo →
+        </Link>
+      )}
 
       <p className="text-center font-body text-[11.5px] leading-relaxed text-ink-soft">
         {tc("disclaimer")}
