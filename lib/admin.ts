@@ -13,7 +13,7 @@ export type AdminCohort = {
   nutritionist: string | null;
   coach: string | null;
 };
-export type Person = { id: string; name: string | null; role: string; plan: string | null };
+export type Person = { id: string; name: string | null; phone: string | null; role: string; plan: string | null };
 export type Template = {
   id: string;
   phase: number;
@@ -153,7 +153,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
       supabase.from("cohorts").select("id, name, start_date, status").order("start_date", { ascending: false }),
       supabase.from("care_pods").select("cohort_id, doctor_id, nutritionist_id, coach_id"),
       supabase.from("cohort_members").select("cohort_id, patient_id"),
-      supabase.from("profiles").select("id, full_name, role, plan"),
+      supabase.from("profiles").select("id, full_name, phone, role, plan"),
       supabase.from("task_templates").select("id, phase, kind, title, subtitle, photo_mode, photo_prompt, photo_points_bonus").order("phase").order("sort_order"),
       supabase.from("resources").select("id, title, type, description, url, tags, is_active, created_at").order("created_at", { ascending: false }),
       supabase.from("plan_feature_flags").select("plan, feature_key, label, enabled, sort_order").order("sort_order").order("plan"),
@@ -185,6 +185,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
   const people = (profiles ?? []).map((p) => ({
     id: p.id as string,
     name: p.full_name as string | null,
+    phone: p.phone as string | null,
     role: p.role as string,
     plan: (p.plan as string) ?? null,
   }));

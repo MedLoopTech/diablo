@@ -167,11 +167,14 @@ export async function saveAutomationConfig(key: string, value: string): Promise<
   return { ok: true };
 }
 
-export async function updatePersonName(id: string, name: string): Promise<{ ok: boolean; error?: string }> {
+export async function updatePerson(id: string, name: string, phone: string): Promise<{ ok: boolean; error?: string }> {
   const { supabase, ok } = await requireAdmin();
   if (!ok) return { ok: false, error: "Admins only." };
   if (!name.trim()) return { ok: false, error: "Name required." };
-  const { error } = await supabase.from("profiles").update({ full_name: name.trim() }).eq("id", id);
+  const { error } = await supabase
+    .from("profiles")
+    .update({ full_name: name.trim(), phone: phone.trim() || null })
+    .eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/staff/admin");
   return { ok: true };

@@ -5,7 +5,7 @@ import type { AdminOverview, AdminCohort, Person, AppointmentStat, ReferralCodeR
 import type { AutomationConfigRow } from "@/lib/automation";
 import type { PlanFlag } from "@/lib/plan";
 import { RESOURCE_LABELS, type ResourceType } from "@/lib/resources-shared";
-import { createCohort, assignPod, enrollPatient, setCohortStatus, createResource, toggleResource, inviteStaff, updatePersonName, setPatientPlan, togglePlanFeature, setTemplatePhotoMode, saveAutomationConfig, createReferralCode, toggleReferralCode, markReferralsPaid, saveReferralCodePayment } from "./actions";
+import { createCohort, assignPod, enrollPatient, setCohortStatus, createResource, toggleResource, inviteStaff, updatePerson, setPatientPlan, togglePlanFeature, setTemplatePhotoMode, saveAutomationConfig, createReferralCode, toggleReferralCode, markReferralsPaid, saveReferralCodePayment } from "./actions";
 
 // ─── Shared ──────────────────────────────────────────────────────────────────
 
@@ -239,14 +239,15 @@ function PeopleList({ people, showPlan }: { people: Person[]; showPlan?: boolean
   const [pending, start] = useTransition();
   const [editing, setEditing] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
-  const [names, setNames] = useState<Record<string, string>>(
-    Object.fromEntries(people.map((p) => [p.id, p.name ?? ""]))
+  const [draftPhone, setDraftPhone] = useState("");
+  const [rows, setRows] = useState<Record<string, { name: string; phone: string }>>(
+    Object.fromEntries(people.map((p) => [p.id, { name: p.name ?? "", phone: p.phone ?? "" }]))
   );
 
   const save = (id: string) =>
     start(async () => {
-      await updatePersonName(id, draftName);
-      setNames((prev) => ({ ...prev, [id]: draftName }));
+      await updatePerson(id, draftName, draftPhone);
+      setRows((prev) => ({ ...prev, [id]: { name: draftName, phone: draftPhone } }));
       setEditing(null);
     });
 
@@ -258,13 +259,22 @@ function PeopleList({ people, showPlan }: { people: Person[]; showPlan?: boolean
       {people.map((p) => (
         <div key={p.id} className="flex items-center justify-between gap-3 rounded-card border border-line bg-card px-3.5 py-2.5">
           {editing === p.id ? (
-            <div className="flex flex-1 items-center gap-2">
+            <div className="flex flex-1 flex-wrap items-center gap-2">
               <input
                 value={draftName}
                 onChange={(e) => setDraftName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && save(p.id)}
+                placeholder="Name"
                 className="flex-1 rounded-[8px] border border-line bg-paper px-2 py-1 font-body text-[13px] text-ink outline-none"
                 autoFocus
+              />
+              <input
+                type="tel"
+                value={draftPhone}
+                onChange={(e) => setDraftPhone(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && save(p.id)}
+                placeholder="+92 3xx xxxxxxx"
+                className="flex-1 rounded-[8px] border border-line bg-paper px-2 py-1 font-body text-[13px] text-ink outline-none"
               />
               <button onClick={() => save(p.id)} disabled={pending} className="rounded-full bg-primary px-3 py-1 font-body text-[12px] font-bold text-white disabled:opacity-50">Save</button>
               <button onClick={() => setEditing(null)} className="font-body text-[12px] text-ink-soft">Cancel</button>
@@ -272,8 +282,11 @@ function PeopleList({ people, showPlan }: { people: Person[]; showPlan?: boolean
           ) : (
             <>
               <div className="flex-1 min-w-0">
-                <span className="font-body text-[13.5px] font-semibold text-ink">{names[p.id] || "(no name)"}</span>
+                <span className="font-body text-[13.5px] font-semibold text-ink">{rows[p.id]?.name || "(no name)"}</span>
                 <span className="ml-2 font-body text-[11px] text-ink-soft">{p.role}</span>
+                {rows[p.id]?.phone && (
+                  <span className="ml-2 font-body text-[11px] text-ink-soft">· {rows[p.id].phone}</span>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {showPlan && (
@@ -288,7 +301,16 @@ function PeopleList({ people, showPlan }: { people: Person[]; showPlan?: boolean
                     <option value="premium">Premium</option>
                   </select>
                 )}
-                <button onClick={() => { setEditing(p.id); setDraftName(p.name ?? ""); }} className="font-body text-[12px] text-ink-soft hover:text-ink">Edit</button>
+                <button
+                  onClick={() => {
+                    setEditing(p.id);
+                    setDraftName(rows[p.id]?.name ?? "");
+                    setDraftPhone(rows[p.id]?.phone ?? "");
+                  }}
+                  className="font-body text-[12px] text-ink-soft hover:text-ink"
+                >
+                  Edit
+                </button>
               </div>
             </>
           )}
