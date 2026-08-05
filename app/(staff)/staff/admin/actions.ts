@@ -188,7 +188,8 @@ function getAdminClient(): any {
 export async function inviteStaff(
   email: string,
   role: string,
-  name: string
+  name: string,
+  phone?: string
 ): Promise<{ ok: boolean; error?: string }> {
   const { ok } = await requireAdmin();
   if (!ok) return { ok: false, error: "Admins only." };
@@ -207,10 +208,13 @@ export async function inviteStaff(
   });
   if (inviteErr) return { ok: false, error: inviteErr.message };
 
-  // Set role and name on the profile the trigger just created.
+  // Set role, name, and phone on the profile the trigger just created.
+  // inviteUserByEmail() only ever populates auth.users.email — unlike phone-OTP
+  // self-signup, there's no auth.users.phone for handle_new_user() to copy from,
+  // so it has to be written here instead.
   await adminClient
     .from("profiles")
-    .update({ role, full_name: name.trim() })
+    .update({ role, full_name: name.trim(), phone: phone?.trim() || null })
     .eq("id", data.user.id);
 
   revalidatePath("/staff/admin");

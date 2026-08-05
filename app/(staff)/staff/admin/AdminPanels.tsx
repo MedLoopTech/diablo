@@ -192,24 +192,28 @@ function InviteForm() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("doctor");
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
 
   const send = () =>
     start(async () => {
-      const r = await inviteStaff(email, role, name);
+      const r = await inviteStaff(email, role, name, phone);
       setMsg(r.ok ? `Invite sent to ${email}.` : r.error ?? "Failed.");
-      if (r.ok) { setEmail(""); setName(""); }
+      if (r.ok) { setEmail(""); setName(""); setPhone(""); }
     });
 
   return (
     <section>
       <h2 className="eyebrow mb-3">Invite staff member</h2>
       <div className="rounded-card border border-line bg-card p-4">
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-4">
           <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">Name
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Dr. Zainab Ali" className={field} />
           </label>
           <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">Email
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="zainab@clinic.pk" className={field} />
+          </label>
+          <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">Phone (optional)
+            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+92 300 …" className={field} />
           </label>
           <label className="flex flex-col gap-1 font-body text-[11px] text-ink-soft">Role
             <select value={role} onChange={(e) => setRole(e.target.value)} className={field}>
