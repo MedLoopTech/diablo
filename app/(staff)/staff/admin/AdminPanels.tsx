@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { AdminOverview, AdminCohort, Person, AppointmentStat, ReferralCodeRow, ReferralRow } from "@/lib/admin";
+import type { AdminOverview, AdminCohort, Person, AppointmentStat, ReferralCodeRow, ReferralRow, RewardType } from "@/lib/admin";
 import type { AutomationConfigRow } from "@/lib/automation";
 import type { PlanFlag } from "@/lib/plan";
 import { RESOURCE_LABELS, type ResourceType } from "@/lib/resources-shared";
@@ -742,26 +742,122 @@ const PAYMENT_METHODS = [
   { value: "other",         label: "Other" },
 ];
 
+const REWARD_TYPE_LABEL: Record<RewardType, string> = {
+  cash: "Cash payout",
+  consult: "Free consult",
+  resource: "Free resource",
+  plan_upgrade: "Plan upgrade",
+  voucher: "Partner voucher",
+};
+
+function RewardValueFields({
+  rewardType,
+  value,
+  onChange,
+}: {
+  rewardType: RewardType;
+  value: Record<string, string>;
+  onChange: (v: Record<string, string>) => void;
+}) {
+  const field2 = `${field} w-full text-[12px]`;
+  const set = (k: string, v: string) => onChange({ ...value, [k]: v });
+
+  if (rewardType === "cash") {
+    return (
+      <div className="flex flex-col gap-1">
+        <label className="font-body text-[11px] font-semibold uppercase tracking-wider text-ink-soft">Amount (PKR)</label>
+        <input type="number" value={value.amount_pkr ?? ""} onChange={(e) => set("amount_pkr", e.target.value)} placeholder="2000" className={field2} />
+      </div>
+    );
+  }
+  if (rewardType === "consult") {
+    return (
+      <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-col gap-1">
+          <label className="font-body text-[11px] font-semibold uppercase tracking-wider text-ink-soft">Role</label>
+          <select value={value.role ?? ""} onChange={(e) => set("role", e.target.value)} className={field2}>
+            <option value="">— Choose —</option>
+            <option value="doctor">Doctor</option>
+            <option value="nutritionist">Nutritionist</option>
+            <option value="coach">Coach</option>
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="font-body text-[11px] font-semibold uppercase tracking-wider text-ink-soft">Sessions</label>
+          <input type="number" value={value.sessions ?? "1"} onChange={(e) => set("sessions", e.target.value)} className={field2} />
+        </div>
+      </div>
+    );
+  }
+  if (rewardType === "plan_upgrade") {
+    return (
+      <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-col gap-1">
+          <label className="font-body text-[11px] font-semibold uppercase tracking-wider text-ink-soft">Tier</label>
+          <select value={value.tier ?? ""} onChange={(e) => set("tier", e.target.value)} className={field2}>
+            <option value="">— Choose —</option>
+            <option value="plus">Plus</option>
+            <option value="premium">Premium</option>
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="font-body text-[11px] font-semibold uppercase tracking-wider text-ink-soft">Duration (days)</label>
+          <input type="number" value={value.duration_days ?? "30"} onChange={(e) => set("duration_days", e.target.value)} className={field2} />
+        </div>
+      </div>
+    );
+  }
+  if (rewardType === "voucher") {
+    return (
+      <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-col gap-1">
+          <label className="font-body text-[11px] font-semibold uppercase tracking-wider text-ink-soft">Partner</label>
+          <input type="text" value={value.partner ?? ""} onChange={(e) => set("partner", e.target.value)} placeholder="City Lab" className={field2} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="font-body text-[11px] font-semibold uppercase tracking-wider text-ink-soft">Discount %</label>
+          <input type="number" value={value.discount_pct ?? ""} onChange={(e) => set("discount_pct", e.target.value)} placeholder="20" className={field2} />
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="font-body text-[11px] font-semibold uppercase tracking-wider text-ink-soft">Details</label>
+      <input type="text" value={value.note ?? ""} onChange={(e) => set("note", e.target.value)} placeholder="Free copy of the meal-plan guide" className={field2} />
+    </div>
+  );
+}
+
 function NewCodeForm({ staff }: { staff: Person[] }) {
   const [pending, startT] = useTransition();
   const [referrerId, setReferrerId] = useState("");
   const [partnerName, setPartnerName] = useState("");
   const [partnerContact, setPartnerContact] = useState("");
   const [notes, setNotes] = useState("");
+  const [rewardType, setRewardType] = useState<RewardType>("cash");
+  const [rewardValue, setRewardValue] = useState<Record<string, string>>({});
   const [result, setResult] = useState<string | null>(null);
 
   const submit = () =>
     startT(async () => {
+      const cleanedValue = Object.fromEntries(
+        Object.entries(rewardValue)
+          .filter(([, v]) => v !== "")
+          .map(([k, v]) => [k, /_pct$|_pkr$|sessions|duration_days/.test(k) ? Number(v) : v])
+      );
       const r = await createReferralCode(
         referrerId || null,
         partnerName.trim() || null,
         partnerContact.trim() || null,
         notes.trim() || null,
         null, null, null,
+        rewardType,
+        cleanedValue,
       );
       if (r.ok) {
         setResult(`Code created: ${r.code} — add payment info in the table below.`);
-        setReferrerId(""); setPartnerName(""); setPartnerContact(""); setNotes("");
+        setReferrerId(""); setPartnerName(""); setPartnerContact(""); setNotes(""); setRewardType("cash"); setRewardValue({});
       } else {
         setResult(r.error ?? "Failed.");
       }
@@ -793,6 +889,21 @@ function NewCodeForm({ staff }: { staff: Person[] }) {
         <div className="flex flex-col gap-1">
           <label className={L}>Notes</label>
           <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Clinic location, specialty…" className={`${field} w-full`} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className={L}>Reward type</label>
+          <select
+            value={rewardType}
+            onChange={(e) => { setRewardType(e.target.value as RewardType); setRewardValue({}); }}
+            className={`${field} w-full`}
+          >
+            {(Object.keys(REWARD_TYPE_LABEL) as RewardType[]).map((rt) => (
+              <option key={rt} value={rt}>{REWARD_TYPE_LABEL[rt]}</option>
+            ))}
+          </select>
+        </div>
+        <div className="col-span-2">
+          <RewardValueFields rewardType={rewardType} value={rewardValue} onChange={setRewardValue} />
         </div>
       </div>
       <div className="mt-3 flex items-center gap-3">
@@ -917,7 +1028,7 @@ function ReferralCodesTable({ codes }: { codes: ReferralCodeRow[] }) {
         <table className="w-full min-w-[860px] border-collapse">
           <thead className="border-b border-line bg-paper">
             <tr>
-              {["Code", "Partner", "Payment info", "Referred", "Converted (owed)", "Paid", "Status"].map((h) => (
+              {["Code", "Partner", "Reward", "Payment info", "Referred", "Converted (owed)", "Paid", "Status"].map((h) => (
                 <th key={h} className="px-4 py-2.5 text-left font-body text-[11px] uppercase tracking-wider text-ink-soft">{h}</th>
               ))}
             </tr>
@@ -932,6 +1043,11 @@ function ReferralCodesTable({ codes }: { codes: ReferralCodeRow[] }) {
                   <div className="font-semibold">{rc.referrer_name ?? rc.partner_name ?? "—"}</div>
                   {rc.partner_contact && <div className="text-[11px] text-ink-soft">{rc.partner_contact}</div>}
                   {rc.notes && <div className="text-[11px] text-ink-soft">{rc.notes}</div>}
+                </td>
+                <td className="px-4 py-3">
+                  <span className="rounded-full bg-sky/50 px-2.5 py-0.5 font-body text-[11px] font-semibold text-primary-deep">
+                    {REWARD_TYPE_LABEL[rc.reward_type]}
+                  </span>
                 </td>
                 <td className="px-4 py-3"><InlinePaymentEdit rc={rc} /></td>
                 <td className="px-4 py-3 font-body text-[13px]">
@@ -985,10 +1101,13 @@ function ReferralPayoutsTable({ referrals }: { referrals: ReferralRow[] }) {
     startT(async () => {
       const ids = Array.from(selected);
       const r = await markReferralsPaid(ids);
-      setMsg(r.ok ? `Marked ${selected.size} paid.` : r.error ?? "Failed.");
       if (r.ok) {
         const now = new Date().toISOString();
         setItems((prev) => prev.map((row) => selected.has(row.id) ? { ...row, status: "paid" as const, paid_at: now } : row));
+        const notes = r.fulfillments?.map((f) => f.note).join(" · ");
+        setMsg(notes ? `Marked ${selected.size} paid — ${notes}` : `Marked ${selected.size} paid.`);
+      } else {
+        setMsg(r.error ?? "Failed.");
       }
       setSelected(new Set());
     });

@@ -27,6 +27,8 @@ export type Template = {
 
 export type AppointmentStat = { role: string; label: string; total: number; upcoming: number; completed: number };
 
+export type RewardType = "cash" | "consult" | "resource" | "plan_upgrade" | "voucher";
+
 export type ReferralCodeRow = {
   id: string;
   code: string;
@@ -39,6 +41,8 @@ export type ReferralCodeRow = {
   account_number: string | null;
   is_active: boolean;
   notes: string | null;
+  reward_type: RewardType;
+  reward_value: Record<string, unknown>;
   referral_count: number;
   referred_count: number;
   converted_count: number;
@@ -163,7 +167,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
       supabase.from("plan_feature_flags").select("plan, feature_key, label, enabled, sort_order").order("sort_order").order("plan"),
       supabase.from("consult_bookings").select("status, consult_windows(staff_id, profiles:staff_id(role))"),
       supabase.from("automation_config").select("key, value, label, description, group_name, sort_order, updated_at").order("group_name").order("sort_order"),
-      supabase.from("referral_codes").select("id, code, referrer_id, partner_name, partner_contact, payment_method, account_title, account_number, is_active, notes").order("created_at", { ascending: false }),
+      supabase.from("referral_codes").select("id, code, referrer_id, partner_name, partner_contact, payment_method, account_title, account_number, is_active, notes, reward_type, reward_value").order("created_at", { ascending: false }),
       supabase.from("referrals").select("id, code, referrer_id, patient_id, enrolled_at, converted_at, payout_pkr, status, paid_at").order("enrolled_at", { ascending: false }),
     ]);
 
@@ -238,6 +242,8 @@ export async function getAdminOverview(): Promise<AdminOverview> {
       account_number: (rc.account_number as string) ?? null,
       is_active: rc.is_active as boolean,
       notes: (rc.notes as string) ?? null,
+      reward_type: (rc.reward_type as ReferralCodeRow["reward_type"]) ?? "cash",
+      reward_value: (rc.reward_value as Record<string, unknown>) ?? {},
       referral_count: stats.referred + stats.converted + stats.paid,
       referred_count: stats.referred,
       converted_count: stats.converted,

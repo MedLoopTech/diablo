@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 import { randomBytes } from "crypto";
+import type { RewardType } from "@/lib/admin";
 
 async function requireAdmin() {
   const supabase = createServerSupabase();
@@ -239,6 +240,8 @@ export async function createReferralCode(
   paymentMethod: string | null,
   accountTitle: string | null,
   accountNumber: string | null,
+  rewardType: RewardType = "cash",
+  rewardValue: Record<string, unknown> = {},
 ): Promise<{ ok: boolean; code?: string; error?: string }> {
   const { supabase, ok } = await requireAdmin();
   if (!ok) return { ok: false, error: "Admins only." };
@@ -255,6 +258,8 @@ export async function createReferralCode(
     payment_method: paymentMethod || null,
     account_title: accountTitle || null,
     account_number: accountNumber || null,
+    reward_type: rewardType,
+    reward_value: rewardValue,
   });
   if (error) return { ok: false, error: error.message };
 
@@ -288,18 +293,85 @@ export async function toggleReferralCode(id: string, isActive: boolean): Promise
   return { ok: true };
 }
 
-export async function markReferralsPaid(ids: string[]): Promise<{ ok: boolean; error?: string }> {
+function genVoucherCode(): string {
+  return `VCHR-${randomBytes(3).toString("hex").toUpperCase()}`;
+}
+
+export async function markReferralsPaid(
+  ids: string[]
+): Promise<{ ok: boolean; error?: string; fulfillments?: { referralId: string; note: string }[] }> {
   const { supabase, ok } = await requireAdmin();
   if (!ok) return { ok: false, error: "Admins only." };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
   // Only a converted referral can be paid — a "referred" row means the
   // patient signed up with the code but never actually enrolled.
-  const { error } = await supabase
+  const { data: rows, error: fetchError } = await supabase
     .from("referrals")
-    .update({ status: "paid", paid_at: new Date().toISOString() })
+    .select("id, code, patient_id, payout_pkr")
     .in("id", ids)
     .eq("status", "converted");
-  if (error) return { ok: false, error: error.message };
+  if (fetchError) return { ok: false, error: fetchError.message };
+  if (!rows || rows.length === 0) return { ok: true, fulfillments: [] };
+
+  const codes = Array.from(new Set(rows.map((r) => r.code)));
+  const { data: codeRows, error: codeError } = await supabase
+    .from("referral_codes")
+    .select("code, reward_type, reward_value")
+    .in("code", codes);
+  if (codeError) return { ok: false, error: codeError.message };
+  const codeMap = new Map((codeRows ?? []).map((c) => [c.code, c]));
+
+  const fulfillments: { referralId: string; note: string }[] = [];
+  const paidIds: string[] = [];
+  const fulfillmentRows: { referral_id: string; reward_type: RewardType; fulfilled_by: string; details: Record<string, unknown> }[] = [];
+
+  for (const r of rows) {
+    const rc = codeMap.get(r.code);
+    const rewardType = (rc?.reward_type as RewardType) ?? "cash";
+    const rewardValue = (rc?.reward_value as Record<string, unknown>) ?? {};
+
+    if (rewardType === "plan_upgrade") {
+      const tier = (rewardValue.tier as string) ?? "plus";
+      if (r.patient_id) {
+        const { error: planError } = await supabase.from("profiles").update({ plan: tier }).eq("id", r.patient_id);
+        if (planError) return { ok: false, error: planError.message };
+      }
+      fulfillmentRows.push({ referral_id: r.id, reward_type: rewardType, fulfilled_by: user.id, details: { tier } });
+      fulfillments.push({ referralId: r.id, note: `Plan upgraded to ${tier}` });
+    } else if (rewardType === "voucher") {
+      const voucherCode = genVoucherCode();
+      fulfillmentRows.push({
+        referral_id: r.id,
+        reward_type: rewardType,
+        fulfilled_by: user.id,
+        details: { voucher_code: voucherCode, partner: rewardValue.partner ?? null, discount_pct: rewardValue.discount_pct ?? null },
+      });
+      fulfillments.push({ referralId: r.id, note: `Voucher ${voucherCode}` });
+    } else if (rewardType === "consult" || rewardType === "resource") {
+      fulfillmentRows.push({ referral_id: r.id, reward_type: rewardType, fulfilled_by: user.id, details: rewardValue });
+      fulfillments.push({ referralId: r.id, note: rewardType === "consult" ? "Consult entitlement recorded — book manually" : "Resource entitlement recorded" });
+    } else {
+      fulfillmentRows.push({ referral_id: r.id, reward_type: "cash", fulfilled_by: user.id, details: { amount_pkr: r.payout_pkr } });
+      fulfillments.push({ referralId: r.id, note: `PKR ${r.payout_pkr} paid` });
+    }
+    paidIds.push(r.id);
+  }
+
+  const { error: updateError } = await supabase
+    .from("referrals")
+    .update({ status: "paid", paid_at: new Date().toISOString() })
+    .in("id", paidIds);
+  if (updateError) return { ok: false, error: updateError.message };
+
+  const { error: fulfillError } = await supabase.from("reward_fulfillments").insert(fulfillmentRows);
+  if (fulfillError) return { ok: false, error: fulfillError.message };
+
   revalidatePath("/staff/admin");
   revalidatePath("/staff/payouts");
-  return { ok: true };
+  return { ok: true, fulfillments };
 }

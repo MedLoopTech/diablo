@@ -34,10 +34,13 @@ export function PayoutsPanel({
     startT(async () => {
       const ids = Array.from(selected);
       const r = await markReferralsPaid(ids);
-      setMsg(r.ok ? `Marked ${selected.size} referral${selected.size !== 1 ? "s" : ""} as paid.` : r.error ?? "Failed.");
       if (r.ok) {
         const now = new Date().toISOString();
         setItems((prev) => prev.map((row) => selected.has(row.id) ? { ...row, status: "paid" as const, paid_at: now } : row));
+        const notes = r.fulfillments?.map((f) => f.note).join(" · ");
+        setMsg(notes ? `Marked ${selected.size} paid — ${notes}` : `Marked ${selected.size} referral${selected.size !== 1 ? "s" : ""} as paid.`);
+      } else {
+        setMsg(r.error ?? "Failed.");
       }
       setSelected(new Set());
     });
