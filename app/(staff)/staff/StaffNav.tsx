@@ -12,6 +12,7 @@ const ADMIN_SUBTABS = [
   { id: "templates",  label: "Templates" },
   { id: "automation", label: "Automation" },
   { id: "referrals",  label: "Referrals" },
+  { id: "settings",   label: "Settings" },
 ];
 
 const STAFF_NAV = [

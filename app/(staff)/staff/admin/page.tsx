@@ -5,7 +5,7 @@ import { getCurrentProfile } from "@/lib/profile";
 import { getAdminOverview } from "@/lib/admin";
 import { AdminPanels, type Tab } from "./AdminPanels";
 
-const VALID_TABS: Tab[] = ["cohorts", "staff", "patients", "plans", "resources", "templates", "automation", "referrals"];
+const VALID_TABS: Tab[] = ["cohorts", "staff", "patients", "plans", "resources", "templates", "automation", "referrals", "settings"];
 
 export default async function AdminPage({
   searchParams,

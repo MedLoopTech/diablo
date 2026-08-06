@@ -697,8 +697,9 @@ function ConfigRow({ row }: { row: AutomationConfigRow }) {
 }
 
 function AutomationTab({ rows }: { rows: AutomationConfigRow[] }) {
-  // Referral payout amount + platform currency are shown in the Referrals tab — exclude from here
-  const filteredRows = rows.filter((r) => r.key !== "referral_payout_pkr" && r.key !== "platform_currency");
+  // Platform-wide settings (currency, referral payout, app/guide URLs) live in
+  // the Settings tab — this tab is operational config only.
+  const filteredRows = rows.filter((r) => r.group_name !== "general");
 
   if (filteredRows.length === 0) {
     return (
@@ -713,7 +714,7 @@ function AutomationTab({ rows }: { rows: AutomationConfigRow[] }) {
     return acc;
   }, {});
 
-  const groupOrder = ["messages", "destinations", "thresholds", "general"];
+  const groupOrder = ["messages", "destinations", "thresholds"];
   const groups = groupOrder.filter((g) => byGroup[g] && byGroup[g].length > 0);
 
   return (
@@ -730,6 +731,38 @@ function AutomationTab({ rows }: { rows: AutomationConfigRow[] }) {
           </div>
         </section>
       ))}
+    </div>
+  );
+}
+
+// ─── Settings tab ───────────────────────────────────────────────────────────
+
+function SettingsTab({ rows }: { rows: AutomationConfigRow[] }) {
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-card border border-line bg-card p-4 font-body text-[13px] text-ink-soft">
+        Run migration 38 to enable platform settings.
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <section>
+        <h2 className="eyebrow mb-3">Platform</h2>
+        <p className="mb-3 font-body text-[12px] text-ink-soft">
+          Apply everywhere in the app — every payout, plan, and voucher amount, plus links used in
+          outgoing messages. The per-patient referral payout amount is set in Admin → Referrals instead,
+          since it&apos;s referral-specific.
+        </p>
+        <div className="rounded-card border border-line bg-card p-4">
+          <div className="flex flex-col gap-5">
+            {rows.map((row) => (
+              <ConfigRow key={row.key} row={row} />
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -1205,18 +1238,17 @@ function ReferralsTab({
   referrals,
   staff,
   payoutConfig,
-  currencyConfig,
+  currency,
 }: {
   codes: ReferralCodeRow[];
   referrals: ReferralRow[];
   staff: Person[];
   payoutConfig?: AutomationConfigRow;
-  currencyConfig?: AutomationConfigRow;
+  currency: string;
 }) {
   const totalReferred = codes.reduce((s, c) => s + c.referred_count, 0);
   const totalPending = codes.reduce((s, c) => s + c.converted_pkr, 0);
   const totalPaid = codes.reduce((s, c) => s + c.paid_pkr, 0);
-  const currency = currencyConfig?.value || "PKR";
 
   return (
     <div className="flex flex-col gap-6">
@@ -1243,19 +1275,18 @@ function ReferralsTab({
         </div>
       </div>
 
-      <section>
-        <h2 className="eyebrow mb-3">Currency & default cash payout</h2>
-        <p className="mb-3 font-body text-[12px] text-ink-soft">
-          These apply platform-wide. A code&apos;s own reward (set when you create it below) always wins —
-          the amount here is only the fallback for cash-reward codes that don&apos;t set their own.
-        </p>
-        <div className="rounded-card border border-line bg-card p-4">
-          <div className="flex flex-col gap-5 sm:flex-row sm:gap-8">
-            {currencyConfig && <ConfigRow row={currencyConfig} />}
-            {payoutConfig && <ConfigRow row={payoutConfig} />}
+      {payoutConfig && (
+        <section>
+          <h2 className="eyebrow mb-3">Default cash payout</h2>
+          <p className="mb-3 font-body text-[12px] text-ink-soft">
+            A code&apos;s own reward (set when you create it below) always wins — this is only the fallback
+            for cash-reward codes that don&apos;t set their own amount. Currency is set in Admin → Settings.
+          </p>
+          <div className="rounded-card border border-line bg-card p-4">
+            <ConfigRow row={payoutConfig} />
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <section>
         <h2 className="eyebrow mb-3">Referral codes</h2>
@@ -1277,11 +1308,12 @@ function ReferralsTab({
 
 // ─── Shell ────────────────────────────────────────────────────────────────────
 
-export type Tab = "cohorts" | "staff" | "patients" | "plans" | "resources" | "templates" | "automation" | "referrals";
+export type Tab = "cohorts" | "staff" | "patients" | "plans" | "resources" | "templates" | "automation" | "referrals" | "settings";
 
 export function AdminPanels({ overview, tab }: { overview: AdminOverview; tab: Tab }) {
   const payoutConfig = overview.automationConfig.find((r) => r.key === "referral_payout_pkr");
-  const currencyConfig = overview.automationConfig.find((r) => r.key === "platform_currency");
+  const currency = overview.automationConfig.find((r) => r.key === "platform_currency")?.value || "PKR";
+  const settingsRows = overview.automationConfig.filter((r) => r.group_name === "general" && r.key !== "referral_payout_pkr");
 
   return (
     <div className="flex flex-col gap-6">
@@ -1298,9 +1330,10 @@ export function AdminPanels({ overview, tab }: { overview: AdminOverview; tab: T
           referrals={overview.referrals}
           staff={overview.staff}
           payoutConfig={payoutConfig}
-          currencyConfig={currencyConfig}
+          currency={currency}
         />
       )}
+      {tab === "settings"   && <SettingsTab rows={settingsRows} />}
     </div>
   );
 }
