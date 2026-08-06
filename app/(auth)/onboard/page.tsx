@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { saveProfile, saveMedicalHistory, skipMedicalHistory, type PreExistingMed } from "./actions";
+import { REFERRAL_STORAGE_KEY } from "../login/ReferralCapture";
 
 const COMORBIDITY_OPTIONS = [
   "Hypertension",
@@ -34,12 +35,21 @@ export default function OnboardPage() {
   const [step2Error, setStep2Error] = useState<string | null>(null);
   const [pending2, start2] = useTransition();
 
+  // Carried from a doctor's shared WhatsApp link (/login?ref=CODE) via
+  // localStorage, since the code has nowhere to live through the OTP
+  // round-trip otherwise. Doesn't overwrite anything the patient already typed.
+  useEffect(() => {
+    const stored = localStorage.getItem(REFERRAL_STORAGE_KEY);
+    if (stored) setRefCode((current) => current || stored);
+  }, []);
+
   const submitStep1 = () => {
     if (!name.trim()) { setStep1Error("Your name is required."); return; }
     start1(async () => {
       const r = await saveProfile(name, phone, refCode.trim().toUpperCase() || undefined);
-      if (r && !r.ok) setStep1Error(r.error ?? "Something went wrong.");
-      else setStep(2);
+      if (r && !r.ok) { setStep1Error(r.error ?? "Something went wrong."); return; }
+      localStorage.removeItem(REFERRAL_STORAGE_KEY);
+      setStep(2);
     });
   };
 

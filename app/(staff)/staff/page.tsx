@@ -7,6 +7,7 @@ import { getOpenEscalations, getFlaggedReadings, getStaffAnalytics, getCoachAnal
 import { EscalationQueue } from "./EscalationQueue";
 import { CohortTrendChart } from "@/components/CohortTrendChart";
 import { FlaggedByPatient } from "@/components/FlaggedByPatient";
+import { ReferralShareButton } from "@/components/ReferralShareButton";
 
 function Kpi({ label, value, sub, tone = "ink" }: { label: string; value: string; sub?: string; tone?: "ink" | "coral" | "primary" }) {
   const color = tone === "coral" ? "text-coral" : tone === "primary" ? "text-primary-deep" : "text-ink";
@@ -177,9 +178,9 @@ export default async function StaffHome() {
                   · PKR {myCode.paid_pkr.toLocaleString()} paid
                 </div>
               </div>
-              <div className="flex flex-col gap-1.5 text-[12px] text-ink-soft">
+              <div className="flex flex-col items-start gap-2 text-[12px] text-ink-soft">
                 <div className="font-semibold text-ink">Earn PKR 2,000 per patient</div>
-                <div>Share via WhatsApp or SMS.</div>
+                <ReferralShareButton code={myCode.code} />
                 <div>Payouts every Friday.</div>
               </div>
             </div>

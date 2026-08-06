@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { useTranslations } from "next-intl";
 import { LoginForm } from "./LoginForm";
+import { ReferralCapture } from "./ReferralCapture";
 import { demoModeEnabled } from "@/lib/env";
 
 export const metadata: Metadata = {
@@ -35,6 +37,10 @@ export default function LoginPage({
           {t("subtitle")}
         </p>
       </div>
+
+      <Suspense fallback={null}>
+        <ReferralCapture />
+      </Suspense>
 
       <LoginForm showGoogle={!isStaffPortal} />
 
