@@ -20,6 +20,7 @@ const STAFF_NAV = [
   { href: "/staff/consults",        label: "Consults" },
   { href: "/staff/escalations",     label: "Escalations" },
   { href: "/staff/announcements",   label: "Announcements" },
+  { href: "/staff/referrals",       label: "Referrals" },
   { href: "/staff/weekly-review",   label: "Weekly Review", roles: ["doctor", "admin"] },
 ];
 

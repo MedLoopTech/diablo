@@ -606,10 +606,21 @@ export async function getWeeklyReviewData(weekStart: string): Promise<PatientRev
   }));
 }
 
-/** A referred patient not yet enrolled in a cohort — a follow-up target, not a payout. */
+/** One referred patient at any funnel stage, with enough detail to act on. */
+export type ReferralFunnelRow = {
+  patientId: string;
+  name: string | null;
+  phone: string | null;
+  status: "referred" | "converted" | "paid";
+  referredAt: string | null;
+  convertedAt: string | null;
+  payoutPkr: number;
+};
+
+/** Referred patients not yet enrolled — a follow-up target, not a payout. Kept for the dashboard teaser. */
 export type ReferralFollowUp = { patientId: string; name: string | null; phone: string | null; referredAt: string | null };
 
-/** Returns the current staff member's own referral code + funnel stats, or null if none assigned. */
+/** Returns the current staff member's own referral code + full funnel, or null if none assigned. */
 export async function getMyReferralCode(): Promise<{
   code: string;
   referral_count: number;
@@ -618,6 +629,7 @@ export async function getMyReferralCode(): Promise<{
   pending_pkr: number;
   paid_pkr: number;
   followUps: ReferralFollowUp[];
+  rows: ReferralFunnelRow[];
 } | null> {
   const supabase = createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
@@ -634,42 +646,50 @@ export async function getMyReferralCode(): Promise<{
 
   const { data: refs } = await supabase
     .from("referrals")
-    .select("patient_id, payout_pkr, status, enrolled_at")
-    .eq("code", rc.code as string);
+    .select("patient_id, payout_pkr, status, enrolled_at, converted_at")
+    .eq("code", rc.code as string)
+    .order("enrolled_at", { ascending: false });
 
-  const referred = (refs ?? []).filter((r) => r.status === "referred");
-  const converted = (refs ?? []).filter((r) => r.status === "converted");
-  const paid = (refs ?? []).filter((r) => r.status === "paid");
+  const all = refs ?? [];
+  const referred = all.filter((r) => r.status === "referred");
+  const converted = all.filter((r) => r.status === "converted");
+  const paid = all.filter((r) => r.status === "paid");
 
   // Only a converted-but-unpaid referral is money actually owed.
   const pendingPkr = converted.reduce((s, r) => s + ((r.payout_pkr as number) ?? 0), 0);
   const paidPkr = paid.reduce((s, r) => s + ((r.payout_pkr as number) ?? 0), 0);
 
-  let followUps: ReferralFollowUp[] = [];
-  if (referred.length > 0) {
-    const ids = referred.map((r) => r.patient_id as string).filter(Boolean);
-    const { data: profiles } = ids.length
-      ? await supabase.from("profiles").select("id, full_name, phone").in("id", ids)
-      : { data: [] };
-    const byId = new Map((profiles ?? []).map((p) => [p.id as string, p]));
-    followUps = referred.map((r) => {
-      const p = byId.get(r.patient_id as string);
-      return {
-        patientId: r.patient_id as string,
-        name: (p?.full_name as string) ?? null,
-        phone: (p?.phone as string) ?? null,
-        referredAt: (r.enrolled_at as string) ?? null,
-      };
-    });
-  }
+  const ids = all.map((r) => r.patient_id as string).filter(Boolean);
+  const { data: profiles } = ids.length
+    ? await supabase.from("profiles").select("id, full_name, phone").in("id", ids)
+    : { data: [] };
+  const byId = new Map((profiles ?? []).map((p) => [p.id as string, p]));
+
+  const rows: ReferralFunnelRow[] = all.map((r) => {
+    const p = byId.get(r.patient_id as string);
+    return {
+      patientId: r.patient_id as string,
+      name: (p?.full_name as string) ?? null,
+      phone: (p?.phone as string) ?? null,
+      status: r.status as ReferralFunnelRow["status"],
+      referredAt: (r.enrolled_at as string) ?? null,
+      convertedAt: (r.converted_at as string) ?? null,
+      payoutPkr: (r.payout_pkr as number) ?? 0,
+    };
+  });
+
+  const followUps: ReferralFollowUp[] = rows
+    .filter((r) => r.status === "referred")
+    .map((r) => ({ patientId: r.patientId, name: r.name, phone: r.phone, referredAt: r.referredAt }));
 
   return {
     code: rc.code as string,
-    referral_count: (refs ?? []).length,
+    referral_count: all.length,
     referred_count: referred.length,
     converted_count: converted.length + paid.length,
     pending_pkr: pendingPkr,
     paid_pkr: paidPkr,
     followUps,
+    rows,
   };
 }

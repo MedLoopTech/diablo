@@ -7,7 +7,6 @@ import { getOpenEscalations, getFlaggedReadings, getStaffAnalytics, getCoachAnal
 import { EscalationQueue } from "./EscalationQueue";
 import { CohortTrendChart } from "@/components/CohortTrendChart";
 import { FlaggedByPatient } from "@/components/FlaggedByPatient";
-import { ReferralShareButton } from "@/components/ReferralShareButton";
 
 function Kpi({ label, value, sub, tone = "ink" }: { label: string; value: string; sub?: string; tone?: "ink" | "coral" | "primary" }) {
   const color = tone === "coral" ? "text-coral" : tone === "primary" ? "text-primary-deep" : "text-ink";
@@ -161,52 +160,28 @@ export default async function StaffHome() {
         <FlaggedByPatient flagged={flagged} />
       </section>
 
-      {/* Referral code widget — only shown if admin has assigned a code */}
+      {/* Referral teaser — full funnel + follow-up actions live on /staff/referrals */}
       {myCode && (
         <section>
-          <h2 className="eyebrow mb-3">Your referral code</h2>
-          <div className="rounded-card border border-line bg-card p-5">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <div className="font-body text-[11px] uppercase tracking-wider text-ink-soft">Share this code with patients</div>
-                <div className="mt-1 font-mono text-[22px] font-bold tracking-widest text-primary">{myCode.code}</div>
-                <div className="mt-1.5 font-body text-[12px] text-ink-soft">
-                  {myCode.converted_count} converted ·{" "}
-                  {myCode.referred_count > 0 && (
-                    <span className="font-semibold text-primary-deep">{myCode.referred_count} awaiting conversion · </span>
-                  )}
-                  {myCode.pending_pkr > 0
-                    ? <span className="font-semibold text-amber-600">PKR {myCode.pending_pkr.toLocaleString()} pending</span>
-                    : "no pending payout"}{" "}
-                  · PKR {myCode.paid_pkr.toLocaleString()} paid
-                </div>
-              </div>
-              <div className="flex flex-col items-start gap-2 text-[12px] text-ink-soft">
-                <div className="font-semibold text-ink">Earn PKR 2,000 per patient</div>
-                <ReferralShareButton code={myCode.code} />
-                <div>Paid once they&apos;re enrolled, every Friday.</div>
+          <Link
+            href="/staff/referrals"
+            className="flex items-center justify-between gap-4 rounded-card border border-line bg-card p-5 hover:border-primary"
+          >
+            <div>
+              <div className="font-body text-[11px] uppercase tracking-wider text-ink-soft">Your referral code</div>
+              <div className="mt-1 font-mono text-[18px] font-bold tracking-widest text-primary">{myCode.code}</div>
+              <div className="mt-1.5 font-body text-[12px] text-ink-soft">
+                {myCode.referred_count > 0 && (
+                  <span className="font-semibold text-primary-deep">{myCode.referred_count} awaiting conversion · </span>
+                )}
+                {myCode.pending_pkr > 0
+                  ? <span className="font-semibold text-amber-600">PKR {myCode.pending_pkr.toLocaleString()} pending</span>
+                  : "no pending payout"}{" "}
+                · PKR {myCode.paid_pkr.toLocaleString()} paid
               </div>
             </div>
-
-            {myCode.followUps.length > 0 && (
-              <div className="mt-4 border-t border-line pt-4">
-                <div className="font-body text-[11px] uppercase tracking-wider text-ink-soft">
-                  Follow up — signed up but not yet enrolled
-                </div>
-                <div className="mt-2 flex flex-col gap-1.5">
-                  {myCode.followUps.map((f) => (
-                    <div key={f.patientId} className="flex items-center justify-between gap-3 font-body text-[13px]">
-                      <span className="font-semibold text-ink">{f.name ?? "Unnamed patient"}</span>
-                      <span className="text-ink-soft">
-                        {f.phone ?? "no phone on file"}
-                        {f.referredAt ? ` · ${new Date(f.referredAt).toLocaleDateString("en-PK")}` : ""}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+            <span className="shrink-0 font-body text-[13px] font-semibold text-primary-deep">View referrals →</span>
+          </Link>
         </section>
       )}
     </div>
