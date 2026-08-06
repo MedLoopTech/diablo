@@ -5,6 +5,8 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 import { randomBytes } from "crypto";
 import type { RewardType } from "@/lib/admin";
+import { formatMoney } from "@/lib/currency";
+import { getPlatformCurrency } from "@/lib/currency-server";
 
 async function requireAdmin() {
   const supabase = createServerSupabase();
@@ -319,10 +321,10 @@ export async function markReferralsPaid(
   if (!rows || rows.length === 0) return { ok: true, fulfillments: [] };
 
   const codes = Array.from(new Set(rows.map((r) => r.code)));
-  const { data: codeRows, error: codeError } = await supabase
-    .from("referral_codes")
-    .select("code, reward_type, reward_value")
-    .in("code", codes);
+  const [{ data: codeRows, error: codeError }, currency] = await Promise.all([
+    supabase.from("referral_codes").select("code, reward_type, reward_value").in("code", codes),
+    getPlatformCurrency(supabase),
+  ]);
   if (codeError) return { ok: false, error: codeError.message };
   const codeMap = new Map((codeRows ?? []).map((c) => [c.code, c]));
 
@@ -357,7 +359,7 @@ export async function markReferralsPaid(
       fulfillments.push({ referralId: r.id, note: rewardType === "consult" ? "Consult entitlement recorded — book manually" : "Resource entitlement recorded" });
     } else {
       fulfillmentRows.push({ referral_id: r.id, reward_type: "cash", fulfilled_by: user.id, details: { amount_pkr: r.payout_pkr } });
-      fulfillments.push({ referralId: r.id, note: `PKR ${r.payout_pkr} paid` });
+      fulfillments.push({ referralId: r.id, note: `${formatMoney(r.payout_pkr, currency)} paid` });
     }
     paidIds.push(r.id);
   }

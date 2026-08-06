@@ -1,6 +1,8 @@
 import { getMyReferralCode, type ReferralFunnelRow } from "@/lib/staff";
 import { ReferralShareButton } from "@/components/ReferralShareButton";
 import { ReferralFollowUpButton } from "@/components/ReferralFollowUpButton";
+import { formatMoney } from "@/lib/currency";
+import { getPlatformCurrencyServer } from "@/lib/currency-server";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +14,7 @@ const STATUS_LABEL: Record<ReferralFunnelRow["status"], { label: string; cls: st
   paid: { label: "Paid", cls: "bg-mint text-primary-deep" },
 };
 
-function Row({ r }: { r: ReferralFunnelRow }) {
+function Row({ r, currency }: { r: ReferralFunnelRow; currency: string }) {
   const status = STATUS_LABEL[r.status];
   const date = r.status === "referred" ? r.referredAt : r.convertedAt;
   return (
@@ -21,7 +23,7 @@ function Row({ r }: { r: ReferralFunnelRow }) {
         <div className="font-body text-[13.5px] font-semibold text-ink">{r.name ?? "Unnamed patient"}</div>
         <div className="font-body text-[11.5px] text-ink-soft">
           {date ? new Date(date).toLocaleDateString("en-PK") : "—"}
-          {r.status !== "referred" && ` · PKR ${r.payoutPkr.toLocaleString()}`}
+          {r.status !== "referred" && ` · ${formatMoney(r.payoutPkr, currency)}`}
         </div>
       </div>
       <span className={`shrink-0 rounded-full px-2.5 py-1 font-body text-[11px] font-semibold ${status.cls}`}>
@@ -37,7 +39,7 @@ function Row({ r }: { r: ReferralFunnelRow }) {
 }
 
 export default async function ReferralsPage() {
-  const myCode = await getMyReferralCode();
+  const [myCode, currency] = await Promise.all([getMyReferralCode(), getPlatformCurrencyServer()]);
 
   if (!myCode) {
     return (
@@ -79,11 +81,11 @@ export default async function ReferralsPage() {
             <div className="font-body text-[11.5px] text-ink-soft">Awaiting conversion</div>
           </div>
           <div>
-            <div className="font-display text-[22px] font-semibold text-amber-600">PKR {myCode.pending_pkr.toLocaleString()}</div>
+            <div className="font-display text-[22px] font-semibold text-amber-600">{formatMoney(myCode.pending_pkr, currency)}</div>
             <div className="font-body text-[11.5px] text-ink-soft">Owed · {converted.length} converted</div>
           </div>
           <div>
-            <div className="font-display text-[22px] font-semibold text-primary-deep">PKR {myCode.paid_pkr.toLocaleString()}</div>
+            <div className="font-display text-[22px] font-semibold text-primary-deep">{formatMoney(myCode.paid_pkr, currency)}</div>
             <div className="font-body text-[11.5px] text-ink-soft">Paid · {paid.length} referrals</div>
           </div>
         </div>
@@ -99,7 +101,7 @@ export default async function ReferralsPage() {
             <section>
               <h2 className="eyebrow mb-2">Awaiting conversion — follow up</h2>
               <div className="flex flex-col gap-2">
-                {referred.map((r) => <Row key={r.patientId} r={r} />)}
+                {referred.map((r) => <Row key={r.patientId} r={r} currency={currency} />)}
               </div>
             </section>
           )}
@@ -107,7 +109,7 @@ export default async function ReferralsPage() {
             <section>
               <h2 className="eyebrow mb-2">Converted, awaiting payout</h2>
               <div className="flex flex-col gap-2">
-                {converted.map((r) => <Row key={r.patientId} r={r} />)}
+                {converted.map((r) => <Row key={r.patientId} r={r} currency={currency} />)}
               </div>
             </section>
           )}
@@ -115,7 +117,7 @@ export default async function ReferralsPage() {
             <section>
               <h2 className="eyebrow mb-2">Paid</h2>
               <div className="flex flex-col gap-2">
-                {paid.map((r) => <Row key={r.patientId} r={r} />)}
+                {paid.map((r) => <Row key={r.patientId} r={r} currency={currency} />)}
               </div>
             </section>
           )}

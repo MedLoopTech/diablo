@@ -3,13 +3,31 @@
 import { useState, useTransition } from "react";
 import { markReferralsPaid } from "@/app/(staff)/staff/admin/actions";
 import type { ReferralRow } from "@/lib/admin";
+import { formatMoney } from "@/lib/currency";
+
+const REWARD_TYPE_LABEL: Record<ReferralRow["reward_type"], string> = {
+  cash: "Cash",
+  consult: "Free consult",
+  resource: "Free resource",
+  plan_upgrade: "Plan upgrade",
+  voucher: "Voucher",
+};
+
+function AmountCell({ r, currency }: { r: ReferralRow; currency: string }) {
+  if (r.reward_type !== "cash") {
+    return <span className="font-body text-[12px] font-semibold text-primary-deep">{REWARD_TYPE_LABEL[r.reward_type]}</span>;
+  }
+  return <span className="font-semibold">{formatMoney(r.payout_pkr, currency)}</span>;
+}
 
 export function PayoutsPanel({
   referrals,
   payoutPkr,
+  currency,
 }: {
   referrals: ReferralRow[];
   payoutPkr: number;
+  currency: string;
 }) {
   const [items, setItems] = useState(referrals);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -64,18 +82,18 @@ export function PayoutsPanel({
         <div className="rounded-card border border-line bg-card p-4">
           <div className="eyebrow">Ready to pay</div>
           <div className="mt-1 font-display text-[24px] font-semibold text-amber-600">{convertedRows.length}</div>
-          <div className="mt-0.5 font-body text-[11.5px] text-ink-soft">PKR {pendingTotal.toLocaleString()}</div>
+          <div className="mt-0.5 font-body text-[11.5px] text-ink-soft">{formatMoney(pendingTotal, currency)}</div>
         </div>
         <div className="rounded-card border border-line bg-card p-4">
-          <div className="eyebrow">Payout per patient</div>
-          <div className="mt-1 font-display text-[24px] font-semibold text-primary-deep">PKR {payoutPkr.toLocaleString()}</div>
+          <div className="eyebrow">Default cash payout</div>
+          <div className="mt-1 font-display text-[24px] font-semibold text-primary-deep">{formatMoney(payoutPkr, currency)}</div>
           <div className="mt-0.5 font-body text-[11px] text-ink-soft">
-            Change in Admin → Automation
+            Change in Admin → Referrals. Codes with their own amount, or a non-cash reward, override this.
           </div>
         </div>
         <div className="rounded-card border border-line bg-card p-4">
           <div className="eyebrow">Paid (all time)</div>
-          <div className="mt-1 font-display text-[24px] font-semibold text-primary-deep">PKR {paidTotal.toLocaleString()}</div>
+          <div className="mt-1 font-display text-[24px] font-semibold text-primary-deep">{formatMoney(paidTotal, currency)}</div>
           <div className="mt-0.5 font-body text-[11.5px] text-ink-soft">{paidRows.length} referrals</div>
         </div>
       </div>
@@ -186,7 +204,7 @@ export function PayoutsPanel({
                       {r.converted_at ? new Date(r.converted_at).toLocaleDateString("en-PK") : "—"}
                     </td>
                     <td className={TD}>
-                      <span className="font-semibold">PKR {r.payout_pkr.toLocaleString()}</span>
+                      <AmountCell r={r} currency={currency} />
                     </td>
                   </tr>
                 ))}
@@ -223,7 +241,7 @@ export function PayoutsPanel({
                     <td className={TD + " text-ink-soft"}>
                       {r.enrolled_at ? new Date(r.enrolled_at).toLocaleDateString("en-PK") : "—"}
                     </td>
-                    <td className={TD}>PKR {r.payout_pkr.toLocaleString()}</td>
+                    <td className={TD}><AmountCell r={r} currency={currency} /></td>
                     <td className={TD}>
                       <span className="rounded-full bg-mint px-2 py-0.5 font-body text-[11px] font-semibold text-primary-deep">
                         {r.paid_at ? new Date(r.paid_at).toLocaleDateString("en-PK") : "—"}

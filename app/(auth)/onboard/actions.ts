@@ -21,19 +21,32 @@ export async function saveProfile(
   if (referralCode) {
     const { data: rc } = await supabase
       .from("referral_codes")
-      .select("code, referrer_id")
+      .select("code, referrer_id, reward_type, reward_value")
       .eq("code", referralCode)
       .eq("is_active", true)
       .maybeSingle();
 
     if (!rc) return { ok: false, error: `Referral code "${referralCode}" not found or inactive.` };
 
-    const { data: cfg } = await supabase
-      .from("automation_config")
-      .select("value")
-      .eq("key", "referral_payout_pkr")
-      .maybeSingle();
-    const payoutPkr = cfg ? parseInt(cfg.value as string, 10) || 2000 : 2000;
+    // Only cash-reward codes owe a PKR amount — and a code's own amount (if
+    // the admin set one) wins over the program-wide default. Non-cash codes
+    // (consult/resource/plan_upgrade/voucher) carry their reward in
+    // reward_value, fulfilled per-type on conversion, not as a cash payout.
+    let payoutPkr = 0;
+    const rewardType = (rc.reward_type as string) ?? "cash";
+    if (rewardType === "cash") {
+      const codeAmount = (rc.reward_value as Record<string, unknown> | null)?.amount_pkr;
+      if (typeof codeAmount === "number") {
+        payoutPkr = codeAmount;
+      } else {
+        const { data: cfg } = await supabase
+          .from("automation_config")
+          .select("value")
+          .eq("key", "referral_payout_pkr")
+          .maybeSingle();
+        payoutPkr = cfg ? parseInt(cfg.value as string, 10) || 2000 : 2000;
+      }
+    }
 
     await supabase.from("referrals").insert({
       code: rc.code,

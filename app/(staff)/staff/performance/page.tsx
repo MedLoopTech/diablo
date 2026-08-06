@@ -1,6 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import { getStaffPerformance } from "@/lib/admin";
+import { formatMoney } from "@/lib/currency";
+import { getPlatformCurrencyServer } from "@/lib/currency-server";
 
 const ROLE_LABEL: Record<string, string> = { doctor: "Doctor", nutritionist: "Nutritionist", coach: "Coach" };
 
@@ -8,7 +10,7 @@ const TH = "px-4 py-2.5 text-left font-body text-[11px] uppercase tracking-wider
 const TD = "px-4 py-3 font-body text-[13px] text-ink align-middle";
 
 export default async function PerformancePage() {
-  const { rows, totalPatients } = await getStaffPerformance();
+  const [{ rows, totalPatients }, currency] = await Promise.all([getStaffPerformance(), getPlatformCurrencyServer()]);
 
   const totals = rows.reduce(
     (acc, r) => ({
@@ -40,7 +42,7 @@ export default async function PerformancePage() {
           { label: "Total patients", value: totalPatients },
           { label: "Consults completed", value: totals.consults },
           { label: "Referrals made", value: totals.referrals },
-          { label: "Pending payouts", value: `PKR ${totals.pending.toLocaleString()}` },
+          { label: "Pending payouts", value: formatMoney(totals.pending, currency) },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-card border border-line bg-card p-4">
             <div className="eyebrow">{label}</div>
@@ -84,12 +86,12 @@ export default async function PerformancePage() {
                     <td className={TD}>{r.referralCount > 0 ? r.referralCount : <span className="text-ink-soft">—</span>}</td>
                     <td className={TD}>
                       {r.pendingPkr > 0
-                        ? <span className="font-semibold text-amber-600">PKR {r.pendingPkr.toLocaleString()}</span>
+                        ? <span className="font-semibold text-amber-600">{formatMoney(r.pendingPkr, currency)}</span>
                         : <span className="text-ink-soft">—</span>}
                     </td>
                     <td className={TD}>
                       {r.paidPkr > 0
-                        ? <span className="text-primary-deep">PKR {r.paidPkr.toLocaleString()}</span>
+                        ? <span className="text-primary-deep">{formatMoney(r.paidPkr, currency)}</span>
                         : <span className="text-ink-soft">—</span>}
                     </td>
                   </tr>

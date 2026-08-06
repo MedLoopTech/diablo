@@ -59,6 +59,7 @@ export type ReferralRow = {
   enrolled_at: string | null;
   converted_at: string | null;
   payout_pkr: number;
+  reward_type: RewardType;
   status: "referred" | "converted" | "paid";
   paid_at: string | null;
 };
@@ -253,6 +254,8 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     };
   });
 
+  const rewardTypeByCode = new Map((refCodes ?? []).map((rc) => [rc.code as string, (rc.reward_type as RewardType) ?? "cash"]));
+
   const referrals: ReferralRow[] = (refRows ?? []).map((r) => ({
     id: r.id as string,
     code: r.code as string,
@@ -261,6 +264,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     converted_at: (r.converted_at as string) ?? null,
     enrolled_at: (r.enrolled_at as string) ?? null,
     payout_pkr: (r.payout_pkr as number) ?? 2000,
+    reward_type: rewardTypeByCode.get(r.code as string) ?? "cash",
     status: r.status as ReferralRow["status"],
     paid_at: (r.paid_at as string) ?? null,
   }));

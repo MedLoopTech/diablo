@@ -4,6 +4,8 @@ import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { getCurrentProfile } from "@/lib/profile";
 import { getOpenEscalations, getFlaggedReadings, getStaffAnalytics, getCoachAnalytics, getMyReferralCode } from "@/lib/staff";
+import { formatMoney } from "@/lib/currency";
+import { getPlatformCurrencyServer } from "@/lib/currency-server";
 import { EscalationQueue } from "./EscalationQueue";
 import { CohortTrendChart } from "@/components/CohortTrendChart";
 import { FlaggedByPatient } from "@/components/FlaggedByPatient";
@@ -83,11 +85,12 @@ export default async function StaffHome() {
     return <CoachDashboard firstName={firstName} />;
   }
 
-  const [a, escalations, flagged, myCode] = await Promise.all([
+  const [a, escalations, flagged, myCode, currency] = await Promise.all([
     getStaffAnalytics(),
     getOpenEscalations(),
     getFlaggedReadings(),
     getMyReferralCode(),
+    getPlatformCurrencyServer(),
   ]);
 
   return (
@@ -175,9 +178,9 @@ export default async function StaffHome() {
                   <span className="font-semibold text-primary-deep">{myCode.referred_count} awaiting conversion · </span>
                 )}
                 {myCode.pending_pkr > 0
-                  ? <span className="font-semibold text-amber-600">PKR {myCode.pending_pkr.toLocaleString()} pending</span>
+                  ? <span className="font-semibold text-amber-600">{formatMoney(myCode.pending_pkr, currency)} pending</span>
                   : "no pending payout"}{" "}
-                · PKR {myCode.paid_pkr.toLocaleString()} paid
+                · {formatMoney(myCode.paid_pkr, currency)} paid
               </div>
             </div>
             <span className="shrink-0 font-body text-[13px] font-semibold text-primary-deep">View referrals →</span>

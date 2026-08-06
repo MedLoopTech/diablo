@@ -7,7 +7,7 @@ import { PayoutsPanel } from "./PayoutsPanel";
 export default async function PayoutsPage() {
   const supabase = createServerSupabase();
 
-  const [{ data: refRows }, { data: cfg }] = await Promise.all([
+  const [{ data: refRows }, { data: cfg }, { data: currencyCfg }, { data: codeRows }] = await Promise.all([
     supabase
       .from("referrals")
       .select("id, code, referrer_id, patient_id, enrolled_at, converted_at, payout_pkr, status, paid_at")
@@ -17,7 +17,15 @@ export default async function PayoutsPage() {
       .select("value")
       .eq("key", "referral_payout_pkr")
       .maybeSingle(),
+    supabase
+      .from("automation_config")
+      .select("value")
+      .eq("key", "platform_currency")
+      .maybeSingle(),
+    supabase.from("referral_codes").select("code, reward_type"),
   ]);
+
+  const rewardTypeByCode = new Map((codeRows ?? []).map((c) => [c.code as string, (c.reward_type as string) ?? "cash"]));
 
   // Resolve names for referrers and patients
   const seen = new Set<string>();
@@ -40,11 +48,13 @@ export default async function PayoutsPage() {
     enrolled_at: (r.enrolled_at as string) ?? null,
     converted_at: (r.converted_at as string) ?? null,
     payout_pkr: (r.payout_pkr as number) ?? 2000,
+    reward_type: (rewardTypeByCode.get(r.code as string) as ReferralRow["reward_type"]) ?? "cash",
     status: r.status as ReferralRow["status"],
     paid_at: (r.paid_at as string) ?? null,
   }));
 
   const payoutPkr = cfg ? parseInt(cfg.value as string, 10) || 2000 : 2000;
+  const currency = (currencyCfg?.value as string) || "PKR";
 
   return (
     <div className="flex flex-col gap-6">
@@ -54,7 +64,7 @@ export default async function PayoutsPage() {
           Referral partner payouts — mark weekly transfers as paid every Friday.
         </p>
       </div>
-      <PayoutsPanel referrals={referrals} payoutPkr={payoutPkr} />
+      <PayoutsPanel referrals={referrals} payoutPkr={payoutPkr} currency={currency} />
     </div>
   );
 }

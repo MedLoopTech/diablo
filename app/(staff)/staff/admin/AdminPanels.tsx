@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import type { AdminOverview, AdminCohort, Person, AppointmentStat, ReferralCodeRow, ReferralRow, RewardType } from "@/lib/admin";
 import type { AutomationConfigRow } from "@/lib/automation";
+import { formatMoney } from "@/lib/currency";
 import type { PlanFlag } from "@/lib/plan";
 import { RESOURCE_LABELS, type ResourceType } from "@/lib/resources-shared";
 import { createCohort, assignPod, enrollPatient, setCohortStatus, createResource, toggleResource, inviteStaff, updatePerson, setPatientPlan, togglePlanFeature, setTemplatePhotoMode, saveAutomationConfig, createReferralCode, toggleReferralCode, markReferralsPaid, saveReferralCodePayment } from "./actions";
@@ -696,8 +697,8 @@ function ConfigRow({ row }: { row: AutomationConfigRow }) {
 }
 
 function AutomationTab({ rows }: { rows: AutomationConfigRow[] }) {
-  // Referral payout amount is shown in the Referrals tab — exclude from here
-  const filteredRows = rows.filter((r) => r.key !== "referral_payout_pkr");
+  // Referral payout amount + platform currency are shown in the Referrals tab — exclude from here
+  const filteredRows = rows.filter((r) => r.key !== "referral_payout_pkr" && r.key !== "platform_currency");
 
   if (filteredRows.length === 0) {
     return (
@@ -754,10 +755,12 @@ function RewardValueFields({
   rewardType,
   value,
   onChange,
+  currency,
 }: {
   rewardType: RewardType;
   value: Record<string, string>;
   onChange: (v: Record<string, string>) => void;
+  currency: string;
 }) {
   const field2 = `${field} w-full text-[12px]`;
   const set = (k: string, v: string) => onChange({ ...value, [k]: v });
@@ -765,8 +768,9 @@ function RewardValueFields({
   if (rewardType === "cash") {
     return (
       <div className="flex flex-col gap-1">
-        <label className="font-body text-[11px] font-semibold uppercase tracking-wider text-ink-soft">Amount (PKR)</label>
+        <label className="font-body text-[11px] font-semibold uppercase tracking-wider text-ink-soft">Amount ({currency})</label>
         <input type="number" value={value.amount_pkr ?? ""} onChange={(e) => set("amount_pkr", e.target.value)} placeholder="2000" className={field2} />
+        <span className="font-body text-[10.5px] text-ink-soft">Leave blank to use the default cash payout amount.</span>
       </div>
     );
   }
@@ -829,7 +833,7 @@ function RewardValueFields({
   );
 }
 
-function NewCodeForm({ staff }: { staff: Person[] }) {
+function NewCodeForm({ staff, currency }: { staff: Person[]; currency: string }) {
   const [pending, startT] = useTransition();
   const [referrerId, setReferrerId] = useState("");
   const [partnerName, setPartnerName] = useState("");
@@ -903,7 +907,7 @@ function NewCodeForm({ staff }: { staff: Person[] }) {
           </select>
         </div>
         <div className="col-span-2">
-          <RewardValueFields rewardType={rewardType} value={rewardValue} onChange={setRewardValue} />
+          <RewardValueFields rewardType={rewardType} value={rewardValue} onChange={setRewardValue} currency={currency} />
         </div>
       </div>
       <div className="mt-3 flex items-center gap-3">
@@ -997,7 +1001,7 @@ function InlinePaymentEdit({ rc }: { rc: ReferralCodeRow }) {
   );
 }
 
-function ReferralCodesTable({ codes }: { codes: ReferralCodeRow[] }) {
+function ReferralCodesTable({ codes, currency }: { codes: ReferralCodeRow[]; currency: string }) {
   const [pending, startT] = useTransition();
   const [items, setItems] = useState(codes);
 
@@ -1014,7 +1018,7 @@ function ReferralCodesTable({ codes }: { codes: ReferralCodeRow[] }) {
         <div className="mb-3 flex flex-col gap-2 sm:flex-row">
           {pendingTotal > 0 && (
             <div className="flex-1 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-2.5 font-body text-[13px] text-amber-800">
-              PKR {pendingTotal.toLocaleString()} pending across all partners this cycle.
+              {formatMoney(pendingTotal, currency)} pending across all partners this cycle.
             </div>
           )}
           {referredTotal > 0 && (
@@ -1057,11 +1061,11 @@ function ReferralCodesTable({ codes }: { codes: ReferralCodeRow[] }) {
                 </td>
                 <td className="px-4 py-3 font-body text-[13px]">
                   {rc.converted_count > 0
-                    ? <span className="font-semibold text-amber-600">PKR {rc.converted_pkr.toLocaleString()} ({rc.converted_count})</span>
+                    ? <span className="font-semibold text-amber-600">{formatMoney(rc.converted_pkr, currency)} ({rc.converted_count})</span>
                     : <span className="text-ink-soft">—</span>}
                 </td>
                 <td className="px-4 py-3 font-body text-[13px] text-primary-deep">
-                  {rc.paid_count > 0 ? `PKR ${rc.paid_pkr.toLocaleString()} (${rc.paid_count})` : "—"}
+                  {rc.paid_count > 0 ? `${formatMoney(rc.paid_pkr, currency)} (${rc.paid_count})` : "—"}
                 </td>
                 <td className="px-4 py-3">
                   <button
@@ -1084,7 +1088,7 @@ function ReferralCodesTable({ codes }: { codes: ReferralCodeRow[] }) {
   );
 }
 
-function ReferralPayoutsTable({ referrals }: { referrals: ReferralRow[] }) {
+function ReferralPayoutsTable({ referrals, currency }: { referrals: ReferralRow[]; currency: string }) {
   const [items, setItems] = useState(referrals);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, startT] = useTransition();
@@ -1176,7 +1180,9 @@ function ReferralPayoutsTable({ referrals }: { referrals: ReferralRow[] }) {
                 <td className="px-4 py-3 font-body text-[12px] text-ink-soft">
                   {r.converted_at ? new Date(r.converted_at).toLocaleDateString("en-PK") : "—"}
                 </td>
-                <td className="px-4 py-3 font-body text-[13px] font-semibold text-ink">PKR {r.payout_pkr.toLocaleString()}</td>
+                <td className="px-4 py-3 font-body text-[13px] font-semibold text-ink">
+                  {r.reward_type === "cash" ? formatMoney(r.payout_pkr, currency) : REWARD_TYPE_LABEL[r.reward_type]}
+                </td>
                 <td className="px-4 py-3">
                   <span className={`rounded-full px-2 py-0.5 font-body text-[11px] font-semibold ${STATUS_BADGE[r.status].cls}`}>
                     {STATUS_BADGE[r.status].label}{r.status === "paid" && r.paid_at ? ` ${new Date(r.paid_at).toLocaleDateString("en-PK")}` : ""}
@@ -1199,16 +1205,18 @@ function ReferralsTab({
   referrals,
   staff,
   payoutConfig,
+  currencyConfig,
 }: {
   codes: ReferralCodeRow[];
   referrals: ReferralRow[];
   staff: Person[];
   payoutConfig?: AutomationConfigRow;
+  currencyConfig?: AutomationConfigRow;
 }) {
   const totalReferred = codes.reduce((s, c) => s + c.referred_count, 0);
   const totalPending = codes.reduce((s, c) => s + c.converted_pkr, 0);
   const totalPaid = codes.reduce((s, c) => s + c.paid_pkr, 0);
-  const payoutPkr = payoutConfig ? parseInt(payoutConfig.value, 10) || 2000 : 2000;
+  const currency = currencyConfig?.value || "PKR";
 
   return (
     <div className="flex flex-col gap-6">
@@ -1226,39 +1234,34 @@ function ReferralsTab({
           <div className="mt-0.5 font-body text-[12px] text-ink-soft">Awaiting conversion</div>
         </div>
         <div className="rounded-card border border-line bg-card p-4 text-center">
-          <div className="font-display text-2xl font-semibold text-amber-600">PKR {totalPending.toLocaleString()}</div>
+          <div className="font-display text-2xl font-semibold text-amber-600">{formatMoney(totalPending, currency)}</div>
           <div className="mt-0.5 font-body text-[12px] text-ink-soft">Pending payouts</div>
         </div>
         <div className="rounded-card border border-line bg-card p-4 text-center">
-          <div className="font-display text-2xl font-semibold text-primary-deep">PKR {totalPaid.toLocaleString()}</div>
+          <div className="font-display text-2xl font-semibold text-primary-deep">{formatMoney(totalPaid, currency)}</div>
           <div className="mt-0.5 font-body text-[12px] text-ink-soft">Paid out (all time)</div>
         </div>
       </div>
 
       <section>
-        <h2 className="eyebrow mb-3">Payout settings</h2>
+        <h2 className="eyebrow mb-3">Currency & default cash payout</h2>
+        <p className="mb-3 font-body text-[12px] text-ink-soft">
+          These apply platform-wide. A code&apos;s own reward (set when you create it below) always wins —
+          the amount here is only the fallback for cash-reward codes that don&apos;t set their own.
+        </p>
         <div className="rounded-card border border-line bg-card p-4">
-          {payoutConfig ? (
-            <ConfigRow row={payoutConfig} />
-          ) : (
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <div className="font-body text-[13px] font-semibold text-ink">Payout per patient</div>
-                <div className="mt-0.5 font-body text-[12px] text-ink-soft">Amount paid to a referring partner per enrolled patient.</div>
-              </div>
-              <div className="font-display text-[22px] font-semibold text-primary-deep">
-                PKR {payoutPkr.toLocaleString()}
-              </div>
-            </div>
-          )}
+          <div className="flex flex-col gap-5 sm:flex-row sm:gap-8">
+            {currencyConfig && <ConfigRow row={currencyConfig} />}
+            {payoutConfig && <ConfigRow row={payoutConfig} />}
+          </div>
         </div>
       </section>
 
       <section>
         <h2 className="eyebrow mb-3">Referral codes</h2>
         <div className="flex flex-col gap-3">
-          <NewCodeForm staff={staff} />
-          <ReferralCodesTable codes={codes} />
+          <NewCodeForm staff={staff} currency={currency} />
+          <ReferralCodesTable codes={codes} currency={currency} />
         </div>
       </section>
 
@@ -1266,7 +1269,7 @@ function ReferralsTab({
         <h2 className="eyebrow mb-3">Payout ledger</h2>
         {referrals.length === 0
           ? <div className="rounded-card border border-line bg-card p-4 font-body text-[13px] text-ink-soft">No referrals recorded yet.</div>
-          : <ReferralPayoutsTable referrals={referrals} />}
+          : <ReferralPayoutsTable referrals={referrals} currency={currency} />}
       </section>
     </div>
   );
@@ -1278,6 +1281,7 @@ export type Tab = "cohorts" | "staff" | "patients" | "plans" | "resources" | "te
 
 export function AdminPanels({ overview, tab }: { overview: AdminOverview; tab: Tab }) {
   const payoutConfig = overview.automationConfig.find((r) => r.key === "referral_payout_pkr");
+  const currencyConfig = overview.automationConfig.find((r) => r.key === "platform_currency");
 
   return (
     <div className="flex flex-col gap-6">
@@ -1294,6 +1298,7 @@ export function AdminPanels({ overview, tab }: { overview: AdminOverview; tab: T
           referrals={overview.referrals}
           staff={overview.staff}
           payoutConfig={payoutConfig}
+          currencyConfig={currencyConfig}
         />
       )}
     </div>
