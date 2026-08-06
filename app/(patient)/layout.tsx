@@ -3,6 +3,7 @@ import { LocaleToggle } from "@/components/LocaleToggle";
 import { NotificationBell } from "@/components/NotificationBell";
 import { PushSubscriber } from "@/components/PushSubscriber";
 import { SignOutButton } from "@/components/SignOutButton";
+import { InstallAppButton } from "@/components/InstallAppButton";
 import { getNotifications } from "@/lib/notifications";
 
 export default async function PatientLayout({
@@ -20,6 +21,7 @@ export default async function PatientLayout({
         </span>
         <div className="flex items-center gap-2">
           <LocaleToggle />
+          <InstallAppButton />
           <NotificationBell
             items={notifications.items}
             unread={notifications.unread}

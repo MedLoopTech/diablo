@@ -3,6 +3,7 @@ import { getCurrentProfile } from "@/lib/profile";
 import { getNotifications } from "@/lib/notifications";
 import { SignOutButton } from "@/components/SignOutButton";
 import { NotificationBell } from "@/components/NotificationBell";
+import { InstallAppButton } from "@/components/InstallAppButton";
 import { StaffNav } from "./StaffNav";
 
 export default async function StaffLayout({
@@ -48,6 +49,7 @@ export default async function StaffLayout({
             Loop<span className="text-marigold">/90</span>
           </span>
           <div className="ml-auto flex items-center gap-3">
+            <InstallAppButton />
             <NotificationBell items={items} unread={unread} tone="light" />
             <SignOutButton label="Sign out" />
           </div>

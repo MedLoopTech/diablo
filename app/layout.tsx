@@ -38,6 +38,10 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Loop/90",
   },
+  icons: {
+    icon: [{ url: "/favicon-32.png", sizes: "32x32", type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
   formatDetection: { telephone: false },
   openGraph: {
     title: "Loop/90 — Diabetes Remission Challenge",
