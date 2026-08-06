@@ -3,22 +3,42 @@
 // prompt were showing broken icons.
 //
 // Usage:
-//   node scripts/generate-icons.mjs                  draws the built-in loop+/90 mark
-//   node scripts/generate-icons.mjs path/to/your.svg  rasterizes your own SVG instead
+//   node scripts/generate-icons.mjs                          draws the built-in loop+/90 mark
+//   node scripts/generate-icons.mjs path/to/your.svg-or-png-or-jpg   rasterizes your own art instead
+//   node scripts/generate-icons.mjs path/to/your.svg recolor  ...and (SVG only) recolors a
+//                                                              single-fill silhouette (e.g. a
+//                                                              potrace trace, all-black
+//                                                              fill="#000000") to the brand
+//                                                              marigold, for contrast against
+//                                                              the dark green background.
 //
-// A custom SVG is used as-is at every required size — square source art
+// A custom source is used as-is at every required size — square source art
 // works best, since each output (icon-512, icon-192, apple-touch-icon,
-// favicon) is just your SVG resized, not re-composed. Any transparent
-// background is filled with the brand background color rather than left
-// see-through, since store/OS install surfaces expect an opaque icon.
+// favicon) is just your image resized/cropped to a square, not re-composed.
+// Any transparent background (SVG/PNG) is filled with the brand background
+// color rather than left see-through, since store/OS install surfaces
+// expect an opaque icon; a JPEG or an already-opaque PNG is unaffected.
 import sharp from "sharp";
 import { readFileSync, writeFileSync } from "node:fs";
+import { extname } from "node:path";
 
 const BG = "#0C4A39"; // primary-deep
 const FG = "#EFA63C"; // marigold
 
-const customSvgPath = process.argv[2];
-const customSvg = customSvgPath ? readFileSync(customSvgPath) : null;
+const customPath = process.argv[2];
+const shouldRecolor = process.argv[3] === "recolor";
+const isSvg = customPath && extname(customPath).toLowerCase() === ".svg";
+
+let customSvg = null; // recolor only makes sense for SVG's text-based fill attributes
+if (customPath && isSvg) {
+  let svgText = readFileSync(customPath, "utf8");
+  if (shouldRecolor) svgText = svgText.replace(/fill="#000000"/gi, `fill="${FG}"`);
+  customSvg = Buffer.from(svgText);
+}
+// Raster (PNG/JPEG/etc.) is read as raw bytes — reading it as text like SVG
+// would corrupt binary image data.
+const customRaster = customPath && !isSvg ? readFileSync(customPath) : null;
+const customSource = customSvg ?? customRaster;
 
 // The infinity glyph (the "Loop") — two overlapping circles rather than the
 // ∞ text glyph, so it renders identically regardless of which fonts the
@@ -62,8 +82,8 @@ function faviconSvg(size) {
 // SVG was passed on the command line, that file resized to `size` with a
 // flattened (opaque) background.
 async function make(size, path, builtInSvg) {
-  const image = customSvg
-    ? sharp(customSvg).resize(size, size).flatten({ background: BG })
+  const image = customSource
+    ? sharp(customSource).resize(size, size).flatten({ background: BG })
     : sharp(Buffer.from(builtInSvg));
   await image.png().toFile(path);
   console.log("wrote", path);
@@ -76,8 +96,8 @@ await make(32, "public/favicon-32.png", faviconSvg(32));
 
 // public/favicon.ico — sharp can't write .ico directly; a 32x32 PNG served
 // as favicon.ico works in every modern browser.
-const faviconBuffer = customSvg
-  ? await sharp(customSvg).resize(32, 32).flatten({ background: BG }).png().toBuffer()
+const faviconBuffer = customSource
+  ? await sharp(customSource).resize(32, 32).flatten({ background: BG }).png().toBuffer()
   : await sharp(Buffer.from(faviconSvg(32))).png().toBuffer();
 writeFileSync("public/favicon.ico", faviconBuffer);
-console.log(customSvg ? `done (from ${customSvgPath})` : "done");
+console.log(customSource ? `done (from ${customPath})` : "done");
