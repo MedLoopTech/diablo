@@ -16,17 +16,18 @@ export function PayoutsPanel({
   const [pending, startT] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
 
-  const pendingRows = items.filter((r) => r.payout_status === "pending");
-  const paidRows = items.filter((r) => r.payout_status === "paid");
+  const referredRows = items.filter((r) => r.status === "referred");
+  const convertedRows = items.filter((r) => r.status === "converted");
+  const paidRows = items.filter((r) => r.status === "paid");
 
-  const pendingTotal = pendingRows.reduce((s, r) => s + r.payout_pkr, 0);
+  const pendingTotal = convertedRows.reduce((s, r) => s + r.payout_pkr, 0);
   const paidTotal = paidRows.reduce((s, r) => s + r.payout_pkr, 0);
 
   const toggleAll = () =>
     setSelected(
-      selected.size === pendingRows.length
+      selected.size === convertedRows.length
         ? new Set()
-        : new Set(pendingRows.map((r) => r.id))
+        : new Set(convertedRows.map((r) => r.id))
     );
 
   const markPaid = () =>
@@ -36,7 +37,7 @@ export function PayoutsPanel({
       setMsg(r.ok ? `Marked ${selected.size} referral${selected.size !== 1 ? "s" : ""} as paid.` : r.error ?? "Failed.");
       if (r.ok) {
         const now = new Date().toISOString();
-        setItems((prev) => prev.map((row) => selected.has(row.id) ? { ...row, payout_status: "paid" as const, paid_at: now } : row));
+        setItems((prev) => prev.map((row) => selected.has(row.id) ? { ...row, status: "paid" as const, paid_at: now } : row));
       }
       setSelected(new Set());
     });
@@ -47,14 +48,19 @@ export function PayoutsPanel({
   return (
     <div className="flex flex-col gap-8">
       {/* Summary */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <div className="rounded-card border border-line bg-card p-4">
           <div className="eyebrow">Total referrals</div>
           <div className="mt-1 font-display text-[24px] font-semibold text-ink">{items.length}</div>
         </div>
         <div className="rounded-card border border-line bg-card p-4">
-          <div className="eyebrow">Pending</div>
-          <div className="mt-1 font-display text-[24px] font-semibold text-amber-600">{pendingRows.length}</div>
+          <div className="eyebrow">Awaiting conversion</div>
+          <div className="mt-1 font-display text-[24px] font-semibold text-primary-deep">{referredRows.length}</div>
+          <div className="mt-0.5 font-body text-[11.5px] text-ink-soft">signed up, not enrolled</div>
+        </div>
+        <div className="rounded-card border border-line bg-card p-4">
+          <div className="eyebrow">Ready to pay</div>
+          <div className="mt-1 font-display text-[24px] font-semibold text-amber-600">{convertedRows.length}</div>
           <div className="mt-0.5 font-body text-[11.5px] text-ink-soft">PKR {pendingTotal.toLocaleString()}</div>
         </div>
         <div className="rounded-card border border-line bg-card p-4">
@@ -71,14 +77,56 @@ export function PayoutsPanel({
         </div>
       </div>
 
-      {/* Pending payouts */}
+      {/* Awaiting conversion — follow-up list, nothing owed yet */}
+      <section>
+        <h2 className="eyebrow mb-3">Awaiting conversion</h2>
+        {referredRows.length === 0 ? (
+          <div className="rounded-card border border-line bg-card p-5 font-body text-[13px] text-ink-soft">
+            Nothing waiting — every referral has either converted or hasn&apos;t signed up yet.
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-card border border-line bg-card">
+            <table className="w-full min-w-[480px] border-collapse">
+              <thead className="border-b border-line bg-paper">
+                <tr>
+                  <th className={TH}>Code</th>
+                  <th className={TH}>Referrer</th>
+                  <th className={TH}>Patient</th>
+                  <th className={TH}>Signed up</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {referredRows.map((r) => (
+                  <tr key={r.id} className="hover:bg-paper/60">
+                    <td className={TD}>
+                      <span className="rounded-full bg-sky/60 px-2 py-0.5 font-mono text-[11px] font-bold text-primary-deep">
+                        {r.code}
+                      </span>
+                    </td>
+                    <td className={TD}>{r.referrer_name ?? "—"}</td>
+                    <td className={TD}>{r.patient_name ?? "—"}</td>
+                    <td className={TD + " text-ink-soft"}>
+                      {r.enrolled_at ? new Date(r.enrolled_at).toLocaleDateString("en-PK") : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="mt-2 font-body text-[11.5px] text-ink-soft">
+          Follow up to get these enrolled in a cohort — no payout is owed until then.
+        </p>
+      </section>
+
+      {/* Ready to pay — converted, not yet paid */}
       <section>
         <div className="mb-3 flex items-center justify-between gap-4">
-          <h2 className="eyebrow">Pending payouts</h2>
-          {pendingRows.length > 0 && (
+          <h2 className="eyebrow">Ready to pay</h2>
+          {convertedRows.length > 0 && (
             <div className="flex items-center gap-3">
               <button onClick={toggleAll} className="font-body text-[12px] text-primary underline">
-                {selected.size === pendingRows.length ? "Deselect all" : "Select all"}
+                {selected.size === convertedRows.length ? "Deselect all" : "Select all"}
               </button>
               <button
                 onClick={markPaid}
@@ -92,9 +140,9 @@ export function PayoutsPanel({
           )}
         </div>
 
-        {pendingRows.length === 0 ? (
+        {convertedRows.length === 0 ? (
           <div className="rounded-card border border-line bg-card p-5 font-body text-[13px] text-ink-soft">
-            No pending payouts. All referrals are settled.
+            No payouts ready. All converted referrals are settled.
           </div>
         ) : (
           <div className="overflow-x-auto rounded-card border border-line bg-card">
@@ -105,12 +153,12 @@ export function PayoutsPanel({
                   <th className={TH}>Code</th>
                   <th className={TH}>Referrer</th>
                   <th className={TH}>Patient</th>
-                  <th className={TH}>Enrolled</th>
+                  <th className={TH}>Converted</th>
                   <th className={TH}>Amount</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {pendingRows.map((r) => (
+                {convertedRows.map((r) => (
                   <tr key={r.id} className={`hover:bg-paper/60 ${selected.has(r.id) ? "bg-mint/30" : ""}`}>
                     <td className="px-4 py-3">
                       <input
@@ -132,7 +180,7 @@ export function PayoutsPanel({
                     <td className={TD}>{r.referrer_name ?? "—"}</td>
                     <td className={TD}>{r.patient_name ?? "—"}</td>
                     <td className={TD + " text-ink-soft"}>
-                      {r.enrolled_at ? new Date(r.enrolled_at).toLocaleDateString("en-PK") : "—"}
+                      {r.converted_at ? new Date(r.converted_at).toLocaleDateString("en-PK") : "—"}
                     </td>
                     <td className={TD}>
                       <span className="font-semibold">PKR {r.payout_pkr.toLocaleString()}</span>

@@ -40,8 +40,9 @@ export type ReferralCodeRow = {
   is_active: boolean;
   notes: string | null;
   referral_count: number;
-  pending_count: number;
-  pending_pkr: number;
+  referred_count: number;
+  converted_count: number;
+  converted_pkr: number;
   paid_count: number;
   paid_pkr: number;
 };
@@ -52,8 +53,9 @@ export type ReferralRow = {
   referrer_name: string | null;
   patient_name: string | null;
   enrolled_at: string | null;
+  converted_at: string | null;
   payout_pkr: number;
-  payout_status: string;
+  status: "referred" | "converted" | "paid";
   paid_at: string | null;
 };
 
@@ -91,7 +93,7 @@ export async function getStaffPerformance(): Promise<{ rows: StaffPerfRow[]; tot
       supabase.from("care_pods").select("cohort_id, doctor_id, nutritionist_id, coach_id"),
       supabase.from("cohort_members").select("cohort_id"),
       supabase.from("consult_bookings").select("status, slot_time, consult_windows(staff_id)"),
-      supabase.from("referrals").select("referrer_id, payout_pkr, payout_status"),
+      supabase.from("referrals").select("referrer_id, payout_pkr, status"),
       supabase.from("cohort_members").select("patient_id", { count: "exact", head: true }),
     ]);
 
@@ -118,7 +120,8 @@ export async function getStaffPerformance(): Promise<{ rows: StaffPerfRow[]; tot
     else if ((b as unknown as { slot_time: string }).slot_time > now) upcomingByStaff.set(staffId, (upcomingByStaff.get(staffId) ?? 0) + 1);
   }
 
-  // Referral stats per staff
+  // Referral stats per staff. Only "converted" referrals count toward the
+  // pending payout total — a "referred" row hasn't earned anything yet.
   const refCount = new Map<string, number>();
   const pendingPkr = new Map<string, number>();
   const paidPkr = new Map<string, number>();
@@ -126,8 +129,9 @@ export async function getStaffPerformance(): Promise<{ rows: StaffPerfRow[]; tot
     const rid = r.referrer_id as string;
     if (!rid) continue;
     refCount.set(rid, (refCount.get(rid) ?? 0) + 1);
-    if ((r.payout_status as string) === "paid") paidPkr.set(rid, (paidPkr.get(rid) ?? 0) + ((r.payout_pkr as number) ?? 0));
-    else pendingPkr.set(rid, (pendingPkr.get(rid) ?? 0) + ((r.payout_pkr as number) ?? 0));
+    const status = r.status as string;
+    if (status === "paid") paidPkr.set(rid, (paidPkr.get(rid) ?? 0) + ((r.payout_pkr as number) ?? 0));
+    else if (status === "converted") pendingPkr.set(rid, (pendingPkr.get(rid) ?? 0) + ((r.payout_pkr as number) ?? 0));
   }
 
   const rows = (staff ?? []).map((s) => ({
@@ -160,7 +164,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
       supabase.from("consult_bookings").select("status, consult_windows(staff_id, profiles:staff_id(role))"),
       supabase.from("automation_config").select("key, value, label, description, group_name, sort_order, updated_at").order("group_name").order("sort_order"),
       supabase.from("referral_codes").select("id, code, referrer_id, partner_name, partner_contact, payment_method, account_title, account_number, is_active, notes").order("created_at", { ascending: false }),
-      supabase.from("referrals").select("id, code, referrer_id, patient_id, enrolled_at, payout_pkr, payout_status, paid_at").order("enrolled_at", { ascending: false }),
+      supabase.from("referrals").select("id, code, referrer_id, patient_id, enrolled_at, converted_at, payout_pkr, status, paid_at").order("enrolled_at", { ascending: false }),
     ]);
 
   const nameOf = new Map((profiles ?? []).map((p) => [p.id as string, p.full_name as string | null]));
@@ -207,17 +211,21 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     role, label: roleLabel[role] ?? role, ...s,
   }));
 
-  // Build referral code rows with aggregated stats
-  const refsByCode = new Map<string, { pending: number; paid: number; pending_pkr: number; paid_pkr: number }>();
+  // Build referral code rows with aggregated stats — a "referred" row is a
+  // signup that hasn't converted (enrolled in a cohort) yet, so it's a
+  // follow-up target, not money owed.
+  const refsByCode = new Map<string, { referred: number; converted: number; paid: number; converted_pkr: number; paid_pkr: number }>();
   for (const r of refRows ?? []) {
     const code = r.code as string;
-    const cur = refsByCode.get(code) ?? { pending: 0, paid: 0, pending_pkr: 0, paid_pkr: 0 };
-    if ((r.payout_status as string) === "paid") { cur.paid += 1; cur.paid_pkr += (r.payout_pkr as number) ?? 0; }
-    else { cur.pending += 1; cur.pending_pkr += (r.payout_pkr as number) ?? 0; }
+    const cur = refsByCode.get(code) ?? { referred: 0, converted: 0, paid: 0, converted_pkr: 0, paid_pkr: 0 };
+    const status = r.status as string;
+    if (status === "paid") { cur.paid += 1; cur.paid_pkr += (r.payout_pkr as number) ?? 0; }
+    else if (status === "converted") { cur.converted += 1; cur.converted_pkr += (r.payout_pkr as number) ?? 0; }
+    else { cur.referred += 1; }
     refsByCode.set(code, cur);
   }
   const referralCodes: ReferralCodeRow[] = (refCodes ?? []).map((rc) => {
-    const stats = refsByCode.get(rc.code as string) ?? { pending: 0, paid: 0, pending_pkr: 0, paid_pkr: 0 };
+    const stats = refsByCode.get(rc.code as string) ?? { referred: 0, converted: 0, paid: 0, converted_pkr: 0, paid_pkr: 0 };
     return {
       id: rc.id as string,
       code: rc.code as string,
@@ -230,9 +238,10 @@ export async function getAdminOverview(): Promise<AdminOverview> {
       account_number: (rc.account_number as string) ?? null,
       is_active: rc.is_active as boolean,
       notes: (rc.notes as string) ?? null,
-      referral_count: stats.pending + stats.paid,
-      pending_count: stats.pending,
-      pending_pkr: stats.pending_pkr,
+      referral_count: stats.referred + stats.converted + stats.paid,
+      referred_count: stats.referred,
+      converted_count: stats.converted,
+      converted_pkr: stats.converted_pkr,
       paid_count: stats.paid,
       paid_pkr: stats.paid_pkr,
     };
@@ -243,9 +252,10 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     code: r.code as string,
     referrer_name: r.referrer_id ? (nameOf.get(r.referrer_id as string) ?? null) : null,
     patient_name: r.patient_id ? (nameOf.get(r.patient_id as string) ?? null) : null,
+    converted_at: (r.converted_at as string) ?? null,
     enrolled_at: (r.enrolled_at as string) ?? null,
     payout_pkr: (r.payout_pkr as number) ?? 2000,
-    payout_status: r.payout_status as string,
+    status: r.status as ReferralRow["status"],
     paid_at: (r.paid_at as string) ?? null,
   }));
 

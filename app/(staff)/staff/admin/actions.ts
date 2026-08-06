@@ -291,11 +291,15 @@ export async function toggleReferralCode(id: string, isActive: boolean): Promise
 export async function markReferralsPaid(ids: string[]): Promise<{ ok: boolean; error?: string }> {
   const { supabase, ok } = await requireAdmin();
   if (!ok) return { ok: false, error: "Admins only." };
+  // Only a converted referral can be paid — a "referred" row means the
+  // patient signed up with the code but never actually enrolled.
   const { error } = await supabase
     .from("referrals")
-    .update({ payout_status: "paid", paid_at: new Date().toISOString() })
-    .in("id", ids);
+    .update({ status: "paid", paid_at: new Date().toISOString() })
+    .in("id", ids)
+    .eq("status", "converted");
   if (error) return { ok: false, error: error.message };
   revalidatePath("/staff/admin");
+  revalidatePath("/staff/payouts");
   return { ok: true };
 }

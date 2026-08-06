@@ -10,7 +10,7 @@ export default async function PayoutsPage() {
   const [{ data: refRows }, { data: cfg }] = await Promise.all([
     supabase
       .from("referrals")
-      .select("id, code, referrer_id, patient_id, enrolled_at, payout_pkr, payout_status, paid_at")
+      .select("id, code, referrer_id, patient_id, enrolled_at, converted_at, payout_pkr, status, paid_at")
       .order("enrolled_at", { ascending: false }),
     supabase
       .from("automation_config")
@@ -38,8 +38,9 @@ export default async function PayoutsPage() {
     referrer_name: r.referrer_id ? (nameOf.get(r.referrer_id as string) ?? null) : null,
     patient_name: r.patient_id ? (nameOf.get(r.patient_id as string) ?? null) : null,
     enrolled_at: (r.enrolled_at as string) ?? null,
+    converted_at: (r.converted_at as string) ?? null,
     payout_pkr: (r.payout_pkr as number) ?? 2000,
-    payout_status: r.payout_status as string,
+    status: r.status as ReferralRow["status"],
     paid_at: (r.paid_at as string) ?? null,
   }));
 

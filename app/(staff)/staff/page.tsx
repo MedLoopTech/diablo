@@ -171,7 +171,10 @@ export default async function StaffHome() {
                 <div className="font-body text-[11px] uppercase tracking-wider text-ink-soft">Share this code with patients</div>
                 <div className="mt-1 font-mono text-[22px] font-bold tracking-widest text-primary">{myCode.code}</div>
                 <div className="mt-1.5 font-body text-[12px] text-ink-soft">
-                  {myCode.referral_count} patient{myCode.referral_count !== 1 ? "s" : ""} referred ·{" "}
+                  {myCode.converted_count} converted ·{" "}
+                  {myCode.referred_count > 0 && (
+                    <span className="font-semibold text-primary-deep">{myCode.referred_count} awaiting conversion · </span>
+                  )}
                   {myCode.pending_pkr > 0
                     ? <span className="font-semibold text-amber-600">PKR {myCode.pending_pkr.toLocaleString()} pending</span>
                     : "no pending payout"}{" "}
@@ -181,9 +184,28 @@ export default async function StaffHome() {
               <div className="flex flex-col items-start gap-2 text-[12px] text-ink-soft">
                 <div className="font-semibold text-ink">Earn PKR 2,000 per patient</div>
                 <ReferralShareButton code={myCode.code} />
-                <div>Payouts every Friday.</div>
+                <div>Paid once they&apos;re enrolled, every Friday.</div>
               </div>
             </div>
+
+            {myCode.followUps.length > 0 && (
+              <div className="mt-4 border-t border-line pt-4">
+                <div className="font-body text-[11px] uppercase tracking-wider text-ink-soft">
+                  Follow up — signed up but not yet enrolled
+                </div>
+                <div className="mt-2 flex flex-col gap-1.5">
+                  {myCode.followUps.map((f) => (
+                    <div key={f.patientId} className="flex items-center justify-between gap-3 font-body text-[13px]">
+                      <span className="font-semibold text-ink">{f.name ?? "Unnamed patient"}</span>
+                      <span className="text-ink-soft">
+                        {f.phone ?? "no phone on file"}
+                        {f.referredAt ? ` · ${new Date(f.referredAt).toLocaleDateString("en-PK")}` : ""}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </section>
       )}

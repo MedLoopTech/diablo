@@ -443,15 +443,18 @@ async function seed() {
   }).select("code").single();
 
   if (ayeshaCode && externalCode) {
-    // 3 referrals: 1 paid (Imran referred 30d ago), 2 pending (Nadia 28d ago, Bilal by external 25d ago)
+    // 3 referrals, all already enrolled in the cohort above so all are at
+    // least "converted": 1 paid (Imran, 30d ago), 2 converted/awaiting
+    // payout (Nadia, Bilal by external).
     await admin.from("referrals").insert([
       {
         code: ayeshaCode.code,
         referrer_id: staff.doctor.id,
         patient_id: patients[0].user.id,
         enrolled_at: dayISO(30),
+        converted_at: dayISO(30),
         payout_pkr: 2000,
-        payout_status: "paid",
+        status: "paid",
         paid_at: dayISO(23),
       },
       {
@@ -459,16 +462,18 @@ async function seed() {
         referrer_id: staff.doctor.id,
         patient_id: patients[1].user.id,
         enrolled_at: dayISO(28),
+        converted_at: dayISO(28),
         payout_pkr: 2000,
-        payout_status: "pending",
+        status: "converted",
       },
       {
         code: externalCode.code,
         referrer_id: null,
         patient_id: patients[2].user.id,
         enrolled_at: dayISO(25),
+        converted_at: dayISO(25),
         payout_pkr: 2000,
-        payout_status: "pending",
+        status: "converted",
       },
     ]);
   }

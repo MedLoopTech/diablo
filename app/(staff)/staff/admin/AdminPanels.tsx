@@ -894,20 +894,30 @@ function ReferralCodesTable({ codes }: { codes: ReferralCodeRow[] }) {
     return <div className="rounded-card border border-line bg-card p-4 font-body text-[13px] text-ink-soft">No codes yet. Create one above.</div>;
   }
 
-  const pendingTotal = items.reduce((s, c) => s + c.pending_pkr, 0);
+  const pendingTotal = items.reduce((s, c) => s + c.converted_pkr, 0);
+  const referredTotal = items.reduce((s, c) => s + c.referred_count, 0);
 
   return (
     <div>
-      {pendingTotal > 0 && (
-        <div className="mb-3 rounded-[10px] bg-amber-50 border border-amber-200 px-4 py-2.5 font-body text-[13px] text-amber-800">
-          PKR {pendingTotal.toLocaleString()} pending across all partners this cycle.
+      {(pendingTotal > 0 || referredTotal > 0) && (
+        <div className="mb-3 flex flex-col gap-2 sm:flex-row">
+          {pendingTotal > 0 && (
+            <div className="flex-1 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-2.5 font-body text-[13px] text-amber-800">
+              PKR {pendingTotal.toLocaleString()} pending across all partners this cycle.
+            </div>
+          )}
+          {referredTotal > 0 && (
+            <div className="flex-1 rounded-[10px] border border-sky bg-sky/40 px-4 py-2.5 font-body text-[13px] text-primary-deep">
+              {referredTotal} referred but not yet converted — nothing owed until they&apos;re enrolled in a cohort.
+            </div>
+          )}
         </div>
       )}
       <div className="overflow-x-auto rounded-card border border-line bg-card">
-        <table className="w-full min-w-[820px] border-collapse">
+        <table className="w-full min-w-[860px] border-collapse">
           <thead className="border-b border-line bg-paper">
             <tr>
-              {["Code", "Partner", "Payment info", "Referrals", "Pending", "Paid", "Status"].map((h) => (
+              {["Code", "Partner", "Payment info", "Referred", "Converted (owed)", "Paid", "Status"].map((h) => (
                 <th key={h} className="px-4 py-2.5 text-left font-body text-[11px] uppercase tracking-wider text-ink-soft">{h}</th>
               ))}
             </tr>
@@ -924,10 +934,14 @@ function ReferralCodesTable({ codes }: { codes: ReferralCodeRow[] }) {
                   {rc.notes && <div className="text-[11px] text-ink-soft">{rc.notes}</div>}
                 </td>
                 <td className="px-4 py-3"><InlinePaymentEdit rc={rc} /></td>
-                <td className="px-4 py-3 font-body text-[13px] text-ink font-semibold">{rc.referral_count}</td>
                 <td className="px-4 py-3 font-body text-[13px]">
-                  {rc.pending_count > 0
-                    ? <span className="font-semibold text-amber-600">PKR {rc.pending_pkr.toLocaleString()} ({rc.pending_count})</span>
+                  {rc.referred_count > 0
+                    ? <span className="font-semibold text-primary-deep">{rc.referred_count} awaiting</span>
+                    : <span className="text-ink-soft">—</span>}
+                </td>
+                <td className="px-4 py-3 font-body text-[13px]">
+                  {rc.converted_count > 0
+                    ? <span className="font-semibold text-amber-600">PKR {rc.converted_pkr.toLocaleString()} ({rc.converted_count})</span>
                     : <span className="text-ink-soft">—</span>}
                 </td>
                 <td className="px-4 py-3 font-body text-[13px] text-primary-deep">
@@ -960,11 +974,12 @@ function ReferralPayoutsTable({ referrals }: { referrals: ReferralRow[] }) {
   const [pending, startT] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
 
-  const pendingRows = items.filter((r) => r.payout_status === "pending");
-  const paidRows = items.filter((r) => r.payout_status === "paid");
+  const referredRows = items.filter((r) => r.status === "referred");
+  const convertedRows = items.filter((r) => r.status === "converted");
+  const paidRows = items.filter((r) => r.status === "paid");
 
   const toggleAll = () =>
-    setSelected(selected.size === pendingRows.length ? new Set() : new Set(pendingRows.map((r) => r.id)));
+    setSelected(selected.size === convertedRows.length ? new Set() : new Set(convertedRows.map((r) => r.id)));
 
   const markPaid = () =>
     startT(async () => {
@@ -973,17 +988,28 @@ function ReferralPayoutsTable({ referrals }: { referrals: ReferralRow[] }) {
       setMsg(r.ok ? `Marked ${selected.size} paid.` : r.error ?? "Failed.");
       if (r.ok) {
         const now = new Date().toISOString();
-        setItems((prev) => prev.map((row) => selected.has(row.id) ? { ...row, payout_status: "paid" as const, paid_at: now } : row));
+        setItems((prev) => prev.map((row) => selected.has(row.id) ? { ...row, status: "paid" as const, paid_at: now } : row));
       }
       setSelected(new Set());
     });
 
+  const STATUS_BADGE: Record<ReferralRow["status"], { label: string; cls: string }> = {
+    referred: { label: "Referred", cls: "bg-sky/60 text-primary-deep" },
+    converted: { label: "Converted", cls: "bg-amber-100 text-amber-700" },
+    paid: { label: "Paid", cls: "bg-mint text-primary-deep" },
+  };
+
   return (
     <div className="flex flex-col gap-3">
-      {pendingRows.length > 0 && (
+      {referredRows.length > 0 && (
+        <p className="font-body text-[12px] text-ink-soft">
+          {referredRows.length} referred but not yet converted — signed up with the code, not yet enrolled in a cohort. Nothing is owed until conversion.
+        </p>
+      )}
+      {convertedRows.length > 0 && (
         <div className="flex items-center gap-3">
           <button onClick={toggleAll} className="font-body text-[12px] text-primary underline">
-            {selected.size === pendingRows.length ? "Deselect all" : "Select all pending"}
+            {selected.size === convertedRows.length ? "Deselect all" : "Select all converted"}
           </button>
           <button
             onClick={markPaid}
@@ -1000,7 +1026,7 @@ function ReferralPayoutsTable({ referrals }: { referrals: ReferralRow[] }) {
           <thead className="border-b border-line bg-paper">
             <tr>
               <th className="w-10 px-4 py-2.5" />
-              {["Code", "Referrer", "Patient", "Enrolled", "Amount", "Status"].map((h) => (
+              {["Code", "Referrer", "Patient", "Referred", "Converted", "Amount", "Status"].map((h) => (
                 <th key={h} className="px-4 py-2.5 text-left font-body text-[11px] uppercase tracking-wider text-ink-soft">{h}</th>
               ))}
             </tr>
@@ -1009,7 +1035,7 @@ function ReferralPayoutsTable({ referrals }: { referrals: ReferralRow[] }) {
             {items.map((r) => (
               <tr key={r.id} className={`hover:bg-paper/60 ${selected.has(r.id) ? "bg-mint/30" : ""}`}>
                 <td className="px-4 py-3">
-                  {r.payout_status === "pending" && (
+                  {r.status === "converted" && (
                     <input
                       type="checkbox"
                       checked={selected.has(r.id)}
@@ -1028,19 +1054,22 @@ function ReferralPayoutsTable({ referrals }: { referrals: ReferralRow[] }) {
                 <td className="px-4 py-3 font-body text-[12px] text-ink-soft">
                   {r.enrolled_at ? new Date(r.enrolled_at).toLocaleDateString("en-PK") : "—"}
                 </td>
+                <td className="px-4 py-3 font-body text-[12px] text-ink-soft">
+                  {r.converted_at ? new Date(r.converted_at).toLocaleDateString("en-PK") : "—"}
+                </td>
                 <td className="px-4 py-3 font-body text-[13px] font-semibold text-ink">PKR {r.payout_pkr.toLocaleString()}</td>
                 <td className="px-4 py-3">
-                  {r.payout_status === "paid"
-                    ? <span className="rounded-full bg-mint px-2 py-0.5 font-body text-[11px] font-semibold text-primary-deep">Paid {r.paid_at ? new Date(r.paid_at).toLocaleDateString("en-PK") : ""}</span>
-                    : <span className="rounded-full bg-amber-100 px-2 py-0.5 font-body text-[11px] font-semibold text-amber-700">Pending</span>}
+                  <span className={`rounded-full px-2 py-0.5 font-body text-[11px] font-semibold ${STATUS_BADGE[r.status].cls}`}>
+                    {STATUS_BADGE[r.status].label}{r.status === "paid" && r.paid_at ? ` ${new Date(r.paid_at).toLocaleDateString("en-PK")}` : ""}
+                  </span>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      {paidRows.length > 0 && pendingRows.length > 0 && (
-        <p className="font-body text-[11px] text-ink-soft">{paidRows.length} paid rows shown below pending.</p>
+      {paidRows.length > 0 && (referredRows.length > 0 || convertedRows.length > 0) && (
+        <p className="font-body text-[11px] text-ink-soft">{paidRows.length} paid rows shown alongside the rest.</p>
       )}
     </div>
   );
@@ -1057,13 +1086,14 @@ function ReferralsTab({
   staff: Person[];
   payoutConfig?: AutomationConfigRow;
 }) {
-  const totalPending = codes.reduce((s, c) => s + c.pending_pkr, 0);
+  const totalReferred = codes.reduce((s, c) => s + c.referred_count, 0);
+  const totalPending = codes.reduce((s, c) => s + c.converted_pkr, 0);
   const totalPaid = codes.reduce((s, c) => s + c.paid_pkr, 0);
   const payoutPkr = payoutConfig ? parseInt(payoutConfig.value, 10) || 2000 : 2000;
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <div className="rounded-card border border-line bg-card p-4 text-center">
           <div className="font-display text-2xl font-semibold text-ink">{codes.length}</div>
           <div className="mt-0.5 font-body text-[12px] text-ink-soft">Referral codes</div>
@@ -1071,6 +1101,10 @@ function ReferralsTab({
         <div className="rounded-card border border-line bg-card p-4 text-center">
           <div className="font-display text-2xl font-semibold text-ink">{referrals.length}</div>
           <div className="mt-0.5 font-body text-[12px] text-ink-soft">Total referrals</div>
+        </div>
+        <div className="rounded-card border border-line bg-card p-4 text-center">
+          <div className="font-display text-2xl font-semibold text-primary-deep">{totalReferred}</div>
+          <div className="mt-0.5 font-body text-[12px] text-ink-soft">Awaiting conversion</div>
         </div>
         <div className="rounded-card border border-line bg-card p-4 text-center">
           <div className="font-display text-2xl font-semibold text-amber-600">PKR {totalPending.toLocaleString()}</div>
