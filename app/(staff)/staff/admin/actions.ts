@@ -364,14 +364,19 @@ export async function markReferralsPaid(
     paidIds.push(r.id);
   }
 
+  // Insert the audit trail before flipping status — if this fails, the
+  // referrals stay "converted" and a retry is clean. Flipping status first
+  // would let a failed insert here leave referrals marked paid with no
+  // fulfillment record, and an invisible one at that: a retry would find
+  // nothing left in "converted" state and silently report success.
+  const { error: fulfillError } = await supabase.from("reward_fulfillments").insert(fulfillmentRows);
+  if (fulfillError) return { ok: false, error: fulfillError.message };
+
   const { error: updateError } = await supabase
     .from("referrals")
     .update({ status: "paid", paid_at: new Date().toISOString() })
     .in("id", paidIds);
   if (updateError) return { ok: false, error: updateError.message };
-
-  const { error: fulfillError } = await supabase.from("reward_fulfillments").insert(fulfillmentRows);
-  if (fulfillError) return { ok: false, error: fulfillError.message };
 
   revalidatePath("/staff/admin");
   revalidatePath("/staff/payouts");

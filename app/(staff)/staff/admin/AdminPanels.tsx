@@ -878,8 +878,32 @@ function NewCodeForm({ staff, currency }: { staff: Person[]; currency: string })
 
   const submit = () =>
     startT(async () => {
+      // The form shows a default (e.g. "1" session, "30" days) whenever a
+      // field is untouched, but that's only a display fallback — merge the
+      // same defaults in here so what's saved matches what's shown.
+      const REWARD_DEFAULTS: Partial<Record<RewardType, Record<string, string>>> = {
+        consult: { sessions: "1" },
+        plan_upgrade: { duration_days: "30" },
+      };
+      const merged = { ...REWARD_DEFAULTS[rewardType], ...rewardValue };
+
+      // A missing required field here (tier, role, partner) would silently
+      // fall back to a default at payout time — require it up front instead.
+      if (rewardType === "plan_upgrade" && !merged.tier) {
+        setResult("Choose a plan tier before generating the code.");
+        return;
+      }
+      if (rewardType === "consult" && !merged.role) {
+        setResult("Choose who provides the consult before generating the code.");
+        return;
+      }
+      if (rewardType === "voucher" && !merged.partner?.trim()) {
+        setResult("Enter the partner name before generating the code.");
+        return;
+      }
+
       const cleanedValue = Object.fromEntries(
-        Object.entries(rewardValue)
+        Object.entries(merged)
           .filter(([, v]) => v !== "")
           .map(([k, v]) => [k, /_pct$|_pkr$|sessions|duration_days/.test(k) ? Number(v) : v])
       );
