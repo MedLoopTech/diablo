@@ -36,7 +36,7 @@ export function MarketingLanding() {
       <header className="sticky top-0 z-20 border-b border-line bg-card/90 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4 sm:px-8">
           <div className="font-display text-[22px] font-semibold text-primary-deep">
-            Loop<span className="text-marigold">/</span>90
+            Loop<span className="text-marigold">/90</span>
           </div>
           <nav className="hidden items-center gap-7 md:flex">
             <a href="#path" className="font-body text-[13.5px] font-semibold text-ink-soft hover:text-ink">
@@ -450,7 +450,7 @@ export function MarketingLanding() {
       <footer className="bg-frame-dark">
         <Section className="py-14">
           <div className="font-display text-[20px] font-semibold text-paper">
-            Loop<span className="text-marigold">/</span>90
+            Loop<span className="text-marigold">/90</span>
           </div>
           <p className="mt-2 max-w-xl font-body text-[12.5px] leading-relaxed text-[#8FB0A3]">
             A 90-day cohort-based lifestyle medicine program for type-2 diabetes remission. Built
