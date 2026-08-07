@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { Disclaimer } from "@/components/Disclaimer";
 import { LeadForm } from "@/components/marketing/LeadForm";
+import { GlucoseDial } from "@/components/marketing/GlucoseDial";
+import { JourneyPath } from "@/components/marketing/JourneyPath";
+import { Reveal } from "@/components/marketing/Reveal";
 
 const PROGRAM_PRICE_PKR = 25000;
 const INSTALLMENT_PKR = 8500; // 3x — small installment premium over the one-time price
@@ -15,164 +18,214 @@ function Section({
   id?: string;
 }) {
   return (
-    <section id={id} className={`mx-auto max-w-3xl px-5 py-14 ${className}`}>
+    <section id={id} className={`mx-auto max-w-5xl px-5 py-20 sm:px-8 ${className}`}>
       {children}
     </section>
   );
 }
 
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return <div className="font-body text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">{children}</div>;
+function Eyebrow({ children, tone = "soft" }: { children: React.ReactNode; tone?: "soft" | "marigold" | "onDark" }) {
+  const color = tone === "marigold" ? "text-marigold" : tone === "onDark" ? "text-[#8FB0A3]" : "text-ink-soft";
+  return <div className={`font-body text-[12px] font-bold uppercase tracking-[0.16em] ${color}`}>{children}</div>;
 }
 
 export function MarketingLanding() {
   return (
     <div className="flex flex-col">
-      {/* Header */}
-      <header className="border-b border-line bg-card">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-4">
-          <div className="font-display text-[20px] font-semibold text-primary-deep">
+      {/* Nav */}
+      <header className="sticky top-0 z-20 border-b border-line bg-card/90 backdrop-blur">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4 sm:px-8">
+          <div className="font-display text-[22px] font-semibold text-primary-deep">
             Loop<span className="text-marigold">/</span>90
           </div>
-          <Link href="/login" className="font-body text-[13px] font-semibold text-ink-soft hover:text-ink">
-            Log in
-          </Link>
+          <div className="flex items-center gap-5">
+            <Link href="/login" className="font-body text-[13.5px] font-semibold text-ink-soft hover:text-ink">
+              Log in
+            </Link>
+            <a
+              href="#pricing"
+              className="hidden rounded-full bg-primary px-5 py-2 font-body text-[13px] font-bold text-white sm:block"
+            >
+              Reserve your spot
+            </a>
+          </div>
         </div>
       </header>
 
-      {/* Hero */}
-      <Section className="text-center">
-        <Eyebrow>90-day cohort program</Eyebrow>
-        <h1 className="mt-3 text-balance font-display text-[34px] font-semibold leading-tight text-ink sm:text-[42px]">
-          A real shot at diabetes remission — built for a Pakistani kitchen
-        </h1>
-        <p className="mx-auto mt-4 max-w-xl text-balance font-body text-[16px] leading-relaxed text-ink-soft">
-          One doctor, one nutritionist, one movement coach, and an always-on AI coach — shared
-          across your cohort. No quinoa bowls. Roti, daal, biryani — everything, worked into a
-          plan that fits your kitchen.
-        </p>
-        <div className="mt-7 flex flex-col items-center gap-3">
-          <a
-            href="#pricing"
-            className="rounded-full bg-primary px-8 py-3.5 font-body text-[15px] font-bold text-white"
-          >
-            Reserve Your Spot — PKR {PROGRAM_PRICE_PKR.toLocaleString()}
-          </a>
-          <a href="#lead-form" className="font-body text-[13px] font-semibold text-primary-deep underline underline-offset-2">
-            Or get the free Desi Diabetes Plate Guide first
-          </a>
-        </div>
-        <div className="mt-8 grid grid-cols-3 gap-3">
-          {[
-            ["30–50", "patients per cohort"],
-            ["90", "days to remission goal"],
-            ["3+1", "care pod + AI"],
-          ].map(([n, l]) => (
-            <div key={l} className="rounded-card border border-line bg-card p-4">
-              <div className="font-display text-[22px] font-semibold text-primary-deep">{n}</div>
-              <div className="mt-0.5 font-body text-[11.5px] text-ink-soft">{l}</div>
+      {/* Hero — dark, editorial, with the real product visual */}
+      <section className="bg-frame-dark">
+        <div className="mx-auto grid max-w-5xl gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:py-28">
+          <Reveal>
+            <Eyebrow tone="marigold">90-day cohort program</Eyebrow>
+            <h1 className="mt-4 text-balance font-display text-[40px] font-semibold leading-[1.08] text-paper sm:text-[52px] lg:text-[58px]">
+              A real shot at diabetes remission — built for a Pakistani kitchen
+            </h1>
+            <p className="mt-5 max-w-lg text-balance font-body text-[17px] leading-relaxed text-[#8FB0A3]">
+              One doctor, one nutritionist, one movement coach, and an always-on AI coach — shared
+              across your cohort. No quinoa bowls. Roti, daal, biryani, everything — worked into a
+              plan that fits your kitchen.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-4">
+              <a
+                href="#pricing"
+                className="rounded-full bg-marigold px-8 py-4 font-body text-[15px] font-bold text-frame-dark shadow-[0_8px_24px_rgba(239,166,60,0.25)]"
+              >
+                Reserve Your Spot — PKR {PROGRAM_PRICE_PKR.toLocaleString()}
+              </a>
+              <a
+                href="#lead-form"
+                className="rounded-full border border-[#2A6350] px-6 py-4 font-body text-[14px] font-semibold text-paper hover:border-marigold"
+              >
+                Get the free Plate Guide
+              </a>
             </div>
-          ))}
+            <div className="mt-10 grid grid-cols-3 gap-3 border-t border-[#1E4B3C] pt-8">
+              {[
+                ["30–50", "patients / cohort"],
+                ["90", "days to remission"],
+                ["3+1", "care pod + AI"],
+              ].map(([n, l]) => (
+                <div key={l}>
+                  <div className="font-display text-[26px] font-semibold text-paper">{n}</div>
+                  <div className="mt-0.5 font-body text-[11.5px] text-[#8FB0A3]">{l}</div>
+                </div>
+              ))}
+            </div>
+          </Reveal>
+
+          {/* Phone-frame product visual */}
+          <Reveal delay={150}>
+            <div className="mx-auto w-full max-w-[320px] rounded-[36px] border-[6px] border-[#1E4B3C] bg-[#0C332B] p-5 shadow-[0_40px_80px_rgba(0,0,0,0.45)]">
+              <div className="flex items-center justify-between">
+                <Eyebrow tone="onDark">Glucose horizon · today</Eyebrow>
+                <span className="rounded-full bg-[#1E4B3C] px-2.5 py-1 font-body text-[10.5px] font-bold text-mint">75% in range</span>
+              </div>
+              <GlucoseDial />
+              <div className="mt-2 flex items-center gap-2 rounded-[14px] bg-[#0F3E30] px-3.5 py-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[9px] bg-marigold text-[13px] text-frame-dark">✦</span>
+                <p className="font-body text-[11.5px] leading-snug text-[#C9DED5]">
+                  Your post-lunch reading is trending high — a short walk before 4pm usually helps.
+                </p>
+              </div>
+            </div>
+          </Reveal>
         </div>
-      </Section>
+      </section>
 
       {/* Problem */}
-      <Section className="border-t border-line bg-card">
-        <Eyebrow>The problem with what's out there</Eyebrow>
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+      <Section>
+        <Reveal>
+          <Eyebrow>The problem with what's out there</Eyebrow>
+          <h2 className="mt-3 max-w-lg text-balance font-display text-[28px] font-semibold leading-tight text-ink sm:text-[32px]">
+            Generic advice was never going to work for a desi kitchen
+          </h2>
+        </Reveal>
+        <div className="mt-9 grid gap-4 sm:grid-cols-3">
           {[
             ["😔", "You're not alone, but it feels like it", "Generic apps give you calorie counts. Your doctor sees you once every 3 months. No one's there on the days you actually struggle."],
             ["🍛", "Western diets don't work here", "“Eat quinoa bowls” — but your family eats roti, daal, and biryani. You need a plan built for a Pakistani kitchen."],
             ["💊", "Pills feel like the only option", "No one told you that lifestyle change, done properly and with a doctor watching, can put type-2 diabetes into remission."],
-          ].map(([icon, title, body]) => (
-            <div key={title as string} className="rounded-card border border-line bg-paper p-5">
-              <div className="text-[24px]">{icon}</div>
-              <div className="mt-2 font-body text-[14px] font-bold text-ink">{title}</div>
-              <p className="mt-1.5 font-body text-[13px] leading-relaxed text-ink-soft">{body}</p>
-            </div>
+          ].map(([icon, title, body], i) => (
+            <Reveal key={title as string} delay={i * 100}>
+              <div className="h-full rounded-card border border-line bg-card p-6">
+                <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-mint text-[22px]">{icon}</div>
+                <div className="mt-4 font-body text-[15px] font-bold leading-snug text-ink">{title}</div>
+                <p className="mt-2 font-body text-[13.5px] leading-relaxed text-ink-soft">{body}</p>
+              </div>
+            </Reveal>
           ))}
         </div>
       </Section>
 
       {/* 90-day path */}
-      <Section>
-        <Eyebrow>Your 90-day path</Eyebrow>
-        <h2 className="mt-2 font-display text-[24px] font-semibold text-ink">Three phases. One goal. Measurable checkpoints.</h2>
-        <div className="mt-6 flex flex-col gap-4">
-          {[
-            ["1", "Baseline", "Days 1–14", "Log everything — glucose, meals, steps. No diet overhaul yet. Your care pod observes your patterns and your AI coach learns your routine while we establish your baseline HbA1c, weight, and fasting glucose."],
-            ["2", "Intervention", "Days 15–60", "A meal plan built for your kitchen. Daily movement targets. A medication review with your doctor around day 45 — your doctor adjusts your plan, your nutritionist reviews your meal photos, your coach keeps you moving."],
-            ["3", "Stabilization", "Days 61–90", "You self-manage with AI nudges as coaching intensity tapers. A day-90 HbA1c lab confirms your progress. You graduate with a maintenance plan and an alumni community."],
-          ].map(([n, title, days, body]) => (
-            <div key={title as string} className="flex gap-4 rounded-card border border-line bg-card p-5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-mint font-display text-[15px] font-bold text-primary-deep">{n}</div>
-              <div>
-                <div className="flex items-baseline gap-2">
-                  <div className="font-body text-[14px] font-bold text-ink">{title}</div>
-                  <div className="font-body text-[11.5px] text-ink-soft">{days}</div>
-                </div>
-                <p className="mt-1 font-body text-[13px] leading-relaxed text-ink-soft">{body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* Care pod */}
       <Section className="border-t border-line bg-card">
-        <Eyebrow>Your care pod</Eyebrow>
-        <h2 className="mt-2 font-display text-[24px] font-semibold text-ink">
-          One doctor. One nutritionist. One coach. One AI. All focused on your cohort.
-        </h2>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <Reveal>
+          <Eyebrow>Your 90-day path</Eyebrow>
+          <h2 className="mt-3 font-display text-[28px] font-semibold text-ink sm:text-[32px]">Three phases. One goal. Measurable checkpoints.</h2>
+        </Reveal>
+        <Reveal delay={100}>
+          <div className="mt-10 rounded-card border border-line bg-paper p-6 sm:p-10">
+            <JourneyPath />
+          </div>
+        </Reveal>
+        <div className="mt-8 grid gap-4 sm:grid-cols-3">
           {[
-            ["👨‍⚕️", "Your Doctor", "Reviews your glucose trends and handles every medication decision — always your doctor's call, never the AI's."],
-            ["🥗", "Your Nutritionist", "Builds your meal plan around real Pakistani food — roti, daal, sabzi, biryani, everything — and reviews your meal photos."],
-            ["🧘", "Your Movement Coach", "Group sessions, walking targets fit to your level, and home strength routines. No gym, no equipment needed."],
-            ["🤖", "Your AI Coach", "Answers questions anytime, analyzes meal photos, and nudges you to log. Never suggests medication — that's always routed to your doctor."],
-          ].map(([icon, title, body]) => (
-            <div key={title as string} className="rounded-card border border-line bg-paper p-5">
-              <div className="text-[22px]">{icon}</div>
-              <div className="mt-2 font-body text-[14px] font-bold text-ink">{title}</div>
+            ["Baseline", "Days 1–14", "Log everything — glucose, meals, steps. No diet overhaul yet. We establish your baseline HbA1c, weight, and fasting glucose."],
+            ["Intervention", "Days 15–60", "A meal plan built for your kitchen, daily movement targets, and a medication review with your doctor around day 45."],
+            ["Stabilization", "Days 61–90", "You self-manage with AI nudges as coaching tapers. A day-90 HbA1c lab confirms your progress."],
+          ].map(([title, days, body]) => (
+            <div key={title} className="rounded-card border border-line bg-card p-5">
+              <div className="flex items-baseline gap-2">
+                <div className="font-display text-[16px] font-bold text-primary-deep">{title}</div>
+                <div className="font-body text-[11.5px] text-ink-soft">{days}</div>
+              </div>
               <p className="mt-1.5 font-body text-[13px] leading-relaxed text-ink-soft">{body}</p>
             </div>
           ))}
         </div>
       </Section>
 
+      {/* Care pod — dark section for rhythm */}
+      <section className="bg-primary-deep">
+        <Section>
+          <Reveal>
+            <Eyebrow tone="marigold">Your care pod</Eyebrow>
+            <h2 className="mt-3 max-w-lg text-balance font-display text-[28px] font-semibold leading-tight text-paper sm:text-[32px]">
+              One doctor. One nutritionist. One coach. One AI. All focused on your cohort.
+            </h2>
+          </Reveal>
+          <div className="mt-9 grid gap-4 sm:grid-cols-2">
+            {[
+              ["👨‍⚕️", "Your Doctor", "Reviews your glucose trends and handles every medication decision — always your doctor's call, never the AI's."],
+              ["🥗", "Your Nutritionist", "Builds your meal plan around real Pakistani food — roti, daal, sabzi, biryani, everything — and reviews your meal photos."],
+              ["🧘", "Your Movement Coach", "Group sessions, walking targets fit to your level, and home strength routines. No gym, no equipment needed."],
+              ["🤖", "Your AI Coach", "Answers questions anytime, analyzes meal photos, and nudges you to log. Never suggests medication — that's always routed to your doctor."],
+            ].map(([icon, title, body], i) => (
+              <Reveal key={title as string} delay={i * 80}>
+                <div className="flex h-full gap-4 rounded-card border border-[#1E4B3C] bg-[#0F3E30] p-5">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-mint text-[20px]">{icon}</span>
+                  <div>
+                    <div className="font-body text-[14.5px] font-bold text-paper">{title}</div>
+                    <p className="mt-1 font-body text-[13px] leading-relaxed text-[#8FB0A3]">{body}</p>
+                  </div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </Section>
+      </section>
+
       {/* Understand your numbers */}
       <Section>
-        <Eyebrow>Understand your numbers</Eyebrow>
-        <h2 className="mt-2 font-display text-[24px] font-semibold text-ink">What the ranges mean</h2>
-        <p className="mt-2 font-body text-[13.5px] leading-relaxed text-ink-soft">
-          These are general reference ranges, not a diagnosis — only a lab test and your doctor can tell you where you actually stand.
-        </p>
-        <div className="mt-5 overflow-x-auto rounded-card border border-line bg-card">
-          <table className="w-full min-w-[480px] border-collapse">
-            <thead className="border-b border-line bg-paper">
-              <tr>
-                {["", "Normal", "Prediabetes", "Diabetes"].map((h) => (
-                  <th key={h} className="px-4 py-2.5 text-left font-body text-[11px] uppercase tracking-wider text-ink-soft">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line font-body text-[13px] text-ink">
-              <tr>
-                <td className="px-4 py-3 font-semibold">Fasting glucose</td>
-                <td className="px-4 py-3">Below 100 mg/dL</td>
-                <td className="px-4 py-3">100–125 mg/dL</td>
-                <td className="px-4 py-3">126 mg/dL or above</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-3 font-semibold">HbA1c</td>
-                <td className="px-4 py-3">Below 5.7%</td>
-                <td className="px-4 py-3">5.7%–6.4%</td>
-                <td className="px-4 py-3">6.5% or above</td>
-              </tr>
-            </tbody>
-          </table>
+        <Reveal>
+          <Eyebrow>Understand your numbers</Eyebrow>
+          <h2 className="mt-3 font-display text-[28px] font-semibold text-ink sm:text-[32px]">What the ranges mean</h2>
+          <p className="mt-2 max-w-lg font-body text-[13.5px] leading-relaxed text-ink-soft">
+            General reference ranges, not a diagnosis — only a lab test and your doctor can tell you where you actually stand.
+          </p>
+        </Reveal>
+        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          {[
+            ["Normal", "primary", "Below 100 mg/dL", "Below 5.7%"],
+            ["Prediabetes", "marigold", "100–125 mg/dL", "5.7%–6.4%"],
+            ["Diabetes", "coral", "126 mg/dL or above", "6.5% or above"],
+          ].map(([label, tone, fasting, hba1c], i) => (
+            <Reveal key={label as string} delay={i * 90}>
+              <div
+                className={`h-full rounded-card border-l-4 border border-line bg-card p-5 ${
+                  tone === "primary" ? "border-l-primary" : tone === "marigold" ? "border-l-marigold" : "border-l-coral"
+                }`}
+              >
+                <div className="font-body text-[14px] font-bold text-ink">{label}</div>
+                <div className="mt-3 font-body text-[11px] uppercase tracking-wide text-ink-soft">Fasting glucose</div>
+                <div className="mt-0.5 font-display text-[17px] font-semibold text-ink">{fasting}</div>
+                <div className="mt-3 font-body text-[11px] uppercase tracking-wide text-ink-soft">HbA1c</div>
+                <div className="mt-0.5 font-display text-[17px] font-semibold text-ink">{hba1c}</div>
+              </div>
+            </Reveal>
+          ))}
         </div>
-        <p className="mt-3 font-body text-[11.5px] text-ink-soft">
+        <p className="mt-4 font-body text-[11.5px] text-ink-soft">
           Source: American Diabetes Association Standards of Care. A single reading doesn&apos;t confirm anything — diagnosis needs a lab test read by a doctor.
         </p>
         <div className="mt-5 rounded-card border border-line bg-mint p-4 text-center">
@@ -184,75 +237,84 @@ export function MarketingLanding() {
 
       {/* Our promise */}
       <Section className="border-t border-line bg-card">
-        <Eyebrow>Our promise to you</Eyebrow>
-        <p className="mt-2 font-body text-[14px] leading-relaxed text-ink-soft">
-          We&apos;ve seen too many people burned by fake herbal cures and useless supplements.
-          Here&apos;s exactly what you get — and exactly what we guarantee.
-        </p>
-        <div className="mt-5 flex flex-col gap-3">
+        <Reveal>
+          <Eyebrow>Our promise to you</Eyebrow>
+          <h2 className="mt-3 max-w-lg text-balance font-display text-[28px] font-semibold leading-tight text-ink sm:text-[32px]">
+            We&apos;ve seen too many people burned by fake herbal cures. Here&apos;s exactly what you get.
+          </h2>
+        </Reveal>
+        <div className="mt-9 grid gap-4 sm:grid-cols-2">
           {[
             ["Doctor-led care pod", "Not an AI chatbot. A real endocrinologist, nutritionist, and coach assigned to your cohort."],
-            ["Lab-verified HbA1c at day 0 and day 90", "We don't guess, we measure. Both tests are bundled into the price — no extra cost."],
-            [`Money-back guarantee`, `Complete 80% of your daily tasks and log at least 5 glucose readings a week. If your day-90 HbA1c hasn't improved by at least 0.5%, your full PKR ${PROGRAM_PRICE_PKR.toLocaleString()} is refunded within 48 hours.`],
-            [`PKR ${PROGRAM_PRICE_PKR.toLocaleString()} total — no hidden fees`, "No subscriptions, no surprise charges. One price covers the full 90-day program, both lab tests, and every consult with your care pod. Pay via Easypaisa, JazzCash, or bank transfer."],
-          ].map(([title, body]) => (
-            <div key={title} className="flex gap-3 rounded-card border border-line bg-paper p-4">
-              <span className="mt-0.5 text-primary">✓</span>
-              <div>
-                <div className="font-body text-[13.5px] font-bold text-ink">{title}</div>
-                <p className="mt-0.5 font-body text-[13px] leading-relaxed text-ink-soft">{body}</p>
+            ["Lab-verified HbA1c, day 0 and day 90", "We don't guess, we measure. Both tests are bundled into the price — no extra cost."],
+            ["Money-back guarantee", `Complete 80% of daily tasks and log at least 5 readings a week. If your day-90 HbA1c hasn't improved by 0.5%, your PKR ${PROGRAM_PRICE_PKR.toLocaleString()} is refunded within 48 hours.`],
+            [`PKR ${PROGRAM_PRICE_PKR.toLocaleString()} total — no hidden fees`, "No subscriptions, no surprise charges. One price covers the full 90-day program, both lab tests, and every consult with your care pod."],
+          ].map(([title, body], i) => (
+            <Reveal key={title} delay={i * 80}>
+              <div className="flex h-full gap-3 rounded-card border border-line bg-paper p-5">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-[13px] font-bold text-white">✓</span>
+                <div>
+                  <div className="font-body text-[14px] font-bold text-ink">{title}</div>
+                  <p className="mt-1 font-body text-[13px] leading-relaxed text-ink-soft">{body}</p>
+                </div>
               </div>
-            </div>
+            </Reveal>
           ))}
         </div>
       </Section>
 
-      {/* Pricing */}
-      <Section id="pricing">
-        <Eyebrow>Join a cohort</Eyebrow>
-        <h2 className="mt-2 font-display text-[24px] font-semibold text-ink">Your journey starts here</h2>
-        <div className="mt-6 rounded-card border-2 border-primary bg-card p-6">
-          <div className="font-body text-[13px] font-semibold uppercase tracking-wide text-primary-deep">Loop/90 full program</div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="font-display text-[36px] font-semibold text-ink">PKR {PROGRAM_PRICE_PKR.toLocaleString()}</span>
-            <span className="font-body text-[13px] text-ink-soft">one-time</span>
-          </div>
-          <div className="mt-1 font-body text-[12.5px] text-ink-soft">
-            or 3 monthly installments of PKR {INSTALLMENT_PKR.toLocaleString()}
-          </div>
-          <ul className="mt-5 flex flex-col gap-2">
-            {[
-              "Both HbA1c lab tests + 90 days of care",
-              "Personalized meal plan, built around desi food",
-              "Daily glucose logging with AI analysis",
-              "Weekly group sessions with your care pod",
-              "Meal photo analysis and swap suggestions",
-              "Day-0 and day-90 lab-verified HbA1c",
-              "Cohort feed, leaderboard, and challenges",
-              "Money-back guarantee",
-            ].map((f) => (
-              <li key={f} className="flex items-start gap-2 font-body text-[13.5px] text-ink">
-                <span className="mt-0.5 text-primary">✓</span> {f}
-              </li>
-            ))}
-          </ul>
-          <a
-            href="#lead-form"
-            className="mt-6 block rounded-full bg-primary px-6 py-3.5 text-center font-body text-[15px] font-bold text-white"
-          >
-            Reserve My Spot
-          </a>
-          <div className="mt-3 flex items-center justify-center gap-3 font-body text-[11.5px] text-ink-soft">
-            <span>Easypaisa</span> · <span>JazzCash</span> · <span>Bank transfer</span>
-          </div>
-        </div>
-      </Section>
+      {/* Pricing — dark, high-contrast */}
+      <section className="bg-frame-dark" id="pricing">
+        <Section>
+          <Reveal>
+            <Eyebrow tone="marigold">Join a cohort</Eyebrow>
+            <h2 className="mt-3 font-display text-[28px] font-semibold text-paper sm:text-[32px]">Your journey starts here</h2>
+          </Reveal>
+          <Reveal delay={100}>
+            <div className="mx-auto mt-8 max-w-lg rounded-card border border-[#1E4B3C] bg-[#0C332B] p-7 sm:p-9">
+              <div className="font-body text-[12.5px] font-bold uppercase tracking-wide text-marigold">Loop/90 full program</div>
+              <div className="mt-3 flex items-baseline gap-2">
+                <span className="font-display text-[42px] font-semibold text-paper">PKR {PROGRAM_PRICE_PKR.toLocaleString()}</span>
+                <span className="font-body text-[13px] text-[#8FB0A3]">one-time</span>
+              </div>
+              <div className="mt-1 font-body text-[12.5px] text-[#8FB0A3]">
+                or 3 monthly installments of PKR {INSTALLMENT_PKR.toLocaleString()}
+              </div>
+              <ul className="mt-6 flex flex-col gap-2.5">
+                {[
+                  "Both HbA1c lab tests + 90 days of care",
+                  "Personalized meal plan, built around desi food",
+                  "Daily glucose logging with AI analysis",
+                  "Weekly group sessions with your care pod",
+                  "Meal photo analysis and swap suggestions",
+                  "Day-0 and day-90 lab-verified HbA1c",
+                  "Cohort feed, leaderboard, and challenges",
+                  "Money-back guarantee",
+                ].map((f) => (
+                  <li key={f} className="flex items-start gap-2.5 font-body text-[13.5px] text-[#C9DED5]">
+                    <span className="mt-0.5 text-marigold">✓</span> {f}
+                  </li>
+                ))}
+              </ul>
+              <a
+                href="#lead-form"
+                className="mt-7 block rounded-full bg-marigold px-6 py-4 text-center font-body text-[15px] font-bold text-frame-dark shadow-[0_8px_24px_rgba(239,166,60,0.25)]"
+              >
+                Reserve My Spot
+              </a>
+              <div className="mt-3 flex items-center justify-center gap-3 font-body text-[11.5px] text-[#8FB0A3]">
+                <span>Easypaisa</span> · <span>JazzCash</span> · <span>Bank transfer</span>
+              </div>
+            </div>
+          </Reveal>
+        </Section>
+      </section>
 
       {/* Lead form */}
-      <Section id="lead-form" className="border-t border-line bg-card">
+      <Section id="lead-form" className="bg-mint">
         <div className="mx-auto max-w-md text-center">
           <Eyebrow>Not ready yet?</Eyebrow>
-          <h2 className="mt-2 font-display text-[22px] font-semibold text-ink">
+          <h2 className="mt-3 font-display text-[24px] font-semibold text-ink sm:text-[28px]">
             Get the free Desi Diabetes Plate Guide
           </h2>
           <p className="mt-2 font-body text-[13.5px] leading-relaxed text-ink-soft">
@@ -260,15 +322,18 @@ export function MarketingLanding() {
             your WhatsApp.
           </p>
         </div>
-        <div className="mx-auto mt-6 max-w-sm">
+        <div className="mx-auto mt-7 max-w-sm rounded-card border border-line bg-card p-6">
           <LeadForm interest="guide" />
         </div>
       </Section>
 
       {/* FAQ */}
       <Section>
-        <Eyebrow>Questions, answered</Eyebrow>
-        <div className="mt-4 flex flex-col divide-y divide-line rounded-card border border-line bg-card">
+        <Reveal>
+          <Eyebrow>Questions, answered</Eyebrow>
+          <h2 className="mt-3 font-display text-[26px] font-semibold text-ink sm:text-[28px]">Before you ask</h2>
+        </Reveal>
+        <div className="mt-8 flex flex-col gap-3">
           {[
             [
               "What exactly is “diabetes remission”?",
@@ -295,37 +360,38 @@ export function MarketingLanding() {
               "You graduate into the Loop/90 alumni community, keep access to your data and meal plan, and can keep using the AI coach for basic questions. Your journey doesn't end at day 90.",
             ],
           ].map(([q, a]) => (
-            <details key={q} className="group p-5">
-              <summary className="cursor-pointer list-none font-body text-[14px] font-bold text-ink">
+            <details key={q} className="group rounded-card border border-line bg-card p-5 open:border-primary">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-body text-[14.5px] font-bold text-ink">
                 {q}
+                <span className="shrink-0 font-display text-[18px] text-primary transition-transform group-open:rotate-45">+</span>
               </summary>
-              <p className="mt-2 font-body text-[13.5px] leading-relaxed text-ink-soft">{a}</p>
+              <p className="mt-3 font-body text-[13.5px] leading-relaxed text-ink-soft">{a}</p>
             </details>
           ))}
         </div>
       </Section>
 
       {/* Footer */}
-      <footer className="border-t border-line bg-card">
-        <Section className="py-10">
-          <div className="font-display text-[18px] font-semibold text-primary-deep">
+      <footer className="bg-frame-dark">
+        <Section className="py-14">
+          <div className="font-display text-[20px] font-semibold text-paper">
             Loop<span className="text-marigold">/</span>90
           </div>
-          <p className="mt-2 max-w-xl font-body text-[12.5px] leading-relaxed text-ink-soft">
+          <p className="mt-2 max-w-xl font-body text-[12.5px] leading-relaxed text-[#8FB0A3]">
             A 90-day cohort-based lifestyle medicine program for type-2 diabetes remission. Built
             in Pakistan, for Pakistan.
           </p>
-          <div className="mt-6">
+          <div className="mt-6 max-w-xl">
             <Disclaimer />
           </div>
-          <p className="mt-4 font-body text-[11.5px] leading-relaxed text-ink-soft">
+          <p className="mt-4 max-w-xl font-body text-[11.5px] leading-relaxed text-[#8FB0A3]">
             Loop/90 is a lifestyle education and care coordination program, not a substitute for
             medical treatment. All medication decisions remain with your personal physician.
             Individual results vary. The money-back guarantee applies only to patients who meet
             the stated eligibility criteria.
           </p>
-          <div className="mt-4 font-body text-[12px] text-ink-soft">
-            <a href="mailto:hello@loop90.pk" className="underline underline-offset-2">hello@loop90.pk</a>
+          <div className="mt-4 font-body text-[12px] text-[#8FB0A3]">
+            <a href="mailto:hello@loop90.pk" className="underline underline-offset-2 hover:text-paper">hello@loop90.pk</a>
           </div>
         </Section>
       </footer>
