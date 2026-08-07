@@ -307,6 +307,15 @@ export async function toggleReferralCode(id: string, isActive: boolean): Promise
   return { ok: true };
 }
 
+export async function updateLeadStatus(id: string, status: "new" | "contacted" | "converted" | "archived"): Promise<{ ok: boolean; error?: string }> {
+  const { supabase, ok } = await requireSuperAdmin();
+  if (!ok) return { ok: false, error: "Super admins only." };
+  const { error } = await supabase.from("leads").update({ status }).eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/staff/admin");
+  return { ok: true };
+}
+
 function genVoucherCode(): string {
   return `VCHR-${randomBytes(3).toString("hex").toUpperCase()}`;
 }

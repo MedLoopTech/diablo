@@ -2,9 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 
-/** Campaign attribution read from the URL at mount. The content-ops system
- *  plans across ten channels and seasonal campaigns — without these, a lead
- *  can't be traced back to the piece that produced it. */
+/** Role → the persona bucket the leads table segments on. Doctors get their
+ *  own follow-up track; nutritionists and coaches share one. */
+const ROLES = [
+  { id: "doctor", label: "Doctor (Endocrinologist / GP)", persona: "doctor", interest: "clinic" },
+  { id: "nutritionist", label: "Clinical Nutritionist", persona: "nutritionist_coach", interest: "clinic" },
+  { id: "coach", label: "Fitness / Movement Coach", persona: "nutritionist_coach", interest: "clinic" },
+  { id: "referral", label: "Referral partner only", persona: "doctor", interest: "partnership" },
+] as const;
+
 type Attribution = {
   utmSource: string | null;
   utmMedium: string | null;
@@ -14,23 +20,17 @@ type Attribution = {
   landingPath: string | null;
 };
 
-export function LeadForm({
-  interest = "guide",
-  persona = "patient",
-}: {
-  interest?: string;
-  persona?: string;
-}) {
+export function ProfessionalLeadForm() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<(typeof ROLES)[number]["id"]>("doctor");
   const [consent, setConsent] = useState(false);
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const attribution = useRef<Attribution | null>(null);
 
-  // Captured once at mount: the querystring can change as the visitor
-  // navigates, but the campaign that brought them here shouldn't.
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     attribution.current = {
@@ -47,6 +47,7 @@ export function LeadForm({
     e.preventDefault();
     setError(null);
     setPending(true);
+    const selected = ROLES.find((r) => r.id === role)!;
     try {
       const res = await fetch("/api/lead", {
         method: "POST",
@@ -54,9 +55,10 @@ export function LeadForm({
         body: JSON.stringify({
           name,
           phone,
-          interest,
-          persona,
-          source: "landing",
+          email,
+          persona: selected.persona,
+          interest: selected.interest,
+          source: `professionals:${role}`,
           consentMarketing: consent,
           ...attribution.current,
         }),
@@ -73,22 +75,28 @@ export function LeadForm({
 
   if (sent) {
     return (
-      <div className="rounded-card border border-line bg-mint p-5 text-center">
-        <div className="font-display text-[18px] font-semibold text-primary-deep">You&apos;re on the list! ✓</div>
-        <p className="mt-1 font-body text-[13px] text-ink-soft">
-          Our team will message you on WhatsApp shortly. If you don&apos;t hear back soon, message us directly.
+      <div className="rounded-card border border-line bg-mint p-6 text-center">
+        <div className="font-display text-[19px] font-semibold text-primary-deep">Application received ✓</div>
+        <p className="mt-1.5 font-body text-[13px] leading-relaxed text-ink-soft">
+          Our team will contact you on WhatsApp to arrange a short interview and verify your credentials.
         </p>
       </div>
     );
   }
 
-  const field = "w-full rounded-[10px] border border-line bg-paper px-4 py-3 font-body text-[14px] text-ink outline-none focus:border-primary";
+  const field =
+    "w-full rounded-[10px] border border-line bg-paper px-4 py-3 font-body text-[14px] text-ink outline-none focus:border-primary";
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
+      <select value={role} onChange={(e) => setRole(e.target.value as typeof role)} className={field}>
+        {ROLES.map((r) => (
+          <option key={r.id} value={r.id}>{r.label}</option>
+        ))}
+      </select>
       <input
         type="text"
-        placeholder="Your name"
+        placeholder="Full name"
         value={name}
         onChange={(e) => setName(e.target.value)}
         required
@@ -102,6 +110,14 @@ export function LeadForm({
         required
         className={field}
       />
+      <input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+        className={field}
+      />
       <label className="flex items-start gap-2.5 text-left">
         <input
           type="checkbox"
@@ -111,18 +127,20 @@ export function LeadForm({
           className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
         />
         <span className="font-body text-[11.5px] leading-relaxed text-ink-soft">
-          I agree to be contacted on WhatsApp about Loop/90 and understand I can ask to be removed at any time.
+          I agree to be contacted about joining the Loop/90 care network.
         </span>
       </label>
       {error && <p className="font-body text-[12.5px] text-coral">{error}</p>}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-full bg-primary px-6 py-3 font-body text-[14px] font-bold text-white disabled:opacity-50"
+        className="rounded-full bg-primary px-6 py-3.5 font-body text-[14.5px] font-bold text-white disabled:opacity-50"
       >
-        {pending ? "Sending…" : "Send My Details"}
+        {pending ? "Sending…" : "Apply to Join"}
       </button>
-      <p className="font-body text-[11.5px] text-ink-soft">We never spam. Your number is used only to follow up about the program or send the Plate Guide.</p>
+      <p className="font-body text-[11.5px] leading-relaxed text-ink-soft">
+        Applying doesn&apos;t commit you to anything. We verify credentials before any placement.
+      </p>
     </form>
   );
 }

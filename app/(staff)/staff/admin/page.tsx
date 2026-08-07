@@ -6,8 +6,8 @@ import { getAdminOverview } from "@/lib/admin";
 import { isAdminRole, isSuperAdminRole } from "@/lib/roles";
 import { AdminPanels, type Tab } from "./AdminPanels";
 
-const VALID_TABS: Tab[] = ["cohorts", "staff", "patients", "plans", "resources", "templates", "automation", "referrals", "settings"];
-const SUPER_ADMIN_TABS: Tab[] = ["plans", "templates", "automation", "referrals", "settings"];
+const VALID_TABS: Tab[] = ["cohorts", "staff", "patients", "plans", "resources", "templates", "automation", "referrals", "leads", "settings"];
+const SUPER_ADMIN_TABS: Tab[] = ["plans", "templates", "automation", "referrals", "leads", "settings"];
 
 export default async function AdminPage({
   searchParams,

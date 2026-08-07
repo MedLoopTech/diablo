@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { AdminOverview, AdminCohort, Person, AppointmentStat, ReferralCodeRow, ReferralRow, RewardType } from "@/lib/admin";
+import type { AdminOverview, AdminCohort, Person, AppointmentStat, ReferralCodeRow, ReferralRow, RewardType, LeadRow } from "@/lib/admin";
 import type { AutomationConfigRow } from "@/lib/automation";
 import { formatMoney } from "@/lib/currency";
 import { isAdminRole } from "@/lib/roles";
 import type { PlanFlag } from "@/lib/plan";
 import { RESOURCE_LABELS, type ResourceType } from "@/lib/resources-shared";
-import { createCohort, assignPod, enrollPatient, setCohortStatus, createResource, toggleResource, inviteStaff, updatePerson, setPatientPlan, togglePlanFeature, setTemplatePhotoMode, saveAutomationConfig, createReferralCode, toggleReferralCode, markReferralsPaid, saveReferralCodePayment } from "./actions";
+import { createCohort, assignPod, enrollPatient, setCohortStatus, createResource, toggleResource, inviteStaff, updatePerson, setPatientPlan, togglePlanFeature, setTemplatePhotoMode, saveAutomationConfig, createReferralCode, toggleReferralCode, markReferralsPaid, saveReferralCodePayment, updateLeadStatus } from "./actions";
 
 // ─── Shared ──────────────────────────────────────────────────────────────────
 
@@ -1331,9 +1331,157 @@ function ReferralsTab({
   );
 }
 
+// ─── Leads tab ───────────────────────────────────────────────────────────────
+
+const LEAD_STATUS_LABELS: Record<LeadRow["status"], string> = {
+  new: "New",
+  contacted: "Contacted",
+  converted: "Converted",
+  archived: "Archived",
+};
+
+const LEAD_PERSONA_LABELS: Record<LeadRow["persona"], string> = {
+  patient: "Patient",
+  prediabetic_family: "Prediabetic / family",
+  doctor: "Doctor",
+  nutritionist_coach: "Nutritionist / coach",
+  pharma_corporate: "Pharma / corporate",
+};
+
+/** B2B leads go to a different follow-up track than patient enrollment —
+ *  make that visually obvious in the list. */
+const isB2BPersona = (p: LeadRow["persona"]) =>
+  p === "doctor" || p === "nutritionist_coach" || p === "pharma_corporate";
+
+function LeadRowView({ lead }: { lead: LeadRow }) {
+  const [pending, start] = useTransition();
+  const [status, setStatus] = useState(lead.status);
+
+  const changeStatus = (v: LeadRow["status"]) => {
+    setStatus(v);
+    start(() => updateLeadStatus(lead.id, v).then(() => {}));
+  };
+
+  const attribution = [lead.utm_source, lead.utm_medium, lead.utm_campaign].filter(Boolean).join(" / ");
+
+  return (
+    <div className="grid grid-cols-1 gap-2 rounded-card border border-line bg-card p-4 sm:grid-cols-[1.2fr_1fr_0.9fr_0.7fr_auto] sm:items-center">
+      <div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="font-body text-[14px] font-bold text-ink">{lead.name}</span>
+          <span className={`rounded-full px-2 py-0.5 font-body text-[10.5px] font-bold ${isB2BPersona(lead.persona) ? "bg-marigold-soft text-[#9A6A14]" : "bg-mint text-primary-deep"}`}>
+            {LEAD_PERSONA_LABELS[lead.persona]}
+          </span>
+          {lead.preferred_language === "ur" && (
+            <span className="rounded-full bg-line px-2 py-0.5 font-body text-[10.5px] font-bold text-ink-soft">اردو</span>
+          )}
+        </div>
+        <div className="font-body text-[12px] text-ink-soft">
+          +{lead.phone}{lead.email ? ` · ${lead.email}` : ""}
+        </div>
+      </div>
+      <div className="font-body text-[12.5px] text-ink-soft">
+        <div>{lead.interest} · via {lead.source}</div>
+        {attribution && <div className="text-[11px] text-ink-soft/80">{attribution}</div>}
+        {lead.content_asset && <div className="text-[11px] text-ink-soft/80">asset: {lead.content_asset}</div>}
+      </div>
+      <div className="font-body text-[11.5px] text-ink-soft">
+        {new Date(lead.created_at).toLocaleString("en-PK", { timeZone: "Asia/Karachi", dateStyle: "medium", timeStyle: "short" })}
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        <span className={`rounded-full px-2 py-0.5 font-body text-[10.5px] font-bold ${lead.notified_whatsapp ? "bg-mint text-primary-deep" : "bg-line text-ink-soft"}`}>WA</span>
+        <span className={`rounded-full px-2 py-0.5 font-body text-[10.5px] font-bold ${lead.notified_telegram ? "bg-mint text-primary-deep" : "bg-line text-ink-soft"}`}>TG</span>
+        {!lead.consent_marketing && (
+          <span className="rounded-full bg-coral-soft px-2 py-0.5 font-body text-[10.5px] font-bold text-coral" title="No marketing consent recorded — do not add to campaigns">
+            no consent
+          </span>
+        )}
+      </div>
+      <select
+        value={status}
+        disabled={pending}
+        onChange={(e) => changeStatus(e.target.value as LeadRow["status"])}
+        className={`${field} disabled:opacity-50`}
+      >
+        {(Object.keys(LEAD_STATUS_LABELS) as LeadRow["status"][]).map((s) => (
+          <option key={s} value={s}>{LEAD_STATUS_LABELS[s]}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function LeadsTab({ leads }: { leads: LeadRow[] }) {
+  const [filter, setFilter] = useState<"all" | LeadRow["status"]>("all");
+  const [personaFilter, setPersonaFilter] = useState<"all" | LeadRow["persona"]>("all");
+  const filtered = leads.filter(
+    (l) => (filter === "all" || l.status === filter) && (personaFilter === "all" || l.persona === personaFilter)
+  );
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-card border border-line bg-card p-4 text-center">
+          <div className="font-display text-2xl font-semibold text-ink">{leads.length}</div>
+          <div className="mt-0.5 font-body text-[12px] text-ink-soft">Total leads</div>
+        </div>
+        <div className="rounded-card border border-line bg-card p-4 text-center">
+          <div className="font-display text-2xl font-semibold text-marigold">{leads.filter((l) => l.status === "new").length}</div>
+          <div className="mt-0.5 font-body text-[12px] text-ink-soft">New</div>
+        </div>
+        <div className="rounded-card border border-line bg-card p-4 text-center">
+          <div className="font-display text-2xl font-semibold text-primary-deep">{leads.filter((l) => l.status === "converted").length}</div>
+          <div className="mt-0.5 font-body text-[12px] text-ink-soft">Converted</div>
+        </div>
+        <div className="rounded-card border border-line bg-card p-4 text-center">
+          <div className="font-display text-2xl font-semibold text-coral">{leads.filter((l) => !l.notified_whatsapp && !l.notified_telegram).length}</div>
+          <div className="mt-0.5 font-body text-[12px] text-ink-soft">Notification failed</div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {(["all", "new", "contacted", "converted", "archived"] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`rounded-full px-3.5 py-1.5 font-body text-[12.5px] font-bold ${
+              filter === f ? "bg-primary text-white" : "border border-line bg-card text-ink-soft"
+            }`}
+          >
+            {f === "all" ? "All" : LEAD_STATUS_LABELS[f]}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-body text-[11.5px] font-bold uppercase tracking-wide text-ink-soft">Audience</span>
+        {(["all", "patient", "prediabetic_family", "doctor", "nutritionist_coach", "pharma_corporate"] as const).map((p) => (
+          <button
+            key={p}
+            onClick={() => setPersonaFilter(p)}
+            className={`rounded-full px-3 py-1 font-body text-[12px] font-bold ${
+              personaFilter === p ? "bg-primary-deep text-white" : "border border-line bg-card text-ink-soft"
+            }`}
+          >
+            {p === "all" ? "All" : LEAD_PERSONA_LABELS[p]}
+          </button>
+        ))}
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="rounded-card border border-line bg-card p-4 font-body text-[13px] text-ink-soft">No leads yet.</div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {filtered.map((lead) => <LeadRowView key={lead.id} lead={lead} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Shell ────────────────────────────────────────────────────────────────────
 
-export type Tab = "cohorts" | "staff" | "patients" | "plans" | "resources" | "templates" | "automation" | "referrals" | "settings";
+export type Tab = "cohorts" | "staff" | "patients" | "plans" | "resources" | "templates" | "automation" | "referrals" | "leads" | "settings";
 
 export function AdminPanels({ overview, tab }: { overview: AdminOverview; tab: Tab }) {
   const payoutConfig = overview.automationConfig.find((r) => r.key === "referral_payout_pkr");
@@ -1358,6 +1506,7 @@ export function AdminPanels({ overview, tab }: { overview: AdminOverview; tab: T
           currency={currency}
         />
       )}
+      {tab === "leads"      && <LeadsTab leads={overview.leads} />}
       {tab === "settings"   && <SettingsTab rows={settingsRows} />}
     </div>
   );

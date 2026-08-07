@@ -64,6 +64,31 @@ export type ReferralRow = {
   paid_at: string | null;
 };
 
+export type LeadStatus = "new" | "contacted" | "converted" | "archived";
+export type LeadPersona = "patient" | "prediabetic_family" | "doctor" | "nutritionist_coach" | "pharma_corporate";
+
+export type LeadRow = {
+  id: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  persona: LeadPersona;
+  interest: string;
+  source: string;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  referrer: string | null;
+  landing_path: string | null;
+  content_asset: string | null;
+  preferred_language: string;
+  consent_marketing: boolean;
+  status: LeadStatus;
+  notified_whatsapp: boolean;
+  notified_telegram: boolean;
+  created_at: string;
+};
+
 export type AdminOverview = {
   cohorts: AdminCohort[];
   staff: Person[];
@@ -75,6 +100,7 @@ export type AdminOverview = {
   automationConfig: AutomationConfigRow[];
   referralCodes: ReferralCodeRow[];
   referrals: ReferralRow[];
+  leads: LeadRow[];
 };
 
 export type StaffPerfRow = {
@@ -157,7 +183,7 @@ export async function getStaffPerformance(): Promise<{ rows: StaffPerfRow[]; tot
 export async function getAdminOverview(): Promise<AdminOverview> {
   const supabase = createServerSupabase();
 
-  const [{ data: cohorts }, { data: pods }, { data: members }, { data: profiles }, { data: templates }, { data: resources }, { data: planFlagsRaw }, { data: bookingsRaw }, { data: automationRows }, { data: refCodes }, { data: refRows }] =
+  const [{ data: cohorts }, { data: pods }, { data: members }, { data: profiles }, { data: templates }, { data: resources }, { data: planFlagsRaw }, { data: bookingsRaw }, { data: automationRows }, { data: refCodes }, { data: refRows }, { data: leadRows }] =
     await Promise.all([
       supabase.from("cohorts").select("id, name, start_date, status").order("start_date", { ascending: false }),
       supabase.from("care_pods").select("cohort_id, doctor_id, nutritionist_id, coach_id"),
@@ -170,6 +196,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
       supabase.from("automation_config").select("key, value, label, description, group_name, sort_order, updated_at").order("group_name").order("sort_order"),
       supabase.from("referral_codes").select("id, code, referrer_id, partner_name, partner_contact, payment_method, account_title, account_number, is_active, notes, reward_type, reward_value").order("created_at", { ascending: false }),
       supabase.from("referrals").select("id, code, referrer_id, patient_id, enrolled_at, converted_at, payout_pkr, status, paid_at").order("enrolled_at", { ascending: false }),
+      supabase.from("leads").select("id, name, phone, email, persona, interest, source, utm_source, utm_medium, utm_campaign, referrer, landing_path, content_asset, preferred_language, consent_marketing, status, notified_whatsapp, notified_telegram, created_at").order("created_at", { ascending: false }),
     ]);
 
   const nameOf = new Map((profiles ?? []).map((p) => [p.id as string, p.full_name as string | null]));
@@ -280,5 +307,6 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     automationConfig: (automationRows ?? []) as AutomationConfigRow[],
     referralCodes,
     referrals,
+    leads: (leadRows ?? []) as LeadRow[],
   };
 }

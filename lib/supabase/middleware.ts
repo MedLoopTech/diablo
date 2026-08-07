@@ -8,6 +8,15 @@ const PUBLIC_PATHS = ["/login", "/auth"];
 // shouldn't trigger the signed-in-user redirect-away-from-login logic below.
 const PUBLIC_API_PATHS = ["/api/lead"];
 
+// Public marketing pages. Unlike PUBLIC_PATHS these are not auth screens, so
+// a signed-in visitor should be able to read them rather than being bounced
+// to their dashboard.
+const MARKETING_PATHS = ["/professionals"];
+
+function isMarketingPath(pathname: string) {
+  return MARKETING_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
 function isPublicPath(pathname: string) {
   // "/" is the public marketing page for anonymous visitors — app/page.tsx
   // itself redirects authenticated users onward, so letting it through here
@@ -33,7 +42,8 @@ export async function updateSession(request: NextRequest) {
     if (
       process.env.NODE_ENV !== "development" &&
       !isPublicPath(request.nextUrl.pathname) &&
-      !isPublicApiPath(request.nextUrl.pathname)
+      !isPublicApiPath(request.nextUrl.pathname) &&
+      !isMarketingPath(request.nextUrl.pathname)
     ) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
@@ -73,7 +83,7 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (!user) {
-    if (isPublicPath(pathname) || isPublicApiPath(pathname)) return response;
+    if (isPublicPath(pathname) || isPublicApiPath(pathname) || isMarketingPath(pathname)) return response;
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     // Signal to the login page that this redirect came from the staff area
@@ -83,6 +93,10 @@ export async function updateSession(request: NextRequest) {
     }
     return NextResponse.redirect(url);
   }
+
+  // Marketing pages are readable signed-in or not — don't bounce a logged-in
+  // visitor who clicked through to the professionals page.
+  if (isMarketingPath(pathname)) return response;
 
   // Authenticated: resolve role + onboarding state.
   const { data: profile } = await supabase

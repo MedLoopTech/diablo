@@ -54,6 +54,9 @@ export function MarketingLanding() {
             <a href="#faq" className="font-body text-[13.5px] font-semibold text-ink-soft hover:text-ink">
               FAQ
             </a>
+            <Link href="/professionals" className="font-body text-[13.5px] font-semibold text-ink-soft hover:text-ink">
+              For clinicians
+            </Link>
           </nav>
           <div className="flex items-center gap-5">
             <Link href="/login" className="font-body text-[13.5px] font-semibold text-ink-soft hover:text-ink">

@@ -13,6 +13,7 @@ const ADMIN_SUBTABS = [
   { id: "templates",  label: "Templates",  superAdminOnly: true },
   { id: "automation", label: "Automation", superAdminOnly: true },
   { id: "referrals",  label: "Referrals",  superAdminOnly: true },
+  { id: "leads",      label: "Leads",      superAdminOnly: true },
   { id: "settings",   label: "Settings",   superAdminOnly: true },
 ];
 
