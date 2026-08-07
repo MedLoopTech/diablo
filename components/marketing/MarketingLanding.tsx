@@ -45,6 +45,9 @@ export function MarketingLanding() {
             <a href="#care-pod" className="font-body text-[13.5px] font-semibold text-ink-soft hover:text-ink">
               Care pod
             </a>
+            <a href="#evidence" className="font-body text-[13.5px] font-semibold text-ink-soft hover:text-ink">
+              Evidence
+            </a>
             <a href="#pricing" className="font-body text-[13.5px] font-semibold text-ink-soft hover:text-ink">
               Pricing
             </a>
@@ -245,6 +248,60 @@ export function MarketingLanding() {
         <div className="mt-5 rounded-card border border-line bg-mint p-4 text-center">
           <p className="font-body text-[13.5px] text-primary-deep">
             Not sure where you stand? Ask your doctor about a fasting glucose or HbA1c test — or start logging real readings once you join a cohort.
+          </p>
+        </div>
+      </Section>
+
+      {/* Evidence — what the research and clinical bodies actually say */}
+      <Section id="evidence" className="border-t border-line bg-card">
+        <Reveal>
+          <Eyebrow>The evidence</Eyebrow>
+          <h2 className="mt-3 max-w-lg text-balance font-display text-[28px] font-semibold leading-tight text-ink sm:text-[32px]">
+            What the research and clinical bodies actually say
+          </h2>
+          <p className="mt-2 max-w-lg font-body text-[13.5px] leading-relaxed text-ink-soft">
+            Loop/90&apos;s program design is built on published clinical research, not tradition or
+            anecdote. Here&apos;s what it&apos;s based on.
+          </p>
+        </Reveal>
+        <div className="mt-9 grid gap-4 sm:grid-cols-2">
+          {[
+            {
+              title: "How “remission” is defined",
+              source: "ADA / EASD Consensus Report, 2021",
+              body: "The American Diabetes Association and the European Association for the Study of Diabetes jointly define remission as an HbA1c below 6.5% sustained for at least 3 months after stopping all glucose-lowering medication. This is the definition Loop/90 uses — not a looser or more marketable one.",
+              href: "https://diabetes.org/newsroom/international-experts-outline-diabetes-remission-diagnosis-criteria",
+              linkLabel: "Read the ADA statement",
+            },
+            {
+              title: "The DiRECT trial",
+              source: "Lean, Taylor et al., The Lancet, 2018 — with 5-year follow-up, 2024",
+              body: "A primary-care weight-management trial (Universities of Glasgow and Newcastle) put 46% of participants into remission at 12 months and 36% at 24 months, without medication. Participants who lost over 10kg saw remission rates of 75% at both 1 and 2 years. Loop/90's structure — supervised weight management plus ongoing clinical support — is modeled on this trial's approach.",
+              href: "https://www.diabetes.org.uk/about-us/news-and-views/weight-loss-can-put-type-2-diabetes-remission-least-five-years-reveal-latest-findings",
+              linkLabel: "Read the DiRECT findings",
+            },
+          ].map((item, i) => (
+            <Reveal key={item.title} delay={i * 90}>
+              <div className="flex h-full flex-col rounded-card border border-line bg-paper p-6">
+                <div className="font-body text-[11px] font-bold uppercase tracking-wide text-primary">{item.source}</div>
+                <div className="mt-2 font-body text-[15px] font-bold text-ink">{item.title}</div>
+                <p className="mt-2 flex-1 font-body text-[13px] leading-relaxed text-ink-soft">{item.body}</p>
+                <a
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 font-body text-[12.5px] font-bold text-primary hover:underline"
+                >
+                  {item.linkLabel} →
+                </a>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+        <div className="mt-5 rounded-card border border-line bg-mint p-4 text-center">
+          <p className="font-body text-[13.5px] text-primary-deep">
+            Remission isn&apos;t guaranteed for everyone — results depend on how much weight is lost and how early
+            in the disease you start. Medication decisions always stay with your doctor, never the app.
           </p>
         </div>
       </Section>
