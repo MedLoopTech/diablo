@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import type { AdminOverview, AdminCohort, Person, AppointmentStat, ReferralCodeRow, ReferralRow, RewardType } from "@/lib/admin";
 import type { AutomationConfigRow } from "@/lib/automation";
 import { formatMoney } from "@/lib/currency";
+import { isAdminRole } from "@/lib/roles";
 import type { PlanFlag } from "@/lib/plan";
 import { RESOURCE_LABELS, type ResourceType } from "@/lib/resources-shared";
 import { createCohort, assignPod, enrollPatient, setCohortStatus, createResource, toggleResource, inviteStaff, updatePerson, setPatientPlan, togglePlanFeature, setTemplatePhotoMode, saveAutomationConfig, createReferralCode, toggleReferralCode, markReferralsPaid, saveReferralCodePayment } from "./actions";
@@ -15,7 +16,7 @@ const field = "rounded-[10px] border border-line bg-paper px-3 py-2 font-body te
 // ─── Cohorts tab ─────────────────────────────────────────────────────────────
 
 function StaffSelect({ people, role, defaultLabel }: { people: Person[]; role: string; defaultLabel: string }) {
-  const opts = people.filter((p) => p.role === role || p.role === "admin");
+  const opts = people.filter((p) => p.role === role || isAdminRole(p.role));
   return (
     <>
       <option value="">{defaultLabel}</option>

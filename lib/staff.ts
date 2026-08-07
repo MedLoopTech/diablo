@@ -1,4 +1,5 @@
 import { createServerSupabase } from "@/lib/supabase/server";
+import { isAdminRole } from "@/lib/roles";
 
 export type Escalation = {
   id: string;
@@ -51,7 +52,7 @@ export async function getOpenEscalations(): Promise<Escalation[]> {
     .order("created_at", { ascending: false });
 
   // Non-doctors only see their own assigned escalations.
-  if (uid && role && !["doctor", "admin"].includes(role)) {
+  if (uid && role && role !== "doctor" && !isAdminRole(role)) {
     query = query.eq("assigned_to", uid);
   }
 

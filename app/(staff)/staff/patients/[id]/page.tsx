@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPatientDetail } from "@/lib/staff";
 import { getCurrentProfile } from "@/lib/profile";
+import { isAdminRole } from "@/lib/roles";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { createAdminSupabase, PHOTO_BUCKET, VOICE_BUCKET } from "@/lib/supabase/admin";
 import { VoicePlayer } from "@/components/VoicePlayer";
@@ -113,12 +114,12 @@ export default async function PatientDetailPage({
   ]);
 
   const role = viewer?.role ?? "";
-  const canEditMeds     = role === "doctor"       || role === "admin";
-  const canEditMeals    = role === "nutritionist"  || role === "admin";
-  const canEditMovement = role === "coach"         || role === "admin";
-  const canEditMedHistory = role === "doctor"      || role === "admin";
+  const canEditMeds     = role === "doctor"       || isAdminRole(role);
+  const canEditMeals    = role === "nutritionist"  || isAdminRole(role);
+  const canEditMovement = role === "coach"         || isAdminRole(role);
+  const canEditMedHistory = role === "doctor"      || isAdminRole(role);
   const canSeeMeds = role !== "coach";
-  const canEditLabs = role === "doctor" || role === "admin";
+  const canEditLabs = role === "doctor" || isAdminRole(role);
 
   const latestReading = p.readings[0] ?? null;
   const openEscalations = p.escalations.filter((e) => e.status !== "resolved");

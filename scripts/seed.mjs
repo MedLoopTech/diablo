@@ -26,7 +26,7 @@ const STAFF = [
   { email: "demo.doctor@sehat90.app", role: "doctor", name: "Dr. Ayesha Rahman" },
   { email: "demo.nutritionist@sehat90.app", role: "nutritionist", name: "Sana Iqbal" },
   { email: "demo.coach@sehat90.app", role: "coach", name: "Faisal Khan" },
-  { email: "demo.admin@sehat90.app", role: "admin", name: "Program Admin" },
+  { email: "demo.admin@sehat90.app", role: "super_admin", name: "Program Admin" },
 ];
 const PATIENTS = [
   { email: "demo.imran@sehat90.app", name: "Imran Ali", baseHba1c: 8.2, baseWeight: 86.2, lead: true },

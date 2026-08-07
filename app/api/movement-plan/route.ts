@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/env";
+import { isAdminRole } from "@/lib/roles";
 
 type MovementExercise = {
   name: string;
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   const role = profile?.role ?? "patient";
-  if (role !== "coach" && role !== "admin") {
+  if (role !== "coach" && !isAdminRole(role)) {
     return NextResponse.json({ error: "Only a fitness coach can edit movement plans." }, { status: 403 });
   }
 

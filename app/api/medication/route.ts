@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/env";
-import { isStaffRole } from "@/lib/roles";
+import { isStaffRole, isAdminRole } from "@/lib/roles";
 
 type Medication = { name: string; dose: string; schedule: string };
 
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   const role = profile?.role ?? "patient";
 
   // 403 for any non-doctor (nutritionist/coach/patient included).
-  if (role !== "doctor" && role !== "admin") {
+  if (role !== "doctor" && !isAdminRole(role)) {
     return NextResponse.json(
       { error: "Only a doctor can change medication plans." },
       { status: 403 }

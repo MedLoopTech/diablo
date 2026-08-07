@@ -1,10 +1,24 @@
 export const dynamic = "force-dynamic";
 
+import Link from "next/link";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/profile";
+import { isSuperAdminRole } from "@/lib/roles";
 import type { ReferralRow } from "@/lib/admin";
 import { PayoutsPanel } from "./PayoutsPanel";
 
 export default async function PayoutsPage() {
+  const profile = await getCurrentProfile();
+  if (!isSuperAdminRole(profile?.role)) {
+    return (
+      <div className="py-16 text-center">
+        <div className="font-display text-xl font-semibold text-ink">Super admins only</div>
+        <p className="mt-2 font-body text-[13px] text-ink-soft">Referral payouts move real money — restricted to super admins.</p>
+        <Link href="/staff" className="mt-4 inline-block font-body text-[13px] font-bold text-primary-deep">← Back to dashboard</Link>
+      </div>
+    );
+  }
+
   const supabase = createServerSupabase();
 
   const [{ data: refRows }, { data: cfg }, { data: currencyCfg }, { data: codeRows }] = await Promise.all([

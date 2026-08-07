@@ -7,6 +7,7 @@ import { randomBytes } from "crypto";
 import type { RewardType } from "@/lib/admin";
 import { formatMoney } from "@/lib/currency";
 import { getPlatformCurrency } from "@/lib/currency-server";
+import { isAdminRole, isSuperAdminRole } from "@/lib/roles";
 
 async function requireAdmin() {
   const supabase = createServerSupabase();
@@ -15,7 +16,18 @@ async function requireAdmin() {
   } = await supabase.auth.getUser();
   if (!user) return { supabase, ok: false as const };
   const { data } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  return { supabase, ok: data?.role === "admin" };
+  return { supabase, ok: isAdminRole(data?.role) };
+}
+
+/** Gates the platform-configuration actions (Settings, Referrals, Automation, Plans, Templates) — super_admin only. */
+async function requireSuperAdmin() {
+  const supabase = createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { supabase, ok: false as const };
+  const { data } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  return { supabase, ok: isSuperAdminRole(data?.role) };
 }
 
 export async function createCohort(name: string, startDate: string): Promise<{ ok: boolean; error?: string }> {
@@ -129,8 +141,8 @@ export async function setPatientPlan(patientId: string, plan: "basic" | "plus" |
 }
 
 export async function togglePlanFeature(plan: string, featureKey: string, enabled: boolean): Promise<{ ok: boolean; error?: string }> {
-  const { supabase, ok } = await requireAdmin();
-  if (!ok) return { ok: false, error: "Admins only." };
+  const { supabase, ok } = await requireSuperAdmin();
+  if (!ok) return { ok: false, error: "Super admins only." };
   const { error } = await supabase
     .from("plan_feature_flags")
     .update({ enabled })
@@ -146,8 +158,8 @@ export async function setTemplatePhotoMode(
   photoMode: "off" | "optional" | "required",
   photoPtsBonus: number
 ): Promise<{ ok: boolean; error?: string }> {
-  const { supabase, ok } = await requireAdmin();
-  if (!ok) return { ok: false, error: "Admins only." };
+  const { supabase, ok } = await requireSuperAdmin();
+  if (!ok) return { ok: false, error: "Super admins only." };
   const { error } = await supabase
     .from("task_templates")
     .update({ photo_mode: photoMode, photo_points_bonus: photoPtsBonus })
@@ -158,8 +170,8 @@ export async function setTemplatePhotoMode(
 }
 
 export async function saveAutomationConfig(key: string, value: string): Promise<{ ok: boolean; error?: string }> {
-  const { supabase, ok } = await requireAdmin();
-  if (!ok) return { ok: false, error: "Admins only." };
+  const { supabase, ok } = await requireSuperAdmin();
+  if (!ok) return { ok: false, error: "Super admins only." };
   if (!key) return { ok: false, error: "Key required." };
   const { error } = await supabase
     .from("automation_config")
@@ -245,8 +257,8 @@ export async function createReferralCode(
   rewardType: RewardType = "cash",
   rewardValue: Record<string, unknown> = {},
 ): Promise<{ ok: boolean; code?: string; error?: string }> {
-  const { supabase, ok } = await requireAdmin();
-  if (!ok) return { ok: false, error: "Admins only." };
+  const { supabase, ok } = await requireSuperAdmin();
+  if (!ok) return { ok: false, error: "Super admins only." };
 
   const prefix = partnerName ?? "PARTNER";
   const code = genCode(prefix);
@@ -275,8 +287,8 @@ export async function saveReferralCodePayment(
   accountTitle: string | null,
   accountNumber: string | null,
 ): Promise<{ ok: boolean; error?: string }> {
-  const { supabase, ok } = await requireAdmin();
-  if (!ok) return { ok: false, error: "Admins only." };
+  const { supabase, ok } = await requireSuperAdmin();
+  if (!ok) return { ok: false, error: "Super admins only." };
   const { error } = await supabase
     .from("referral_codes")
     .update({ payment_method: paymentMethod || null, account_title: accountTitle || null, account_number: accountNumber || null })
@@ -287,8 +299,8 @@ export async function saveReferralCodePayment(
 }
 
 export async function toggleReferralCode(id: string, isActive: boolean): Promise<{ ok: boolean; error?: string }> {
-  const { supabase, ok } = await requireAdmin();
-  if (!ok) return { ok: false, error: "Admins only." };
+  const { supabase, ok } = await requireSuperAdmin();
+  if (!ok) return { ok: false, error: "Super admins only." };
   const { error } = await supabase.from("referral_codes").update({ is_active: isActive }).eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/staff/admin");
@@ -302,8 +314,8 @@ function genVoucherCode(): string {
 export async function markReferralsPaid(
   ids: string[]
 ): Promise<{ ok: boolean; error?: string; fulfillments?: { referralId: string; note: string }[] }> {
-  const { supabase, ok } = await requireAdmin();
-  if (!ok) return { ok: false, error: "Admins only." };
+  const { supabase, ok } = await requireSuperAdmin();
+  if (!ok) return { ok: false, error: "Super admins only." };
 
   const {
     data: { user },

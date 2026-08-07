@@ -3,9 +3,11 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { getCurrentProfile } from "@/lib/profile";
 import { getAdminOverview } from "@/lib/admin";
+import { isAdminRole, isSuperAdminRole } from "@/lib/roles";
 import { AdminPanels, type Tab } from "./AdminPanels";
 
 const VALID_TABS: Tab[] = ["cohorts", "staff", "patients", "plans", "resources", "templates", "automation", "referrals", "settings"];
+const SUPER_ADMIN_TABS: Tab[] = ["plans", "templates", "automation", "referrals", "settings"];
 
 export default async function AdminPage({
   searchParams,
@@ -13,7 +15,7 @@ export default async function AdminPage({
   searchParams: { tab?: string };
 }) {
   const profile = await getCurrentProfile();
-  if (profile?.role !== "admin") {
+  if (!isAdminRole(profile?.role)) {
     return (
       <div className="py-16 text-center">
         <div className="font-display text-xl font-semibold text-ink">Admins only</div>
@@ -23,7 +25,9 @@ export default async function AdminPage({
     );
   }
 
-  const tab: Tab = VALID_TABS.includes(searchParams.tab as Tab)
+  const isSuper = isSuperAdminRole(profile?.role);
+  const allowedTabs = VALID_TABS.filter((t) => isSuper || !SUPER_ADMIN_TABS.includes(t));
+  const tab: Tab = allowedTabs.includes(searchParams.tab as Tab)
     ? (searchParams.tab as Tab)
     : "cohorts";
 

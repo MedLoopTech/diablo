@@ -2,17 +2,18 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { isAdminRole, isSuperAdminRole } from "@/lib/roles";
 
 const ADMIN_SUBTABS = [
   { id: "cohorts",    label: "Cohorts" },
   { id: "staff",      label: "Staff" },
   { id: "patients",   label: "Patients" },
-  { id: "plans",      label: "Plans" },
   { id: "resources",  label: "Resources" },
-  { id: "templates",  label: "Templates" },
-  { id: "automation", label: "Automation" },
-  { id: "referrals",  label: "Referrals" },
-  { id: "settings",   label: "Settings" },
+  { id: "plans",      label: "Plans",      superAdminOnly: true },
+  { id: "templates",  label: "Templates",  superAdminOnly: true },
+  { id: "automation", label: "Automation", superAdminOnly: true },
+  { id: "referrals",  label: "Referrals",  superAdminOnly: true },
+  { id: "settings",   label: "Settings",   superAdminOnly: true },
 ];
 
 const STAFF_NAV = [
@@ -22,7 +23,7 @@ const STAFF_NAV = [
   { href: "/staff/escalations",     label: "Escalations" },
   { href: "/staff/announcements",   label: "Announcements" },
   { href: "/staff/referrals",       label: "Referrals" },
-  { href: "/staff/weekly-review",   label: "Weekly Review", roles: ["doctor", "admin"] },
+  { href: "/staff/weekly-review",   label: "Weekly Review", roles: ["doctor", "admin", "super_admin"] },
 ];
 
 export function StaffNav({ role }: { role: string }) {
@@ -36,15 +37,19 @@ export function StaffNav({ role }: { role: string }) {
       active ? "bg-primary font-semibold text-white" : "text-ink-soft hover:bg-paper hover:text-ink"
     }`;
 
-  if (role === "admin") {
+  if (isAdminRole(role)) {
+    const isSuper = isSuperAdminRole(role);
+    const subtabs = ADMIN_SUBTABS.filter((sub) => isSuper || !sub.superAdminOnly);
     return (
       <nav className="flex flex-col gap-0.5 overflow-y-auto px-3 py-2">
         <Link href="/staff/performance" className={linkCls(pathname.startsWith("/staff/performance"))}>
           Performance
         </Link>
-        <Link href="/staff/payouts" className={linkCls(pathname.startsWith("/staff/payouts"))}>
-          Payouts
-        </Link>
+        {isSuper && (
+          <Link href="/staff/payouts" className={linkCls(pathname.startsWith("/staff/payouts"))}>
+            Payouts
+          </Link>
+        )}
         <Link href="/staff/announcements" className={linkCls(pathname.startsWith("/staff/announcements"))}>
           Announcements
         </Link>
@@ -55,7 +60,7 @@ export function StaffNav({ role }: { role: string }) {
               Admin
             </div>
             <div className="ml-2 flex flex-col gap-0.5 border-l border-line pl-2">
-              {ADMIN_SUBTABS.map((sub) => (
+              {subtabs.map((sub) => (
                 <Link
                   key={sub.id}
                   href={`/staff/admin?tab=${sub.id}`}

@@ -2,6 +2,7 @@
 
 import { createServerSupabase } from "@/lib/supabase/server";
 import { checkAnnouncementCopy, safeHref } from "@/lib/announcements-shared";
+import { isAdminRole } from "@/lib/roles";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -17,7 +18,7 @@ async function requirePodStaffOrAdmin(cohortId: string) {
   if (!user) throw new Error("Not authenticated");
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (profile?.role === "admin") return { supabase, userId: user.id };
+  if (isAdminRole(profile?.role)) return { supabase, userId: user.id };
 
   const { data: pod } = await supabase
     .from("care_pods")

@@ -1,4 +1,5 @@
 import { createServerSupabase } from "@/lib/supabase/server";
+import { isAdminRole } from "@/lib/roles";
 import type { Announcement } from "@/lib/announcements-shared";
 
 export * from "@/lib/announcements-shared";
@@ -42,7 +43,7 @@ export async function getStaffCohorts(): Promise<{ id: string; name: string }[]>
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
 
-  if (profile?.role === "admin") {
+  if (isAdminRole(profile?.role)) {
     const { data } = await supabase.from("cohorts").select("id, name").order("start_date", { ascending: false });
     return data ?? [];
   }

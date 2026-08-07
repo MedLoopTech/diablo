@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/env";
+import { isAdminRole } from "@/lib/roles";
 
 type MealItem = { meal: string; description: string; carb_target_g: number | null };
 
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   const role = profile?.role ?? "patient";
-  if (role !== "nutritionist" && role !== "admin") {
+  if (role !== "nutritionist" && !isAdminRole(role)) {
     return NextResponse.json({ error: "Only a nutritionist can edit meal plans." }, { status: 403 });
   }
 
