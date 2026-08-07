@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/env";
-import { isStaffRole, isAdminRole } from "@/lib/roles";
+import { isAdminRole } from "@/lib/roles";
 
 type Medication = { name: string; dose: string; schedule: string };
 
