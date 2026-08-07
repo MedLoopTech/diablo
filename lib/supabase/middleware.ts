@@ -6,6 +6,10 @@ import { requireSupabase, supabaseConfigured } from "@/lib/env";
 const PUBLIC_PATHS = ["/login", "/auth"];
 
 function isPublicPath(pathname: string) {
+  // "/" is the public marketing page for anonymous visitors — app/page.tsx
+  // itself redirects authenticated users onward, so letting it through here
+  // doesn't expose anything; it just lets that redirect logic run.
+  if (pathname === "/") return true;
   return PUBLIC_PATHS.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`)
   );
