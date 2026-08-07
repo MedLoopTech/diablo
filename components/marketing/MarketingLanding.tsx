@@ -2,12 +2,6 @@ import Link from "next/link";
 import { Disclaimer } from "@/components/Disclaimer";
 import { LeadForm } from "@/components/marketing/LeadForm";
 
-export const metadata = {
-  title: "90 Days to Diabetes Remission — Loop/90",
-  description:
-    "A doctor-led 90-day cohort program for type-2 diabetes remission, built around real Pakistani food. One doctor, one nutritionist, one coach, one AI — per cohort.",
-};
-
 const PROGRAM_PRICE_PKR = 25000;
 const INSTALLMENT_PKR = 8500; // 3x — small installment premium over the one-time price
 
@@ -31,7 +25,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   return <div className="font-body text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft">{children}</div>;
 }
 
-export default function MarketingLanding() {
+export function MarketingLanding() {
   return (
     <div className="flex flex-col">
       {/* Header */}
