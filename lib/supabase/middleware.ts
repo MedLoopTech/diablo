@@ -4,6 +4,9 @@ import { homePathForRole, isStaffRole } from "@/lib/roles";
 import { requireSupabase, supabaseConfigured } from "@/lib/env";
 
 const PUBLIC_PATHS = ["/login", "/auth"];
+// Public API routes: reachable without a session, but not "pages" — they
+// shouldn't trigger the signed-in-user redirect-away-from-login logic below.
+const PUBLIC_API_PATHS = ["/api/lead"];
 
 function isPublicPath(pathname: string) {
   // "/" is the public marketing page for anonymous visitors — app/page.tsx
@@ -15,13 +18,23 @@ function isPublicPath(pathname: string) {
   );
 }
 
+function isPublicApiPath(pathname: string) {
+  return PUBLIC_API_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  );
+}
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   // Without real Supabase env values the app can still boot (setup mode) —
   // but nothing is protected, so only allow it in development.
   if (!supabaseConfigured()) {
-    if (process.env.NODE_ENV !== "development" && !isPublicPath(request.nextUrl.pathname)) {
+    if (
+      process.env.NODE_ENV !== "development" &&
+      !isPublicPath(request.nextUrl.pathname) &&
+      !isPublicApiPath(request.nextUrl.pathname)
+    ) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
     return response;
@@ -60,7 +73,7 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (!user) {
-    if (isPublicPath(pathname)) return response;
+    if (isPublicPath(pathname) || isPublicApiPath(pathname)) return response;
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     // Signal to the login page that this redirect came from the staff area
