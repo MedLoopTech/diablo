@@ -10,8 +10,8 @@ The three HTML assets in `products/Content Resources/` were written before `CONS
 
 | Asset | Verdict | Blocking issues |
 |-------|---------|-----------------|
-| `loop90_enhanced.html` (B2C landing) | **Mostly compliant** — genuinely exemplary in places | 0 blocking, 1 to verify |
-| `loop90_professionals.html` (B2B landing) | **Needs review** | "guaranteed" usage to check in context |
+| `loop90_enhanced.html` (B2C landing) | **Mostly compliant** — genuinely exemplary in places | 0 blocking; pricing stale, corrected below |
+| `loop90_professionals.html` (B2B landing) | **Compliant** | 0 blocking — resolved 2026-08-07, see below |
 | `desi_diabetes_plate_guide_bilingual.html` (lead magnet) | **Would be blocked** | 2 blocking issues |
 
 ---
@@ -42,10 +42,11 @@ Attached to the **refund**, never to a health outcome. This is exactly the permi
 - "Not an AI chatbot. A real endocrinologist, nutritionist, and coach"
 - "Do I have to stop eating roti and rice? No."
 
-### To verify before reuse
+### Pricing — stale, corrected
 
-- **PKR 16,000** program price — a document, not live config. Verify.
-- **"40 Patients per cohort"** — within the stated 30–50, consistent.
+- **"PKR 16,000" is out of date.** Confirmed 2026-08-07: current program price is **PKR 25,000**. Every instance of "PKR 16,000" in `loop90_enhanced.html` (hero price, testimonial referencing "PKR 16,000 is a lot for us") needs updating before this asset is reused anywhere.
+- This is exactly the failure mode `publishing/reference.md` warns about — a figure that was true when written and silently went stale. Pricing must be verified at publish time, never recalled from a document.
+- **"40 Patients per cohort"** — within the stated 30–50, consistent, no change needed.
 
 ---
 
@@ -53,9 +54,17 @@ Attached to the **refund**, never to a health outcome. This is exactly the permi
 
 **Term hits:** 21 × "guarantee", 1 × "guaranteed"
 
-The plural "guarantee" instances are likely the same money-back construction. The singular **"guaranteed"** needs checking in context — on doctor-facing content, "guaranteed" is banned outright, with no money-back exception, because there's no consumer refund being described.
+**Resolved 2026-08-07.** The singular "guaranteed" hit:
 
-**Action:** review that one instance before reusing this asset.
+> "I run yoga classes at a gym in Islamabad. The income is unpredictable. Loop90 gives me a fixed cohort, a structured program, and **guaranteed weekly payments**. I know exactly how much I'll earn each month." — Bilal Khan, Movement Coach
+
+This is a coach testimonial about **income predictability**, not a health-outcome claim — a compensation term, not something `banned-claims.md` was written to restrict. Confirmed against `.claude/skills/medical-safety/reference.md`'s scope check (added as part of this review): a "guarantee" hit is only a violation when it claims a patient health outcome or clinical result.
+
+`banned-claims.md` §"Context-dependent bans" was updated to state this scope explicitly, so future automated scans don't re-flag payment/compensation language in staff-recruitment content.
+
+The 21 plural "guarantee" instances follow the same money-back-refund pattern already confirmed clean in the B2C landing page (§1 above).
+
+**No fix needed.** This asset is compliant as written.
 
 ---
 

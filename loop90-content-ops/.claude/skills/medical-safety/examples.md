@@ -1,5 +1,43 @@
 # Medical Safety — Examples
 
+## Example 0 — "Guarantee" hit that isn't a violation
+
+Coach recruitment page (`loop90_professionals.html`).
+
+```yaml
+safety_check:
+  banned_claims: SCOPE_CHECK
+
+text: >
+  "Loop90 gives me a fixed cohort, a structured program, and guaranteed
+  weekly payments. I know exactly how much I'll earn each month."
+  — Bilal Khan, Movement Coach
+
+scope_check:
+  question: >
+    Is "guaranteed" here a health-outcome claim, or a business/
+    employment term?
+  answer: business_employment_term
+  reasoning: >
+    This is a testimonial about income predictability for a gig-economy
+    professional — a compensation term, not a claim about a patient's
+    health or the program's clinical results. The banned-claims rule
+    governs health/outcome guarantees; it was never meant to restrict
+    "we pay you on a fixed schedule."
+
+ruling: not_a_violation
+decision_tree_applied: false   # scope check exits before the four-condition test
+verdict: pass
+notes: >
+  banned-claims.md was ambiguous on this — the regex is topic-blind and
+  flags any "guarantee". Updated the doc to state the scope explicitly
+  so future scans don't need to re-litigate this.
+```
+
+**Why this matters:** treating every regex hit as equally risky either over-blocks legitimate business copy or, worse, trains reviewers to wave through hits without reading context. The scope check is a required first step, not an optional judgement call.
+
+---
+
 ## Example 1 — Cleared
 
 The roti piece, post-editing.

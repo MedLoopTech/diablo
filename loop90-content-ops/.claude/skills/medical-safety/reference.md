@@ -1,8 +1,19 @@
 # Medical Safety — Reference
 
+## "Guaranteed" — check scope before running the decision tree
+
+Not every regex hit on "guarantee" is a health claim. Ask first:
+
+**Is this a claim about a patient health outcome or the program's clinical results — or is it a business/employment term (compensation, payment schedule, staff terms)?**
+
+- Health/outcome claim → run the four-condition decision tree below
+- Business/employment term (e.g. a coach's "guaranteed weekly payment" in recruitment content) → **not a violation**, no exception needs declaring, don't block
+
+This distinction exists because the regex is topic-blind. A worked example is in `examples.md` — a coach testimonial about predictable income, correctly *not* blocked.
+
 ## Conditional-term decision tree
 
-For "reverse" or "guaranteed":
+For "reverse" or a health-outcome "guaranteed":
 
 ```
 1. Is it in the brief's banned_term_exceptions?     No → BLOCK

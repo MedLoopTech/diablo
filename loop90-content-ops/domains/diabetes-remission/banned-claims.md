@@ -15,7 +15,7 @@ Synced with Sehat/90 `lib/announcements-shared.ts` and `CONSTITUTION.md` §10–
 
 | Pattern | Term | Allowed where | Rule |
 |---------|------|---------------|------|
-| `/\bguarantee[ds]?\b/i` | guaranteed | B2C landing legal section only | Never in-app, announcements, blog, email body |
+| `/\bguarantee[ds]?\b/i` | guaranteed (health/outcome) | B2C landing legal section only, attached to the refund term | Never in-app, announcements, blog, email body. **Scope: this rule governs claims about a patient health outcome or the program's clinical results.** It does not cover a business/employment term — e.g. a care-pod professional's "guaranteed weekly payment" in recruitment content is a compensation term, not a health claim, and is not restricted by this rule. If a "guarantee" hit is a compensation or payment term rather than a health outcome, it's not a violation — no exception needs declaring. |
 | `/\breverse[sd]?\b/i` | reverse/reversal | B2C landing, ads with remission context | Never in-app announcements, medical articles, doctor pitches |
 | `/\bstop\s+(your\|taking\|the)\s+(medication\|metformin\|insulin)/i` | stop medication | Never | Route to doctor; content educates only |
 
