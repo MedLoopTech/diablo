@@ -38,6 +38,20 @@ export function MarketingLanding() {
           <div className="font-display text-[22px] font-semibold text-primary-deep">
             Loop<span className="text-marigold">/</span>90
           </div>
+          <nav className="hidden items-center gap-7 md:flex">
+            <a href="#path" className="font-body text-[13.5px] font-semibold text-ink-soft hover:text-ink">
+              Your path
+            </a>
+            <a href="#care-pod" className="font-body text-[13.5px] font-semibold text-ink-soft hover:text-ink">
+              Care pod
+            </a>
+            <a href="#pricing" className="font-body text-[13.5px] font-semibold text-ink-soft hover:text-ink">
+              Pricing
+            </a>
+            <a href="#faq" className="font-body text-[13.5px] font-semibold text-ink-soft hover:text-ink">
+              FAQ
+            </a>
+          </nav>
           <div className="flex items-center gap-5">
             <Link href="/login" className="font-body text-[13.5px] font-semibold text-ink-soft hover:text-ink">
               Log in
@@ -138,7 +152,7 @@ export function MarketingLanding() {
       </Section>
 
       {/* 90-day path */}
-      <Section className="border-t border-line bg-card">
+      <Section id="path" className="border-t border-line bg-card">
         <Reveal>
           <Eyebrow>Your 90-day path</Eyebrow>
           <h2 className="mt-3 font-display text-[28px] font-semibold text-ink sm:text-[32px]">Three phases. One goal. Measurable checkpoints.</h2>
@@ -166,7 +180,7 @@ export function MarketingLanding() {
       </Section>
 
       {/* Care pod — dark section for rhythm */}
-      <section className="bg-primary-deep">
+      <section id="care-pod" className="bg-primary-deep">
         <Section>
           <Reveal>
             <Eyebrow tone="marigold">Your care pod</Eyebrow>
@@ -328,7 +342,7 @@ export function MarketingLanding() {
       </Section>
 
       {/* FAQ */}
-      <Section>
+      <Section id="faq">
         <Reveal>
           <Eyebrow>Questions, answered</Eyebrow>
           <h2 className="mt-3 font-display text-[26px] font-semibold text-ink sm:text-[28px]">Before you ask</h2>
