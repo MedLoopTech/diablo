@@ -8,7 +8,7 @@ const MILESTONES = [
 /** The 90-day winding path from design-reference/sehat-90-prototype.jsx, adapted as the journey section's visual spine. */
 export function JourneyPath() {
   const W = 700;
-  const H = 120;
+  const H = 145;
   const x = (d: number) => 20 + (d / 90) * (W - 40);
   const wave = (px: number) => 60 + Math.sin(px / 60) * 26;
 
@@ -24,7 +24,7 @@ export function JourneyPath() {
           <circle cx={x(m.d)} cy={wave(x(m.d))} r="9" fill="#14664F" stroke="#fff" strokeWidth="3" />
           <text
             x={x(m.d)}
-            y={wave(x(m.d)) + (m.d === 45 ? -20 : 28)}
+            y={wave(x(m.d)) + (m.d === 45 ? -28 : 30)}
             textAnchor="middle"
             fontSize="13"
             fontWeight={600}
@@ -35,7 +35,7 @@ export function JourneyPath() {
           </text>
           <text
             x={x(m.d)}
-            y={wave(x(m.d)) + (m.d === 45 ? -6 : 42)}
+            y={wave(x(m.d)) + (m.d === 45 ? -14 : 44)}
             textAnchor="middle"
             fontSize="11"
             fill="#4C6A61"

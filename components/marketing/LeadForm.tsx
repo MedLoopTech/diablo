@@ -32,9 +32,9 @@ export function LeadForm({ interest = "guide" }: { interest?: string }) {
   if (sent) {
     return (
       <div className="rounded-card border border-line bg-mint p-5 text-center">
-        <div className="font-display text-[18px] font-semibold text-primary-deep">Guide sent! ✓</div>
+        <div className="font-display text-[18px] font-semibold text-primary-deep">You're on the list! ✓</div>
         <p className="mt-1 font-body text-[13px] text-ink-soft">
-          Check your WhatsApp in the next few minutes. If you don&apos;t see it, message us directly.
+          Our team will message you on WhatsApp shortly. If you don&apos;t hear back soon, message us directly.
         </p>
       </div>
     );
@@ -66,9 +66,9 @@ export function LeadForm({ interest = "guide" }: { interest?: string }) {
         disabled={pending}
         className="rounded-full bg-primary px-6 py-3 font-body text-[14px] font-bold text-white disabled:opacity-50"
       >
-        {pending ? "Sending…" : "Send Me the Free Guide"}
+        {pending ? "Sending…" : "Send My Details"}
       </button>
-      <p className="font-body text-[11.5px] text-ink-soft">We never spam. Your number is used only to send you the guide and follow up about the program.</p>
+      <p className="font-body text-[11.5px] text-ink-soft">We never spam. Your number is used only to follow up about the program or send the Plate Guide.</p>
     </form>
   );
 }

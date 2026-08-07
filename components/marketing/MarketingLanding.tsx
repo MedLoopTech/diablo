@@ -84,7 +84,7 @@ export function MarketingLanding() {
                 href="#pricing"
                 className="rounded-full bg-marigold px-8 py-4 font-body text-[15px] font-bold text-frame-dark shadow-[0_8px_24px_rgba(239,166,60,0.25)]"
               >
-                Reserve Your Spot — PKR {PROGRAM_PRICE_PKR.toLocaleString()}
+                Reserve Your Spot
               </a>
               <a
                 href="#lead-form"
@@ -316,6 +316,9 @@ export function MarketingLanding() {
               >
                 Reserve My Spot
               </a>
+              <p className="mt-3 text-center font-body text-[11.5px] text-[#8FB0A3]">
+                Sends your details to our team on WhatsApp — no payment taken yet.
+              </p>
               <div className="mt-3 flex items-center justify-center gap-3 font-body text-[11.5px] text-[#8FB0A3]">
                 <span>Easypaisa</span> · <span>JazzCash</span> · <span>Bank transfer</span>
               </div>
@@ -327,17 +330,18 @@ export function MarketingLanding() {
       {/* Lead form */}
       <Section id="lead-form" className="bg-mint">
         <div className="mx-auto max-w-md text-center">
-          <Eyebrow>Not ready yet?</Eyebrow>
+          <Eyebrow>Let's get you started</Eyebrow>
           <h2 className="mt-3 font-display text-[24px] font-semibold text-ink sm:text-[28px]">
-            Get the free Desi Diabetes Plate Guide
+            Reserve your spot, or just try the free Plate Guide first
           </h2>
           <p className="mt-2 font-body text-[13.5px] leading-relaxed text-ink-soft">
-            Practical portion and pairing guidance for everyday Pakistani meals — sent straight to
-            your WhatsApp.
+            Share your details and our team will reach out on WhatsApp — to confirm your cohort
+            spot and payment options, or to send the free Desi Diabetes Plate Guide, whichever you
+            asked for.
           </p>
         </div>
         <div className="mx-auto mt-7 max-w-sm rounded-card border border-line bg-card p-6">
-          <LeadForm interest="guide" />
+          <LeadForm interest="enrollment" />
         </div>
       </Section>
 
