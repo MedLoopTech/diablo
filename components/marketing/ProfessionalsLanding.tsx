@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { ProfessionalLeadForm } from "@/components/marketing/ProfessionalLeadForm";
+import { LeadModalProvider, LeadCta } from "@/components/marketing/LeadModal";
 import { Reveal } from "@/components/marketing/Reveal";
+import { loadConfig } from "@/lib/automation";
 
-// Referral payout is configurable per-deployment (automation_config
-// `referral_payout_pkr`); this is the launch default, kept in sync manually
-// because the page is public and shouldn't hit the DB on every render.
-const REFERRAL_PAYOUT_PKR = 2000;
+// Fallback if automation_config hasn't been seeded — matches the number used
+// across the original marketing assets.
+const DEFAULT_CONTACT_WHATSAPP = "923452739406";
 
 function Section({ children, className = "", id }: { children: React.ReactNode; className?: string; id?: string }) {
   return (
@@ -64,8 +64,15 @@ const PROMISES = [
   ["Transparent payouts", "No points, no credits. A direct bank transfer for completed work, with the full breakdown visible in your dashboard."],
 ];
 
-export function ProfessionalsLanding() {
+export async function ProfessionalsLanding() {
+  const cfg = await loadConfig();
+  const contactWhatsapp = cfg.contact_whatsapp || DEFAULT_CONTACT_WHATSAPP;
+  // Read the real payout rather than hardcoding it — the source HTML said
+  // PKR 2,000 while the configured value is what actually gets paid.
+  const referralPayout = Number(cfg.referral_payout_pkr) || 0;
+
   return (
+    <LeadModalProvider contactWhatsapp={contactWhatsapp} variant="professional">
     <div className="flex flex-col">
       {/* Nav */}
       <header className="sticky top-0 z-20 border-b border-line bg-card/90 backdrop-blur">
@@ -82,9 +89,9 @@ export function ProfessionalsLanding() {
             <Link href="/" className="hidden font-body text-[13.5px] font-semibold text-ink-soft hover:text-ink sm:block">
               For patients
             </Link>
-            <a href="#apply" className="rounded-full bg-primary px-5 py-2 font-body text-[13px] font-bold text-white">
+            <LeadCta className="rounded-full bg-primary px-5 py-2 font-body text-[13px] font-bold text-white">
               Apply to join
-            </a>
+            </LeadCta>
           </div>
         </div>
       </header>
@@ -103,12 +110,9 @@ export function ProfessionalsLanding() {
               You make the clinical calls.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
-              <a
-                href="#apply"
-                className="rounded-full bg-marigold px-8 py-4 font-body text-[15px] font-bold text-frame-dark shadow-[0_8px_24px_rgba(239,166,60,0.25)]"
-              >
+              <LeadCta className="rounded-full bg-marigold px-8 py-4 font-body text-[15px] font-bold text-frame-dark shadow-[0_8px_24px_rgba(239,166,60,0.25)]">
                 Apply to Join
-              </a>
+              </LeadCta>
               <a
                 href="#refer"
                 className="rounded-full border border-[#2A6350] px-6 py-4 font-body text-[14px] font-semibold text-paper hover:border-marigold"
@@ -287,12 +291,22 @@ export function ProfessionalsLanding() {
               </p>
             </div>
             <div className="rounded-card bg-frame-dark p-6 text-center sm:w-[210px]">
-              <div className="font-display text-[34px] font-semibold text-marigold">
-                PKR {REFERRAL_PAYOUT_PKR.toLocaleString()}
-              </div>
-              <div className="mt-1 font-body text-[12px] leading-snug text-[#8FB0A3]">
-                per patient who enrolls with your code
-              </div>
+              {referralPayout > 0 ? (
+                <>
+                  <div className="font-display text-[34px] font-semibold text-marigold">
+                    PKR {referralPayout.toLocaleString()}
+                  </div>
+                  <div className="mt-1 font-body text-[12px] leading-snug text-[#8FB0A3]">
+                    per patient who enrolls with your code
+                  </div>
+                </>
+              ) : (
+                // Config unreachable or unset — never publish "PKR 0" as if it
+                // were the real payout.
+                <div className="font-body text-[13px] leading-snug text-[#8FB0A3]">
+                  Payout amount confirmed at signup
+                </div>
+              )}
             </div>
           </div>
         </Reveal>
@@ -332,9 +346,9 @@ export function ProfessionalsLanding() {
             Tell us your role and how to reach you. We&apos;ll follow up on WhatsApp to verify credentials
             and arrange a short interview.
           </p>
-        </div>
-        <div className="mx-auto mt-7 max-w-sm rounded-card border border-line bg-card p-6">
-          <ProfessionalLeadForm />
+          <LeadCta className="mt-6 inline-block rounded-full bg-primary px-8 py-4 font-body text-[15px] font-bold text-white">
+            Apply to Join
+          </LeadCta>
         </div>
       </Section>
 
@@ -360,5 +374,6 @@ export function ProfessionalsLanding() {
         </Section>
       </footer>
     </div>
+    </LeadModalProvider>
   );
 }

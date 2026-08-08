@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { Disclaimer } from "@/components/Disclaimer";
-import { LeadForm } from "@/components/marketing/LeadForm";
+import { LeadModalProvider, LeadCta } from "@/components/marketing/LeadModal";
+import { loadConfig } from "@/lib/automation";
+
+// Fallback if automation_config hasn't been seeded — matches the number used
+// across the original marketing assets.
+const DEFAULT_CONTACT_WHATSAPP = "923452739406";
 import { GlucoseDial } from "@/components/marketing/GlucoseDial";
 import { JourneyPath } from "@/components/marketing/JourneyPath";
 import { Reveal } from "@/components/marketing/Reveal";
@@ -29,8 +34,12 @@ function Eyebrow({ children, tone = "soft" }: { children: React.ReactNode; tone?
   return <div className={`font-body text-[12px] font-bold uppercase tracking-[0.16em] ${color}`}>{children}</div>;
 }
 
-export function MarketingLanding() {
+export async function MarketingLanding() {
+  const cfg = await loadConfig();
+  const contactWhatsapp = cfg.contact_whatsapp || DEFAULT_CONTACT_WHATSAPP;
+
   return (
+    <LeadModalProvider contactWhatsapp={contactWhatsapp} interest="guide" persona="patient">
     <div className="flex flex-col">
       {/* Nav */}
       <header className="sticky top-0 z-20 border-b border-line bg-card/90 backdrop-blur">
@@ -92,12 +101,9 @@ export function MarketingLanding() {
               >
                 Reserve Your Spot
               </a>
-              <a
-                href="#lead-form"
-                className="rounded-full border border-[#2A6350] px-6 py-4 font-body text-[14px] font-semibold text-paper hover:border-marigold"
-              >
+              <LeadCta className="rounded-full border border-[#2A6350] px-6 py-4 font-body text-[14px] font-semibold text-paper hover:border-marigold">
                 Get the free Plate Guide
-              </a>
+              </LeadCta>
             </div>
             <div className="mt-10 grid grid-cols-3 gap-3 border-t border-[#1E4B3C] pt-8">
               {[
@@ -370,12 +376,9 @@ export function MarketingLanding() {
                   </li>
                 ))}
               </ul>
-              <a
-                href="#lead-form"
-                className="mt-7 block rounded-full bg-marigold px-6 py-4 text-center font-body text-[15px] font-bold text-frame-dark shadow-[0_8px_24px_rgba(239,166,60,0.25)]"
-              >
+              <LeadCta className="mt-7 block w-full rounded-full bg-marigold px-6 py-4 text-center font-body text-[15px] font-bold text-frame-dark shadow-[0_8px_24px_rgba(239,166,60,0.25)]">
                 Reserve My Spot
-              </a>
+              </LeadCta>
               <p className="mt-3 text-center font-body text-[11.5px] text-[#8FB0A3]">
                 Sends your details to our team on WhatsApp — no payment taken yet.
               </p>
@@ -387,21 +390,20 @@ export function MarketingLanding() {
         </Section>
       </section>
 
-      {/* Lead form */}
+      {/* Lead CTA */}
       <Section id="lead-form" className="bg-mint">
         <div className="mx-auto max-w-md text-center">
-          <Eyebrow>Let's get you started</Eyebrow>
+          <Eyebrow>Not ready to commit?</Eyebrow>
           <h2 className="mt-3 font-display text-[24px] font-semibold text-ink sm:text-[28px]">
-            Reserve your spot, or just try the free Plate Guide first
+            Start with the free Desi Diabetes Plate Guide
           </h2>
           <p className="mt-2 font-body text-[13.5px] leading-relaxed text-ink-soft">
-            Share your details and our team will reach out on WhatsApp — to confirm your cohort
-            spot and payment options, or to send the free Desi Diabetes Plate Guide, whichever you
-            asked for.
+            Practical portion and pairing guidance for everyday Pakistani meals — roti, daal,
+            biryani — sent straight to your WhatsApp. No cost, no commitment.
           </p>
-        </div>
-        <div className="mx-auto mt-7 max-w-sm rounded-card border border-line bg-card p-6">
-          <LeadForm interest="enrollment" />
+          <LeadCta className="mt-6 inline-block rounded-full bg-primary px-8 py-4 font-body text-[15px] font-bold text-white">
+            Send Me the Free Guide
+          </LeadCta>
         </div>
       </Section>
 
@@ -474,5 +476,6 @@ export function MarketingLanding() {
         </Section>
       </footer>
     </div>
+    </LeadModalProvider>
   );
 }

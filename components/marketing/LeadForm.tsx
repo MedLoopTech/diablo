@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Modal, ModalSuccess } from "@/components/marketing/Modal";
 
 /** Campaign attribution read from the URL at mount. The content-ops system
  *  plans across ten channels and seasonal campaigns — without these, a lead
@@ -14,23 +15,32 @@ type Attribution = {
   landingPath: string | null;
 };
 
+const field =
+  "w-full rounded-[10px] border border-line bg-paper px-4 py-3 font-body text-[14px] text-ink outline-none focus:border-primary";
+const label = "font-body text-[12px] font-semibold text-ink";
+
 export function LeadForm({
+  open,
+  onClose,
   interest = "guide",
   persona = "patient",
+  contactWhatsapp,
 }: {
+  open: boolean;
+  onClose: () => void;
   interest?: string;
   persona?: string;
+  contactWhatsapp: string;
 }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
   const [consent, setConsent] = useState(false);
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const attribution = useRef<Attribution | null>(null);
 
-  // Captured once at mount: the querystring can change as the visitor
-  // navigates, but the campaign that brought them here shouldn't.
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     attribution.current = {
@@ -54,6 +64,7 @@ export function LeadForm({
         body: JSON.stringify({
           name,
           phone,
+          city,
           interest,
           persona,
           source: "landing",
@@ -71,58 +82,49 @@ export function LeadForm({
     }
   };
 
-  if (sent) {
-    return (
-      <div className="rounded-card border border-line bg-mint p-5 text-center">
-        <div className="font-display text-[18px] font-semibold text-primary-deep">You&apos;re on the list! ✓</div>
-        <p className="mt-1 font-body text-[13px] text-ink-soft">
-          Our team will message you on WhatsApp shortly. If you don&apos;t hear back soon, message us directly.
-        </p>
-      </div>
-    );
-  }
-
-  const field = "w-full rounded-[10px] border border-line bg-paper px-4 py-3 font-body text-[14px] text-ink outline-none focus:border-primary";
-
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3">
-      <input
-        type="text"
-        placeholder="Your name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        required
-        className={field}
-      />
-      <input
-        type="tel"
-        placeholder="WhatsApp number (03XX XXXXXXX)"
-        value={phone}
-        onChange={(e) => setPhone(e.target.value)}
-        required
-        className={field}
-      />
-      <label className="flex items-start gap-2.5 text-left">
-        <input
-          type="checkbox"
-          checked={consent}
-          onChange={(e) => setConsent(e.target.checked)}
-          required
-          className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={sent ? "" : "Get the Free Desi Diabetes Plate Guide"}
+      subtitle={sent ? undefined : "Practical portion and pairing guidance for everyday Pakistani meals — sent to your WhatsApp."}
+    >
+      {sent ? (
+        <ModalSuccess
+          title="Guide on its way!"
+          body="Check your WhatsApp in the next few minutes. If you don't see it, message us directly."
+          whatsappNumber={contactWhatsapp}
+          whatsappText="Hi Loop/90, I just requested the Desi Diabetes Plate Guide"
         />
-        <span className="font-body text-[11.5px] leading-relaxed text-ink-soft">
-          I agree to be contacted on WhatsApp about Loop/90 and understand I can ask to be removed at any time.
-        </span>
-      </label>
-      {error && <p className="font-body text-[12.5px] text-coral">{error}</p>}
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-full bg-primary px-6 py-3 font-body text-[14px] font-bold text-white disabled:opacity-50"
-      >
-        {pending ? "Sending…" : "Send My Details"}
-      </button>
-      <p className="font-body text-[11.5px] text-ink-soft">We never spam. Your number is used only to follow up about the program or send the Plate Guide.</p>
-    </form>
+      ) : (
+        <form onSubmit={submit} className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="lead-name" className={label}>Your name</label>
+            <input id="lead-name" type="text" placeholder="e.g. Fatima Ahmed" value={name} onChange={(e) => setName(e.target.value)} required className={field} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="lead-phone" className={label}>WhatsApp number</label>
+            <input id="lead-phone" type="tel" placeholder="e.g. 03001234567" value={phone} onChange={(e) => setPhone(e.target.value)} required className={field} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="lead-city" className={label}>City</label>
+            <input id="lead-city" type="text" placeholder="e.g. Karachi, Lahore, Islamabad" value={city} onChange={(e) => setCity(e.target.value)} required className={field} />
+          </div>
+          <label className="flex items-start gap-2.5 text-left">
+            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} required className="mt-0.5 h-4 w-4 shrink-0 accent-primary" />
+            <span className="font-body text-[11.5px] leading-relaxed text-ink-soft">
+              I agree to be contacted on WhatsApp about Loop/90.
+            </span>
+          </label>
+          {error && <p className="font-body text-[12.5px] text-coral">{error}</p>}
+          <button type="submit" disabled={pending} className="rounded-full bg-primary px-6 py-3.5 font-body text-[14.5px] font-bold text-white disabled:opacity-50">
+            {pending ? "Sending…" : "Send Me the Guide"}
+          </button>
+          <p className="font-body text-[11.5px] leading-relaxed text-ink-soft">
+            We never spam. Your number is used only to send the guide and follow up about the program.
+          </p>
+        </form>
+      )}
+    </Modal>
   );
 }

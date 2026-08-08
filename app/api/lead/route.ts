@@ -64,9 +64,13 @@ export async function POST(req: Request) {
   });
 
   const campaign = tag(body.utmCampaign);
+  const city = tag(body.city, 120);
+  const licenseNumber = tag(body.licenseNumber, 120);
   const tgMsg =
     `*New Lead — Loop/90*\n\nName: ${name}\nPhone: +${phone}\nEmail: ${email || "—"}\n` +
     `Persona: ${persona}\nInterest: ${interest}\nSource: ${source}` +
+    (city ? `\nCity: ${city}` : "") +
+    (licenseNumber ? `\nLicence: ${licenseNumber}` : "") +
     (campaign ? `\nCampaign: ${campaign}` : "");
 
   // Fire both notifications concurrently — don't block the HTTP response on either.
@@ -82,6 +86,8 @@ export async function POST(req: Request) {
     name,
     phone,
     email: email || null,
+    city,
+    license_number: licenseNumber,
     persona,
     interest,
     source,
