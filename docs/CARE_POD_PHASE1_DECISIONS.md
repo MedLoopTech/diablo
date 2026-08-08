@@ -2,7 +2,18 @@
 
 Status: Recommended Cohort #1 defaults for founder approval and implementation planning.
 
-This document converts the open questions in Phase 1B–1E into a deliberately simple founding-cohort operating model. These are product/business defaults, not legal or clinical advice. Clinical safety rules already present in the application remain authoritative.
+These are business rules, not instructions to invent new platform architecture. The existing `MedLoopTech/diablo` implementation is the source of truth.
+
+## Governing implementation rule
+
+For every approved Care Pod requirement:
+
+1. Reuse existing implementation.
+2. Extend existing implementation minimally when required.
+3. Add configuration / fields only where the current product cannot represent the rule.
+4. Create a new subsystem only for a proven gap.
+
+Read `CARE_POD_CURRENT_CODE_GAP_MAP.md` before proposing runtime changes.
 
 ## 1. Commercial anchor
 
@@ -10,7 +21,7 @@ This document converts the open questions in Phase 1B–1E into a deliberately s
 - Founding-cohort realized price: PKR 20,000.
 - Base financial planning must recognize PKR 20,000 per paid participant, not PKR 25,000, unless the higher amount is actually collected.
 - Founding cohort target: 30–40 paid participants.
-- Platform may retain higher technical capacity; this commercial limit does not require reducing schema capacity.
+- Platform may retain higher technical capacity; this commercial target does not require changing existing schema capacity.
 
 ## 2. Care Pod baseline compensation
 
@@ -25,11 +36,11 @@ At 40 participants x PKR 20,000, this is approximately 15.94% of realized revenu
 
 Do not implement a 30% revenue-share pool for Cohort #1.
 
-Reason: fixed baseline compensation is easier to understand, audit, contract, and test before real workload data exists.
+These values should use existing centralized configuration where appropriate, with a cohort-specific snapshot only if required for historical payout auditability.
 
 ## 3. Payout milestones
 
-Recommended Cohort #1 settlement schedule:
+Working Cohort #1 settlement schedule:
 
 - 25% of base allocation after professional activation + cohort start + completion of required onboarding obligations.
 - 35% after Day 30, subject to active participation and no unresolved material non-performance.
@@ -37,146 +48,132 @@ Recommended Cohort #1 settlement schedule:
 
 Activity and appointment compensation should be settled at the next approved payout cycle after becoming payable.
 
-This milestone schedule should be reviewed by legal/tax advisers before being embedded in contracts.
+This schedule must be reviewed before being embedded in contracts or automated.
 
-## 4. Activity compensation model
+## 4. Additional activity compensation
 
-Use fixed PKR amounts, not points, for Cohort #1.
+For Cohort #1, keep additional compensation simple and admin-reviewed.
 
-Recommended initial catalogue:
+Do not create a new points economy.
 
-| Activity | Doctor | Nutritionist | Movement Coach | Rule |
-|---|---:|---:|---:|---|
-| Additional 1:1 program review, not a separately billed appointment | PKR 1,500 | PKR 1,000 | PKR 1,000 | Must be assigned/approved and outside baseline allowance |
-| Additional group session requested by Loop/90 | PKR 3,000 | PKR 2,500 | PKR 2,500 | Outside agreed baseline session cadence |
-| Additional multidisciplinary complex-case review | PKR 1,500 | PKR 1,000 | PKR 1,000 | Per participating professional; source case required |
-| Additional structured follow-up | PKR 1,000 | PKR 750 | PKR 750 | Must be assigned and documented |
-| Additional escalation review beyond baseline queue obligation | PKR 1,500 | PKR 1,000 | PKR 1,000 | Only where role-appropriate and explicitly marked compensable |
+First derive activity from records the product already creates, such as:
 
-These are founding-cohort operating defaults and should remain configurable, not hardcoded business constants.
+- consult bookings
+- escalations
+- chat / routed questions
+- medication actions
+- existing session / attendance records where present
 
-### Activity budget cap
+Only if an approved compensable activity has no authoritative source record should a lightweight activity record be added.
 
-Total additional activity compensation for the whole Care Pod should be capped at PKR 30,000 per 40-person Cohort #1 unless an admin explicitly approves an exception.
+Working budget guardrail:
 
-This cap protects contribution margin while real workload is being measured.
+- Maximum additional routine activity compensation for the whole Care Pod: PKR 30,000 per 40-person Cohort #1 unless manually approved otherwise.
 
-At smaller cohort sizes, use the same cap initially only if the base payout remains fixed; finance should monitor the effective Care Pod percentage closely.
+This produces:
+
+- Base Care Pod: PKR 127,500.
+- Base + routine activity cap: PKR 157,500.
+- Approximately 19.7% of PKR 800,000 realized revenue.
+
+Exact activity rates should not be hardcoded until the approved activity catalogue is mapped to existing events.
 
 ## 5. Included versus separately paid 1:1 care
 
-Cohort #1 should include limited participant-specific professional review required by safety and routine program delivery, but should NOT promise unlimited 1:1 appointments.
+Cohort #1 should include the participant-specific professional review required by safety and routine program delivery, but should not promise unlimited 1:1 access.
 
-Recommended participant entitlement:
+Working principle:
 
-- Required safety/clinical escalations: included; never blocked by payment.
-- Routine cohort-level professional support: included.
-- One scheduled nutrition 1:1 during the 90 days: included when clinically/programmatically appropriate.
-- One scheduled movement 1:1 during the 90 days: included when programmatically appropriate.
-- Doctor 1:1: included when clinically indicated by the Care Pod / escalation workflow; not marketed as an on-demand unlimited entitlement.
-- Additional elective 1:1 appointments: separately billed.
+- Required safety / clinical escalation: included and never blocked by payment.
+- Routine cohort-level support: included.
+- Clinically or programmatically necessary professional review generated by the existing workflow: included within the agreed baseline workload.
+- Additional elective 1:1 appointments beyond the agreed baseline allowance: separately billable.
 
-This entitlement should be tested against actual professional workload before final launch copy is changed.
+Do not create a second appointment system. Reuse existing `consult_bookings`.
 
 ## 6. Additional appointment pricing
 
-Recommended Cohort #1 pilot price:
+Working Cohort #1 pilot assumption:
 
 - Additional 1:1 appointment: PKR 2,000.
 - Professional share: 70% = PKR 1,400.
-- Loop/90 platform/coordination share: 30% = PKR 600.
+- Loop/90 platform / coordination share: 30% = PKR 600.
 
-This is a pilot commercial rule and must remain configurable.
+This remains a configurable business assumption, not a hardcoded product constant.
 
-Cancellation recommendation:
+Cancellation / no-show rules should use the existing booking lifecycle wherever possible. Do not create separate booking states solely for compensation unless required.
 
-- Cancelled >=12 hours before appointment: no professional payout; participant credit/refund according to payment policy.
-- Participant no-show or late cancellation: 50% of professional share may become payable if the professional was available and attendance can be verified.
-- Professional cancellation: no payout; participant receives rebooking priority / credit.
-- Completed appointment: full approved professional share payable.
+Clinical safety escalation must never require a participant to purchase an appointment before receiving appropriate urgent guidance / routing.
 
-Clinical safety escalation must never require a participant to purchase an appointment before receiving appropriate urgent guidance/routing.
+## 7. Workload — use existing role design
 
-## 7. Baseline workload — Doctor
+Do not create a parallel workload engine.
 
-Cohort #1 baseline should include:
+Use current product and professionals-page role responsibilities as the baseline and instrument actual work from existing events.
 
-- Daily review of doctor-routed / glucose review queue on operating days.
-- Urgent escalation participation according to the approved clinical coverage protocol.
-- Medication decisions and medication-plan documentation.
-- Up to 2 scheduled cohort clinical education / Q&A sessions across the 90 days.
-- Up to 4 multidisciplinary Care Pod review meetings across the 90 days.
-- Clinically indicated participant reviews generated by the existing escalation workflow within the agreed workload envelope.
+### Doctor
 
-Planning target: approximately 30 minutes/day average per cohort, but instrument actual time rather than treating this as a guarantee.
+Current planning assumption: approximately 30 minutes/day per cohort, including existing doctor-routed review responsibilities, medication decisions, escalations, and required consult activity.
 
-## 8. Baseline workload — Nutritionist
+### Nutritionist
 
-Cohort #1 baseline should include:
+Current role already covers meal-plan work, routed nutrition questions, participant food guidance, and group support.
 
-- Initial nutrition framework / meal-plan workflow for enrolled participants.
-- Review of routed nutrition questions and flagged meal issues.
-- 1 nutrition group session per week for the cohort, with flexibility to combine education/Q&A formats.
-- Up to 4 multidisciplinary Care Pod review meetings.
-- Included participant-specific nutrition 1:1 entitlement described above.
-- Material recommendation documentation.
+AI should continue handling routine food education / first-pass support so every routine meal interaction does not become manual professional work.
 
-AI should handle routine food education and first-pass meal feedback so the nutritionist is not required to manually review every routine meal photo.
+### Movement Coach
 
-## 9. Baseline workload — Movement Coach
+Current recruitment positioning includes two live sessions/week plus asynchronous routed support.
 
-Cohort #1 baseline should include:
+Keep that as the Cohort #1 planning baseline unless Claude Code's current implementation already defines a more specific operational cadence.
 
-- Approved cohort movement framework.
-- 2 live movement sessions per week, consistent with current recruitment positioning.
-- Review of routed movement questions.
-- Up to 4 multidisciplinary Care Pod review meetings.
-- Included participant-specific movement 1:1 entitlement described above.
-- Material individualized recommendation documentation.
+## 8. SLA working targets
 
-## 10. Response SLA defaults
+Do not invent a second routing or priority mechanism.
 
-Do not promise 24/7 human response.
+Map business language onto the existing triage / escalation design:
 
-Recommended internal Cohort #1 targets:
+- GREEN: existing `ai_answerable` / routine workflow.
+- AMBER: existing role-routed / routine professional review workflow.
+- RED: existing urgent escalation workflow.
+
+Internal working targets only:
 
 - GREEN: AI/backend handles immediately where appropriate.
-- AMBER nutrition/movement: acknowledge/resolve within 1 operating day where practical.
-- AMBER doctor-routed non-urgent: review within the same operating day where practical.
-- RED: immediate system alert and urgent workflow under the existing clinical protocol; exact doctor coverage/escalation timing must be finalized operationally before launch.
+- AMBER nutrition / movement: within 1 operating day where practical.
+- AMBER doctor-routed non-urgent: same operating day where practical.
+- RED: existing urgent platform workflow and notification design.
 
-These are operating targets, not emergency-service guarantees.
+Do not publish exact response guarantees until professional coverage is operationally confirmed.
 
-## 11. Professional quality model
+## 9. Professional quality model
 
-Use a simple human-reviewable score for Cohort #1.
+Do not build automated scoring for Cohort #1.
 
-Recommended dimensions and weights:
+Use the smallest existing admin / professional relationship mechanism available to record:
 
-- Response SLA adherence: 25%.
-- Documentation completeness: 20%.
-- Attendance/session reliability: 20%.
-- Assigned-task completion: 15%.
-- Care Pod collaboration/meeting participation: 10%.
-- Scope adherence / appropriate escalation: 10%.
+- GREEN
+- AMBER
+- RED
+- reason
+- reviewer
+- reviewed_at
 
-Participant feedback should be visible as a supporting signal but should NOT directly determine payout in Cohort #1 because early sample sizes can be small and biased.
+Quality should affect variable compensation only by default.
 
-### Status thresholds
+Base cohort allocation is not automatically score-deducted. Material non-performance affecting base pay must follow the professional agreement and human review.
 
-- GREEN: >=85%.
-- AMBER: 70–84%.
-- RED: <70%, or a material safety/conduct breach regardless of numeric score.
+Quality should consider controllable process factors such as:
 
-### Compensation effect
+- Response SLA adherence.
+- Documentation completeness.
+- Session reliability / attendance.
+- Assigned work completion.
+- Care Pod collaboration.
+- Scope adherence / appropriate escalation.
+- Professional conduct.
 
-- GREEN: 100% of approved activity compensation.
-- AMBER: 85% of approved activity compensation, subject to human review.
-- RED: variable compensation placed on hold for human review; no automatic forfeiture.
-
-Base cohort allocation is not automatically reduced by the score. Material non-performance affecting base pay must follow the professional agreement and human review.
-
-## 12. Quality safeguards
+Participant feedback may be reviewed but should not automatically determine payout in Cohort #1.
 
 Never score professionals on:
 
@@ -184,82 +181,86 @@ Never score professionals on:
 - Remission.
 - Medication reduction.
 - Weight loss.
-- Participant glucose outcome.
+- Participant glucose outcomes.
 
-Never create an incentive to classify more cases as urgent or to create unnecessary activities.
+## 10. Professional coverage
 
-A professional must be able to see the reason for any Amber/Red status and dispute factual errors.
-
-## 13. Professional coverage
+Use the existing Care Pod assignment model.
 
 Founding cohort requirement:
 
-- One primary doctor, nutritionist, and movement coach assigned.
-- Backup professional coverage must be identified before activation for critical absence/withdrawal.
-- A professional may support multiple cohorts only after admin approval based on measured workload; do not set an unlimited number of concurrent Care Pods.
+- one primary doctor
+- one nutritionist
+- one movement coach
 
-For Cohort #1, default maximum active assignment should be 2 Care Pods per professional until workload data supports a higher cap. Doctor urgent-coverage arrangements may require a stricter cap.
+Backup / substitution should be handled through the existing staff + Care Pod assignment workflow wherever possible.
 
-## 14. Refund interaction
+Do not introduce a new coverage subsystem before confirming a gap.
 
-Recommended principle:
+## 11. Refund interaction
+
+Working principle:
 
 - Professional compensation is earned for verified work actually performed.
-- A participant refund should not automatically claw back professional pay for completed, approved work unless the professional caused the refund through defined material breach/non-performance.
-- Unperformed future base milestones and future appointments are not payable after participant exit where the agreement provides for this.
+- A participant refund should not automatically claw back professional pay for completed, approved work unless the final agreement defines a material breach / non-performance reason.
+- Unperformed future work and future appointments are not payable after participant exit where the agreement provides for this.
 
-Exact accounting/tax/legal treatment requires final review.
+Exact accounting / tax / legal treatment remains subject to final review.
 
-## 15. Cohort #1 financial guardrail
+## 12. Cohort #1 financial guardrail
 
 At 40 participants and PKR 20,000 realized price:
 
 - Revenue: PKR 800,000.
 - Base Care Pod: PKR 127,500.
-- Maximum routine activity budget: PKR 30,000.
-- Base + activity maximum before additional appointment economics: PKR 157,500, or approximately 19.7% of realized revenue.
+- Base Care Pod %: approximately 15.94%.
+- Routine additional activity budget cap: PKR 30,000.
+- Base + capped routine activity: PKR 157,500.
+- Base + capped routine activity %: approximately 19.7%.
 
-This intentionally keeps the planned Care Pod cost below ~20% before separately funded appointment payouts.
+Additional paid appointments are economically separate because they should create additional appointment revenue.
 
-Additional appointments create additional revenue and should be evaluated on their own unit economics.
+## 13. Reuse-first implementation gates
 
-## 16. Implementation principle
+Before runtime changes, inspect the current repo and answer:
 
-Do not implement compensation as scattered constants across UI and API code.
+1. How does `/professionals` lead capture currently become a staff/profile record?
+2. Where do staff invite / activation / role states already live?
+3. Is credential verification metadata already represented anywhere?
+4. Which commercial defaults can use existing `automation_config`?
+5. Can the existing referral payout / settlement pattern be reused for professional settlement?
+6. Is there an existing admin notes / audit pattern suitable for manual professional-quality review?
+7. Which approved compensable activities already have authoritative source records?
+8. What minimal historical snapshot is required so later config changes do not alter prior payout calculations?
 
-When implementation is approved:
+Do not propose schema changes until these are answered.
 
-- Keep rates/configuration versioned.
-- Tie every payout item to an auditable source.
-- Separate clinical severity from professional quality status.
-- Use the existing consult booking and escalation architecture.
-- Preserve current medication and urgent-glucose safety rules.
-- Give admins a review/approval step before payout becomes final.
+## 14. Decisions deferred until Cohort #1 data
 
-## 17. Decisions deferred until Cohort #1 data
-
-Do not over-decide these yet:
+Do not over-build or over-decide:
 
 - Permanent revenue-share percentage.
-- Permanent activity point system.
-- Higher professional payout tiers.
+- Permanent activity points system.
 - Automated quality deductions.
-- More than 2 concurrent Care Pods per professional.
 - Complex bonuses.
 - Outcome-linked compensation.
+- Marketplace-style architecture.
+- Full accounting ledger.
+- Standalone LMS / academy.
 
-## 18. Cohort #1 review trigger
+## 15. Cohort #1 review trigger
 
-After Day 90, compare actual data with these assumptions and explicitly review:
+After Day 90, use actual existing-system data wherever possible to review:
 
-- Actual professional hours by role.
-- AI deflection rate.
-- Activity budget usage.
-- Appointment demand.
-- SLA performance.
-- Participant feedback.
-- Professional satisfaction.
-- Care Pod cost per participant.
-- Contribution margin.
+- professional workload by role
+- AI deflection rate
+- escalation volume
+- consult demand
+- additional activity cost
+- SLA performance
+- participant feedback
+- professional satisfaction
+- Care Pod cost per participant
+- contribution margin
 
-Only then decide whether Cohort #2 should retain the fixed model, move toward 18–20% revenue-linked economics, or change the base/activity/appointment mix.
+Only then revise Cohort #2 economics or workflows.
