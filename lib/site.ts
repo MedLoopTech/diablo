@@ -4,5 +4,5 @@
 // NEXT_PUBLIC_SITE_URL is set explicitly (e.g. once a custom domain is
 // attached).
 export const SITE_URL = (
-  process.env.NEXT_PUBLIC_SITE_URL || "https://sehat90-claude-code-handoff1.vercel.app"
+  process.env.NEXT_PUBLIC_SITE_URL || "https://loop90.getmedloop.com"
 ).replace(/\/$/, "");

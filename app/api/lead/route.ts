@@ -60,7 +60,7 @@ export async function POST(req: Request) {
 
   const waMsg = interpolate(cfg.msg_lead_welcome_wa ?? "{name} — thanks for your interest in Loop/90!", {
     name,
-    guide_url: cfg.guide_url ?? "https://sehat90.com/guide",
+    guide_url: cfg.guide_url ?? "https://loop90.getmedloop.com/guide",
   });
 
   const campaign = tag(body.utmCampaign);

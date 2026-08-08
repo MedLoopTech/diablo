@@ -84,7 +84,7 @@ export async function GET(request: Request) {
 
     const msg = interpolate(cfg.msg_session_1h_wa ?? "{name}: session in 1 hour — {session_time}", {
       name, session_time: sessionTime, session_type: sessionType,
-      app_url: cfg.app_url ?? "https://sehat90.com/app",
+      app_url: cfg.app_url ?? "https://loop90.getmedloop.com/app",
     });
 
     const ok = await sendWhatsApp(phone, msg);
