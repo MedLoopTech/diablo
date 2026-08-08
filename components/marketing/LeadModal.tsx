@@ -1,10 +1,10 @@
 "use client";
 
 import { createContext, useContext, useState } from "react";
-import { LeadForm } from "@/components/marketing/LeadForm";
+import { LeadForm, type LeadFormVariant } from "@/components/marketing/LeadForm";
 import { ProfessionalLeadForm } from "@/components/marketing/ProfessionalLeadForm";
 
-const LeadModalContext = createContext<{ open: () => void }>({ open: () => {} });
+const LeadModalContext = createContext<{ open: (variant?: LeadFormVariant) => void }>({ open: () => {} });
 
 export function useLeadModal() {
   return useContext(LeadModalContext);
@@ -19,19 +19,32 @@ export function LeadModalProvider({
   children,
   contactWhatsapp,
   variant = "patient",
-  interest = "guide",
   persona = "patient",
 }: {
   children: React.ReactNode;
   contactWhatsapp: string;
   variant?: "patient" | "professional";
-  interest?: string;
   persona?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  // Which CTA opened the modal — "Reserve your spot" and "Get the free
+  // guide" are different intents and need different copy, not the same
+  // modal wearing whichever label happened to load first.
+  const [formVariant, setFormVariant] = useState<LeadFormVariant>("guide");
 
   return (
-    <LeadModalContext.Provider value={{ open: () => setIsOpen(true) }}>
+    <LeadModalContext.Provider
+      value={{
+        open: (v = "guide") => {
+          // Always set explicitly, even to the default — a CTA that omits
+          // `variant` means "this is the guide CTA", not "leave whatever
+          // variant was last opened," or the modal gets stuck showing
+          // Reserve-Your-Spot copy after a visitor opens it once.
+          setFormVariant(v);
+          setIsOpen(true);
+        },
+      }}
+    >
       {children}
       {variant === "professional" ? (
         <ProfessionalLeadForm open={isOpen} onClose={() => setIsOpen(false)} contactWhatsapp={contactWhatsapp} />
@@ -40,7 +53,7 @@ export function LeadModalProvider({
           open={isOpen}
           onClose={() => setIsOpen(false)}
           contactWhatsapp={contactWhatsapp}
-          interest={interest}
+          variant={formVariant}
           persona={persona}
         />
       )}
@@ -49,11 +62,20 @@ export function LeadModalProvider({
 }
 
 /** A button that opens the page's lead modal. Replaces the anchor links that
- *  only scrolled the visitor to a form section. */
-export function LeadCta({ className, children }: { className?: string; children: React.ReactNode }) {
+ *  only scrolled the visitor to a form section. `variant` picks which copy
+ *  the modal shows — omit it to default to the guide-request framing. */
+export function LeadCta({
+  className,
+  children,
+  variant,
+}: {
+  className?: string;
+  children: React.ReactNode;
+  variant?: LeadFormVariant;
+}) {
   const { open } = useLeadModal();
   return (
-    <button type="button" onClick={open} className={className}>
+    <button type="button" onClick={() => open(variant)} className={className}>
       {children}
     </button>
   );

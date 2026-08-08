@@ -40,7 +40,7 @@ export async function MarketingLanding() {
   const contactWhatsapp = cfg.contact_whatsapp || DEFAULT_CONTACT_WHATSAPP;
 
   return (
-    <LeadModalProvider contactWhatsapp={contactWhatsapp} interest="guide" persona="patient">
+    <LeadModalProvider contactWhatsapp={contactWhatsapp} persona="patient">
     <div className="flex flex-col">
       {/* Nav */}
       <header className="sticky top-0 z-20 border-b border-line bg-card/90 backdrop-blur">
@@ -400,7 +400,10 @@ export async function MarketingLanding() {
                   </li>
                 ))}
               </ul>
-              <LeadCta className="mt-7 block w-full rounded-full bg-marigold px-6 py-4 text-center font-body text-[15px] font-bold text-frame-dark shadow-[0_8px_24px_rgba(239,166,60,0.25)]">
+              <LeadCta
+                variant="enrollment"
+                className="mt-7 block w-full rounded-full bg-marigold px-6 py-4 text-center font-body text-[15px] font-bold text-frame-dark shadow-[0_8px_24px_rgba(239,166,60,0.25)]"
+              >
                 Reserve My Spot
               </LeadCta>
               <p className="mt-3 text-center font-body text-[11.5px] text-[#8FB0A3]">

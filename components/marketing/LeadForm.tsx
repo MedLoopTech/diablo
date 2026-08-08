@@ -15,6 +15,36 @@ type Attribution = {
   landingPath: string | null;
 };
 
+export type LeadFormVariant = "guide" | "enrollment";
+
+// "Reserve your spot" and "get the free guide" are different intents — a
+// visitor who clicked Reserve and lands on a modal titled "Get the Free
+// Guide" reads as a bait-and-switch. Same form and endpoint underneath
+// (both are just a name+phone WhatsApp handoff), different framing.
+const COPY: Record<
+  LeadFormVariant,
+  { title: string; subtitle: string; submitLabel: string; interest: string; successTitle: string; successBody: string; whatsappText: string }
+> = {
+  guide: {
+    title: "Get the Free Desi Diabetes Plate Guide",
+    subtitle: "Practical portion and pairing guidance for everyday Pakistani meals — sent to your WhatsApp.",
+    submitLabel: "Send Me the Guide",
+    interest: "guide",
+    successTitle: "Guide on its way!",
+    successBody: "Check your WhatsApp in the next few minutes. If you don't see it, message us directly.",
+    whatsappText: "Hi Loop/90, I just requested the Desi Diabetes Plate Guide",
+  },
+  enrollment: {
+    title: "Reserve Your Spot",
+    subtitle: "Tell us where to reach you — our team confirms your cohort spot and payment options on WhatsApp.",
+    submitLabel: "Reserve My Spot",
+    interest: "enrollment",
+    successTitle: "You're on the list!",
+    successBody: "Our team will message you on WhatsApp shortly to confirm your spot and walk through payment options.",
+    whatsappText: "Hi Loop/90, I just reserved my spot in the next cohort",
+  },
+};
+
 const field =
   "w-full rounded-[10px] border border-line bg-paper px-4 py-3 font-body text-[14px] text-ink outline-none focus:border-primary";
 const label = "font-body text-[12px] font-semibold text-ink";
@@ -22,13 +52,13 @@ const label = "font-body text-[12px] font-semibold text-ink";
 export function LeadForm({
   open,
   onClose,
-  interest = "guide",
+  variant = "guide",
   persona = "patient",
   contactWhatsapp,
 }: {
   open: boolean;
   onClose: () => void;
-  interest?: string;
+  variant?: LeadFormVariant;
   persona?: string;
   contactWhatsapp: string;
 }) {
@@ -40,6 +70,7 @@ export function LeadForm({
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const attribution = useRef<Attribution | null>(null);
+  const copy = COPY[variant];
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
@@ -53,6 +84,12 @@ export function LeadForm({
     };
   }, []);
 
+  // Reset so a visitor who submits the guide form, closes it, then opens
+  // the reserve-spot form doesn't see stale "sent" state under new copy.
+  useEffect(() => {
+    if (open) setSent(false);
+  }, [open, variant]);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -65,7 +102,7 @@ export function LeadForm({
           name,
           phone,
           city,
-          interest,
+          interest: copy.interest,
           persona,
           source: "landing",
           consentMarketing: consent,
@@ -83,18 +120,13 @@ export function LeadForm({
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={sent ? "" : "Get the Free Desi Diabetes Plate Guide"}
-      subtitle={sent ? undefined : "Practical portion and pairing guidance for everyday Pakistani meals — sent to your WhatsApp."}
-    >
+    <Modal open={open} onClose={onClose} title={sent ? "" : copy.title} subtitle={sent ? undefined : copy.subtitle}>
       {sent ? (
         <ModalSuccess
-          title="Guide on its way!"
-          body="Check your WhatsApp in the next few minutes. If you don't see it, message us directly."
+          title={copy.successTitle}
+          body={copy.successBody}
           whatsappNumber={contactWhatsapp}
-          whatsappText="Hi Loop/90, I just requested the Desi Diabetes Plate Guide"
+          whatsappText={copy.whatsappText}
         />
       ) : (
         <form onSubmit={submit} className="flex flex-col gap-3">
@@ -118,10 +150,10 @@ export function LeadForm({
           </label>
           {error && <p className="font-body text-[12.5px] text-coral">{error}</p>}
           <button type="submit" disabled={pending} className="rounded-full bg-primary px-6 py-3.5 font-body text-[14.5px] font-bold text-white disabled:opacity-50">
-            {pending ? "Sending…" : "Send Me the Guide"}
+            {pending ? "Sending…" : copy.submitLabel}
           </button>
           <p className="font-body text-[11.5px] leading-relaxed text-ink-soft">
-            We never spam. Your number is used only to send the guide and follow up about the program.
+            We never spam. Your number is used only to follow up about the program.
           </p>
         </form>
       )}
