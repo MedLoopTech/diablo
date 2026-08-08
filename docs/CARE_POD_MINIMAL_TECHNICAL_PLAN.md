@@ -1,122 +1,73 @@
 # Loop/90 Care Pod — Minimal Technical Plan
 
-Status: reuse-first implementation plan. Claude Code's current `main` remains the source of truth.
+Status: reuse-first implementation plan.
 
-## Governing rule
+## 1. Existing architecture remains authoritative
 
-For every Care Pod requirement, use this order:
+Reuse the current product flow and do not create replacements:
 
-1. Reuse existing implementation.
-2. Extend an existing table / config / workflow only if needed.
-3. Add a small field/config value only if existing structures cannot represent the approved rule.
-4. Create a new subsystem only when there is a proven gap.
+`/professionals` -> `leads` -> Admin review -> existing `inviteStaff()` -> `profiles` role -> existing `assignPod()` -> existing consult/escalation/plan workflows -> existing performance/payout conventions.
 
-Do not create duplicate cohort, Care Pod, appointment, escalation, AI triage, recruitment CRM, LMS, performance or payout architecture.
-
----
-
-# 1. Existing files / flows to reuse
-
-### Admin / staff / Care Pod
+Existing surfaces to extend when required:
 
 - `app/(staff)/staff/admin/actions.ts`
-  - `assignPod()`
-  - `inviteStaff()`
-  - `saveAutomationConfig()`
-  - `updateLeadStatus()`
-  - existing admin/super-admin gates
-
 - `app/(staff)/staff/admin/AdminPanels.tsx`
-  - existing Settings, Staff, Leads, Cohorts, Automation and Referrals surfaces
-  - `SettingsTab` already renders every `automation_config` row whose `group_name = 'general'`
-
-### Payouts
-
-- `app/(staff)/staff/payouts/page.tsx`
-- `app/(staff)/staff/payouts/PayoutsPanel.tsx`
-
-Extend these conventions before considering any separate Care Pod finance screen.
-
-### Performance / quality
-
+- `app/(staff)/staff/consults/*`
 - `app/(staff)/staff/performance/page.tsx`
+- `app/(staff)/staff/payouts/*`
+- `automation_config`
+- existing referral/payment/audit conventions
 
-Inspect/extend this before creating a new quality module.
+## 2. Completed minimal slices
 
-### Consults / 1:1 appointments
+### Commercial defaults
 
-- `app/(staff)/staff/consults/actions.ts`
-- `app/(staff)/staff/consults/page.tsx`
-- `app/(staff)/staff/consults/ConsultForm.tsx`
-- existing `consult_windows`
-- existing `consult_bookings`
+Implemented in `supabase/migrations/00000000000045_care_pod_commercial_config.sql` using the existing `automation_config` table.
 
-Use these as the only scheduling source for paid and included 1:1 care.
+No React/admin code was needed because the existing Settings tab already renders rows in the `general` group.
 
-### Recruitment -> staff
+These values are mutable defaults only, never historical earned payout records.
 
-Existing path:
+### Professional activation facts
 
-`/professionals` -> `leads` -> Admin Leads -> existing `inviteStaff()` -> `profiles` role -> existing `assignPod()`.
+Implemented in `supabase/migrations/00000000000046_professional_activation_facts.sql` by extending the existing `profiles` table only.
 
-Do not create an applicant user table for Cohort #1.
+No professional/onboarding/agreement subsystem was introduced.
 
----
+The minimum activation facts are:
 
-# 2. Implementation sequence
+- `credentials_verified_at`
+- `credentials_verified_by`
+- `care_pod_orientation_completed_at`
+- `care_pod_agreement_version`
+- `care_pod_agreement_accepted_at`
 
-## Step A — Commercial defaults only
+Null timestamps mean the gate is incomplete. Timestamps provide both status and audit information without duplicate boolean fields.
 
-### STATUS: IMPLEMENTED ON `codex/care-pod-phase1-specs`
+The existing `profiles_admin_update` RLS policy already allows admins to update profile fields, so no new RLS policy is needed.
 
-Implemented through:
+## 3. Next minimal implementation step
 
-`supabase/migrations/00000000000045_care_pod_commercial_config.sql`
+Wire the activation facts into the **existing Admin -> Staff** flow only.
 
-No React/admin code was needed. The migration reuses the existing `automation_config` table, `saveAutomationConfig()`, and `SettingsTab` renderer.
+Required behavior:
 
-Added defaults:
+- Show whether credentials are verified.
+- Show whether Care Pod orientation is complete.
+- Show whether an agreement/protocol version has been accepted.
+- Let an authorized admin record/clear those facts.
+- Record the acting admin for credential verification.
+- Do not create a separate credentialing page or onboarding application.
 
-- `loop90_program_list_price` = 25000
-- `loop90_founding_price` = 20000
-- `care_pod_doctor_base_payout` = 52500
-- `care_pod_nutritionist_base_payout` = 42500
-- `care_pod_coach_base_payout` = 32500
-- `care_pod_activity_budget_cap` = 30000
-- `care_pod_additional_appointment_price` = 2000
-- `care_pod_appointment_professional_share_pct` = 70
+Do not yet block `assignPod()` automatically. First confirm the operational process works with real staff; assignment enforcement can be a narrow guard later if required.
 
-These are mutable defaults only. Earned/historical professional obligations must not later be recalculated from changed config values.
+## 4. Then freeze cohort-commercial facts
 
-## Step B — Professional lead -> existing staff invite handoff
+After activation UI is working, inspect existing payout/payment structures before adding any storage.
 
-Do not automate approval.
+The assigned professional's agreed base amount must eventually be frozen per cohort so later config changes do not rewrite historical terms.
 
-Smallest useful improvement, only if it materially saves admin work:
-
-- from an eligible professional lead row, prefill or invoke the existing Staff invite path using the lead's known name/email/phone and persona -> role mapping
-- continue to use `inviteStaff()` as the actual account-creation action
-- keep human credential/approval review before invite
-
-If the current Leads + Staff tabs are operationally sufficient for Cohort #1, this convenience step can be deferred rather than adding code merely for convenience.
-
-## Step C — Credential/orientation/agreement facts
-
-First inspect current staff/profile metadata.
-
-If genuinely absent, add only the minimum durable facts required to know whether someone is eligible for Care Pod assignment:
-
-- credentials verified + reviewer/date
-- orientation complete + date
-- agreement/protocol version accepted + accepted_at
-
-Prefer one small repo-consistent extension. Do not build an LMS.
-
-## Step D — Freeze the base cohort commercial agreement
-
-Mutable config defines defaults, but the assigned professional's agreed base amount must not change retroactively when config changes.
-
-At assignment/activation time preserve only the minimum approved facts:
+Minimum facts when needed:
 
 - cohort
 - professional
@@ -125,15 +76,13 @@ At assignment/activation time preserve only the minimum approved facts:
 - applicable terms/version
 - effective/accepted date
 
-Before adding new storage, inspect whether current payment-info/payout structures can hold this cleanly.
+Do not snapshot the entire financial model.
 
-Do not snapshot the full financial model.
+## 5. Reuse consult bookings for paid 1:1 care
 
-## Step E — Reuse consult bookings for paid 1:1 care
+Do not create another appointment system.
 
-Do not create a second appointment table.
-
-Extend the existing booking/completion path only if needed to distinguish:
+Only if required, extend existing `consult_bookings` to distinguish:
 
 - included vs separately billable
 - agreed fee
@@ -141,11 +90,11 @@ Extend the existing booking/completion path only if needed to distinguish:
 - platform amount/share
 - payable/settled state
 
-Freeze commercial values on the booking once the separately paid appointment is confirmed.
+Commercial values must be frozen on the booking when confirmed.
 
-## Step F — Manual quality review in existing performance flow
+## 6. Manual quality review
 
-Start from `app/(staff)/staff/performance/page.tsx`.
+Start from the existing performance flow.
 
 Cohort #1 needs only:
 
@@ -154,82 +103,29 @@ Cohort #1 needs only:
 - reviewer
 - reviewed_at
 
-Do not create automatic deductions or outcome-based scoring.
+Do not create automated deductions or clinical-outcome scoring.
 
-## Step G — Derive compensable work from existing records
+## 7. Payouts
 
-Before creating any activity record, calculate what can be proven from:
+Extend the existing Payouts surface only after the above facts exist.
 
-- consult bookings
-- escalations
-- chat/professional replies
-- medication plan audit
-- meal plan audit
-- movement plan records
-- glucose review notes
-- weekly reviews
-- existing session records
-
-Only introduce a minimal manual approved activity entry if an approved compensable activity has no authoritative source event.
-
-## Step H — Extend the existing Payouts page
-
-Do not create a separate Care Pod payout application.
-
-First useful output:
+First useful Care Pod payout view:
 
 - professional
 - role
 - cohort
 - base amount
-- additional approved activity amount
+- approved extra activity
 - paid-consult amount
 - quality eligibility/hold state
 - calculated total
 - settlement state
 
-For Cohort #1, manual bank settlement can remain outside the app; the app should focus on accurate calculation, approval, audit and paid-state recording.
+Reuse existing super-admin authorization, platform currency, payment-info patterns, audit behavior and paid-state conventions.
 
-Reuse:
+## 8. Stop conditions
 
-- super-admin authorization
-- payment-info patterns
-- platform currency config/formatter
-- audit-before-paid-state behavior
-- current payout UI conventions
-
----
-
-# 3. Things NOT to change
-
-Do not modify or replace:
-
-- existing `care_pods` architecture
-- cohort membership model
-- role/RLS design
-- AI triage taxonomy
-- escalation engine
-- glucose urgent/routine thresholds
-- medication plan ownership/audit
-- current scheduling model
-- lead CRM
-- current super-admin security model
-
----
-
-# 4. Next implementation decision
-
-After the commercial-default migration, do **not** immediately build payouts.
-
-Next inspect whether the existing professional Lead -> Staff workflow is sufficient for the founding cohort. If yes, skip convenience automation and move directly to the minimum professional activation facts (credential verification, orientation, agreement acceptance).
-
-Only then should the cohort-specific commercial snapshot be designed.
-
----
-
-# 5. Stop conditions
-
-Stop and re-review before implementation if any proposed change requires:
+Stop and re-review if a proposed change requires:
 
 - a second professional identity model
 - a second Care Pod model
