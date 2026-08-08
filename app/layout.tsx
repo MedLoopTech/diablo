@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Outfit, Noto_Naskh_Arabic } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -26,6 +27,7 @@ const notoNaskhArabic = Noto_Naskh_Arabic({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Loop/90 — Diabetes Remission Challenge",
     template: "%s | Loop/90",
@@ -44,10 +46,17 @@ export const metadata: Metadata = {
   },
   formatDetection: { telephone: false },
   openGraph: {
+    siteName: "Loop/90",
     title: "Loop/90 — Diabetes Remission Challenge",
-    description:
-      "90 days. Your care pod. Real remission science.",
+    description: "90 days. Your care pod. Real remission science.",
     type: "website",
+    images: [{ url: "/icon-512.png", width: 512, height: 512 }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Loop/90 — Diabetes Remission Challenge",
+    description: "90 days. Your care pod. Real remission science.",
+    images: ["/icon-512.png"],
   },
 };
 
