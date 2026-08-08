@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Disclaimer } from "@/components/Disclaimer";
 import { LeadModalProvider, LeadCta } from "@/components/marketing/LeadModal";
+import { MobileNav } from "@/components/marketing/MobileNav";
 import { loadConfig } from "@/lib/automation";
 
 // Fallback if automation_config hasn't been seeded — matches the number used
@@ -67,8 +68,8 @@ export async function MarketingLanding() {
               For clinicians
             </Link>
           </nav>
-          <div className="flex items-center gap-5">
-            <Link href="/login" className="font-body text-[13.5px] font-semibold text-ink-soft hover:text-ink">
+          <div className="flex items-center gap-4 sm:gap-5">
+            <Link href="/login" className="hidden font-body text-[13.5px] font-semibold text-ink-soft hover:text-ink sm:block">
               Log in
             </Link>
             <a
@@ -77,6 +78,29 @@ export async function MarketingLanding() {
             >
               Reserve your spot
             </a>
+            <MobileNav
+              links={[
+                { label: "Your path", href: "#path" },
+                { label: "Care pod", href: "#care-pod" },
+                { label: "Evidence", href: "#evidence" },
+                { label: "Pricing", href: "#pricing" },
+                { label: "FAQ", href: "#faq" },
+                { label: "For clinicians", href: "/professionals" },
+              ]}
+              extra={
+                <>
+                  <Link href="/login" className="font-body text-[15px] font-semibold text-ink">
+                    Log in
+                  </Link>
+                  <a
+                    href="#pricing"
+                    className="rounded-full bg-primary px-5 py-3 text-center font-body text-[14px] font-bold text-white"
+                  >
+                    Reserve your spot
+                  </a>
+                </>
+              }
+            />
           </div>
         </div>
       </header>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LeadModalProvider, LeadCta } from "@/components/marketing/LeadModal";
+import { MobileNav } from "@/components/marketing/MobileNav";
 import { Reveal } from "@/components/marketing/Reveal";
 import { loadConfig } from "@/lib/automation";
 
@@ -85,13 +86,30 @@ export async function ProfessionalsLanding() {
             <a href="#how" className="font-body text-[13.5px] font-semibold text-ink-soft hover:text-ink">How it works</a>
             <a href="#refer" className="font-body text-[13.5px] font-semibold text-ink-soft hover:text-ink">Refer &amp; earn</a>
           </nav>
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-4 sm:gap-5">
             <Link href="/" className="hidden font-body text-[13.5px] font-semibold text-ink-soft hover:text-ink sm:block">
               For patients
             </Link>
-            <LeadCta className="rounded-full bg-primary px-5 py-2 font-body text-[13px] font-bold text-white">
+            <LeadCta className="hidden rounded-full bg-primary px-5 py-2 font-body text-[13px] font-bold text-white sm:block">
               Apply to join
             </LeadCta>
+            <MobileNav
+              links={[
+                { label: "Roles", href: "#roles" },
+                { label: "How it works", href: "#how" },
+                { label: "Refer & earn", href: "#refer" },
+              ]}
+              extra={
+                <>
+                  <Link href="/" className="font-body text-[15px] font-semibold text-ink">
+                    For patients
+                  </Link>
+                  <LeadCta className="rounded-full bg-primary px-5 py-3 text-center font-body text-[14px] font-bold text-white">
+                    Apply to join
+                  </LeadCta>
+                </>
+              }
+            />
           </div>
         </div>
       </header>
