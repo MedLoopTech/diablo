@@ -6,7 +6,7 @@ import { loadConfig } from "@/lib/automation";
 
 // Fallback if automation_config hasn't been seeded — matches the number used
 // across the original marketing assets.
-const DEFAULT_CONTACT_WHATSAPP = "923452739406";
+const DEFAULT_CONTACT_WHATSAPP = "923396335667";
 
 function Section({ children, className = "", id }: { children: React.ReactNode; className?: string; id?: string }) {
   return (
@@ -385,6 +385,16 @@ export async function ProfessionalsLanding() {
             not provide professional indemnity insurance — you remain responsible for maintaining your own
             cover and practising within your licence. Compensation terms are confirmed in writing before
             any placement.
+          </p>
+          <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 font-body text-[12px] text-[#8FB0A3]">
+            <a href="mailto:loop90@getmedloop.com" className="underline underline-offset-2 hover:text-paper">loop90@getmedloop.com</a>
+            <span aria-hidden="true">&bull;</span>
+            <a href={`https://wa.me/${contactWhatsapp}`} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-paper">
+              WhatsApp: +{contactWhatsapp.slice(0, 2)} {contactWhatsapp.slice(2, 5)} {contactWhatsapp.slice(5, 8)} {contactWhatsapp.slice(8)}
+            </a>
+          </div>
+          <p className="mt-4 max-w-xl font-body text-[11px] leading-relaxed text-[#6E8F82]">
+            Loop/90 is a product of MedLoop Technologies (Private) Limited, Karachi, Pakistan.
           </p>
           <Link href="/" className="mt-5 inline-block font-body text-[12.5px] font-bold text-marigold hover:underline">
             ← Loop/90 for patients

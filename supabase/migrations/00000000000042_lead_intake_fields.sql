@@ -22,7 +22,7 @@ values (
   'Number shown to visitors as the direct-contact fallback after submitting a marketing form. International format, no plus sign (e.g. 923001234567).',
   'general',
   2,
-  '923452739406'
+  '923396335667'
 )
 on conflict (key) do nothing;
 

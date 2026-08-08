@@ -6,7 +6,7 @@ import { loadConfig } from "@/lib/automation";
 
 // Fallback if automation_config hasn't been seeded — matches the number used
 // across the original marketing assets.
-const DEFAULT_CONTACT_WHATSAPP = "923452739406";
+const DEFAULT_CONTACT_WHATSAPP = "923396335667";
 import { GlucoseDial } from "@/components/marketing/GlucoseDial";
 import { JourneyPath } from "@/components/marketing/JourneyPath";
 import { Reveal } from "@/components/marketing/Reveal";
@@ -497,9 +497,16 @@ export async function MarketingLanding() {
             Individual results vary. The money-back guarantee applies only to patients who meet
             the stated eligibility criteria.
           </p>
-          <div className="mt-4 font-body text-[12px] text-[#8FB0A3]">
-            <a href="mailto:hello@loop90.pk" className="underline underline-offset-2 hover:text-paper">hello@loop90.pk</a>
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 font-body text-[12px] text-[#8FB0A3]">
+            <a href="mailto:loop90@getmedloop.com" className="underline underline-offset-2 hover:text-paper">loop90@getmedloop.com</a>
+            <span aria-hidden="true">&bull;</span>
+            <a href={`https://wa.me/${contactWhatsapp}`} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-paper">
+              WhatsApp: +{contactWhatsapp.slice(0, 2)} {contactWhatsapp.slice(2, 5)} {contactWhatsapp.slice(5, 8)} {contactWhatsapp.slice(8)}
+            </a>
           </div>
+          <p className="mt-4 max-w-xl font-body text-[11px] leading-relaxed text-[#6E8F82]">
+            Loop/90 is a product of MedLoop Technologies (Private) Limited, Karachi, Pakistan.
+          </p>
         </Section>
       </footer>
     </div>
